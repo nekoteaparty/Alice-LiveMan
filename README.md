@@ -9,3 +9,6 @@
 
 ## 支持的推流目标
 + 哔哩哔哩
+
+## 许可协议
+### [GNU General Public License v3.0](https://github.com/NekoSunflower/Alice-LiveMan/blob/master/LICENSE)
