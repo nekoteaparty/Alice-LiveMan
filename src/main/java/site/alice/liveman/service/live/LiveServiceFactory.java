@@ -21,8 +21,11 @@ public class LiveServiceFactory implements ApplicationContextAware {
 
     public LiveService getLiveService(String channelUrl) throws URISyntaxException {
         for (LiveService liveService : liveServiceMap.values()) {
-            if (liveService.isMatch(new URI(channelUrl))) {
-                return liveService;
+            try {
+                if (liveService.isMatch(new URI(channelUrl))) {
+                    return liveService;
+                }
+            } catch (Exception ignored) {
             }
         }
         throw new BeanDefinitionStoreException("没有找到可以处理[" + channelUrl + "]的LiveService");

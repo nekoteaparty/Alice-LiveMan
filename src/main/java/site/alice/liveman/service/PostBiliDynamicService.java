@@ -18,6 +18,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class PostBiliDynamicService {
@@ -40,7 +42,7 @@ public class PostBiliDynamicService {
 
     private static final File   dynamicPostedListFile = new File("dynamicPostedList.txt");
     private static final String DYNAMIC_POST_API      = "https://api.vc.bilibili.com/dynamic_repost/v1/dynamic_repost/repost";
-    private static final String DYNAMIC_POST_PARAM    = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/36577&at_uids=&ctrl=[]&csrf_token=a7c224e907966d34ff2c6417bf0a209c";
+    private static final String DYNAMIC_POST_PARAM    = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/36577&at_uids=&ctrl=[]&csrf_token=";
 
     static {
         MediaProxyManager.addListener(new MediaProxyEventListener() {
@@ -64,7 +66,12 @@ public class PostBiliDynamicService {
                     try {
                         dynamicPostedList.add(mediaProxyTask.getVideoId());
                         FileUtils.writeLines(dynamicPostedListFile, dynamicPostedList);
-                        String res = HttpRequestUtil.downloadUrl(new URL(DYNAMIC_POST_API), biliCookie, String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle()), StandardCharsets.UTF_8, null);
+                        Matcher matcher = Pattern.compile("bili_jct=(.+?);").matcher(biliCookie);
+                        String csrfToken = "";
+                        if (matcher.find()) {
+                            csrfToken = matcher.group(1);
+                        }
+                        String res = HttpRequestUtil.downloadUrl(new URL(DYNAMIC_POST_API), biliCookie, String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle()) + csrfToken, StandardCharsets.UTF_8, null);
                         JSONObject jsonObject = JSONObject.parseObject(res);
                         if (!jsonObject.getString("msg").equals("succ")) {
                             LOGGER.error("发送B站动态失败" + res);

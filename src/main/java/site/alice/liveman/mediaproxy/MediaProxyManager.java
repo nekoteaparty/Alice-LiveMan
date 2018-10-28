@@ -37,12 +37,19 @@ public class MediaProxyManager implements ApplicationContextAware {
     }
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxy(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat(), videoInfo.getNetworkProxy());
+        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat(), videoInfo.getNetworkProxy());
         mediaProxyTask.setVideoInfo(videoInfo);
+        runProxy(mediaProxyTask);
         return mediaProxyTask;
     }
 
     public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
+        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat, proxy);
+        runProxy(mediaProxyTask);
+        return mediaProxyTask;
+    }
+
+    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
         for (Map.Entry<String, MediaProxy> metaProxyEntry : proxyMap.entrySet()) {
             MediaProxy metaProxy = metaProxyEntry.getValue();
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
@@ -50,7 +57,6 @@ public class MediaProxyManager implements ApplicationContextAware {
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
                 String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
-                MediaProxyManager.runProxy(mediaProxyTask);
                 return mediaProxyTask;
             }
         }
