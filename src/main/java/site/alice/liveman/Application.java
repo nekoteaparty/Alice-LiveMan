@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class}, scanBasePackages = {"site.alicemononobe.liveman"})
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class}, scanBasePackages = {"site.alice.liveman"})
 @Configuration
 @PropertySource("classpath:application.properties")
 @EnableScheduling
