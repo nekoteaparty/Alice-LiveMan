@@ -18,13 +18,20 @@
 package site.alice.liveman.mediaproxy.proxytask;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
+import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.HttpRequestUtil;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
@@ -56,10 +63,29 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     if (queueData != null) {
                         for (int i = 0; i < 3; i++) {
                             try {
+                                VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
                                 String[] queueDatas = queueData.split("@");
                                 File seqFile = new File(queueDatas[1]);
                                 if (!seqFile.exists()) {
-                                    HttpRequestUtil.downloadToFile(new URL(queueDatas[0]), seqFile, getProxy());
+                                    if (mediaVideoInfo.getEncodeMethod() == null) {
+                                        HttpRequestUtil.downloadToFile(new URL(queueDatas[0]), seqFile, getProxy());
+                                    } else {
+                                        seqFile.getParentFile().mkdirs();
+                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URL(queueDatas[0]), getProxy());
+                                        try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
+                                            try {
+                                                SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
+                                                Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                                                IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
+                                                cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
+                                                byte[] decodedData = cipher.doFinal(encodedData);
+                                                IOUtils.write(decodedData, seqFileStream);
+                                            } catch (Exception e) {
+                                                log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
+                                                IOUtils.write(encodedData, seqFileStream);
+                                            }
+                                        }
+                                    }
                                     createM3U8File();
                                     retry.set(0);
                                 }

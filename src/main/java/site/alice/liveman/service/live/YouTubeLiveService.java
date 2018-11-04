@@ -97,7 +97,7 @@ public class YouTubeLiveService extends LiveService {
                     for (int i = 0; i < m3u8List.length; i++) {
                         if (m3u8List[i].contains("1280x720")) {
                             mediaUrl = m3u8List[i + 1];
-                            break;
+                            // 这里不需要加break，取相同分辨率下码率最高的
                         }
                     }
                     if (mediaUrl == null) {

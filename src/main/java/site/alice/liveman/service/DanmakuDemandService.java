@@ -55,7 +55,7 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
     private static       long                      NEXT_RESET_TIME  = System.currentTimeMillis();
     private              DanmakuReceiver           danmakuReceiver;
     private static final List<DemandEventListener> listeners        = new ArrayList<>();
-    private static final String                    dynamicTipFormat = "当前点播信息：%s\n发送对应VTuber直播间名称点播（可以从简介中复制），点播有效期1分钟，1分钟后点播权重减半\n创建和谐社会，当直播节目名带有 %s 关键字时将不会转播。";
+    private static final String                    dynamicTipFormat = "当前点播信息：%s\n发送对应VTuber直播间名称点播（可以从简介中复制），点播有效期1分钟，1分钟后点播权重减半\n创建和谐社会，当直播节目名或相关游戏带有下列关键字时将不会转播：\n%s";
     @Autowired
     private              MediaProxyManager         mediaProxyManager;
     @Value("${bili.banned.keywords}")

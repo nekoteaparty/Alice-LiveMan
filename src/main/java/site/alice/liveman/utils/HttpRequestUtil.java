@@ -25,14 +25,18 @@ import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.zip.GZIPInputStream;
 
 public class HttpRequestUtil {
 
     public static String downloadUrl(URL url, Charset charset, Proxy proxy) throws IOException {
-        return downloadUrl(url, null, charset, proxy);
+        return downloadUrl(url, null, Collections.emptyMap(), charset, proxy);
     }
 
-    public static String downloadUrl(URL url, String cookies, Charset charset, Proxy proxy) throws IOException {
+    public static String downloadUrl(URL url, String cookies, Map<String, String> requestProperties, Charset charset, Proxy proxy) throws IOException {
         URLConnection conn;
         if (proxy != null) {
             conn = url.openConnection(proxy);
@@ -44,10 +48,19 @@ public class HttpRequestUtil {
         if (StringUtils.isNotBlank(cookies)) {
             conn.setRequestProperty("Cookie", cookies);
         }
+        if (requestProperties != null) {
+            for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
+                conn.setRequestProperty(entry.getKey(), entry.getValue());
+            }
+        }
         conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36");
+        conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         conn.connect();
         InputStream is = conn.getInputStream();
+        if (StringUtils.containsIgnoreCase(conn.getHeaderField("Content-Encoding"), "gzip")) {
+            is = new GZIPInputStream(is);
+        }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
         int readCount = 0;
@@ -72,10 +85,14 @@ public class HttpRequestUtil {
             conn.setRequestProperty("Cookie", cookies);
         }
         conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36");
+        conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         conn.connect();
         conn.getOutputStream().write(postData.getBytes(charset));
         InputStream is = conn.getInputStream();
+        if (StringUtils.containsIgnoreCase(conn.getHeaderField("Content-Encoding"), "gzip")) {
+            is = new GZIPInputStream(is);
+        }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
         int readCount = 0;
@@ -96,9 +113,13 @@ public class HttpRequestUtil {
         conn.setConnectTimeout(2000);
         conn.setReadTimeout(5000);
         conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36");
+        conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         conn.connect();
         InputStream is = conn.getInputStream();
+        if (StringUtils.containsIgnoreCase(conn.getHeaderField("Content-Encoding"), "gzip")) {
+            is = new GZIPInputStream(is);
+        }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
         int readCount = 0;
@@ -119,20 +140,24 @@ public class HttpRequestUtil {
         conn.setConnectTimeout(2000);
         conn.setReadTimeout(5000);
         conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36");
+        conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         conn.connect();
         InputStream is = conn.getInputStream();
+        if (StringUtils.containsIgnoreCase(conn.getHeaderField("Content-Encoding"), "gzip")) {
+            is = new GZIPInputStream(is);
+        }
         File tempFile = new File(file.toString() + ".tmp");
         tempFile.deleteOnExit();
         tempFile.getParentFile().mkdirs();
-        @Cleanup FileOutputStream fos = new FileOutputStream(tempFile);
-        byte[] buffer = new byte[1024];
-        int readCount = 0;
-        while ((readCount = is.read(buffer)) > 0) {
-            fos.write(buffer, 0, readCount);
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[1024];
+            int readCount = 0;
+            while ((readCount = is.read(buffer)) > 0) {
+                fos.write(buffer, 0, readCount);
+            }
+            is.close();
         }
-        is.close();
-        fos.close();
         tempFile.renameTo(file);
     }
 }

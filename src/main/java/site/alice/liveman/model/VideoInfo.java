@@ -29,6 +29,9 @@ public class VideoInfo implements Serializable {
     private           String      description;
     private           URI         mediaUrl;
     private           String      mediaFormat;
+    private           String      encodeMethod;
+    private           byte[]      encodeKey;
+    private           byte[]      encodeIV;
     private transient Proxy       networkProxy;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
@@ -93,5 +96,29 @@ public class VideoInfo implements Serializable {
 
     public void setNetworkProxy(Proxy networkProxy) {
         this.networkProxy = networkProxy;
+    }
+
+    public String getEncodeMethod() {
+        return encodeMethod;
+    }
+
+    public void setEncodeMethod(String encodeMethod) {
+        this.encodeMethod = encodeMethod;
+    }
+
+    public byte[] getEncodeKey() {
+        return encodeKey;
+    }
+
+    public void setEncodeKey(byte[] encodeKey) {
+        this.encodeKey = encodeKey;
+    }
+
+    public byte[] getEncodeIV() {
+        return encodeIV;
+    }
+
+    public void setEncodeIV(byte[] encodeIV) {
+        this.encodeIV = encodeIV;
     }
 }
