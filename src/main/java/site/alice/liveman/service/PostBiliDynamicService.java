@@ -83,7 +83,7 @@ public class PostBiliDynamicService {
                     try {
                         dynamicPostedList.add(mediaProxyTask.getVideoId());
                         FileUtils.writeLines(dynamicPostedListFile, dynamicPostedList);
-                        Matcher matcher = Pattern.compile("bili_jct=(.+?);").matcher(biliCookie);
+                        Matcher matcher = Pattern.compile("bili_jct=(.+)[;]?").matcher(biliCookie);
                         String csrfToken = "";
                         if (matcher.find()) {
                             csrfToken = matcher.group(1);
