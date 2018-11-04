@@ -171,7 +171,7 @@ public class AutoLiveManJob {
                 cleanupProcess(pidFile, false);
             }
             try {
-                String startLiveJson = HttpRequestUtil.downloadUrl(new URL(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
+                String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
                 JSONObject startLiveObject = JSON.parseObject(startLiveJson);
                 JSONObject rtmpObject;
                 if (startLiveObject.get("data") instanceof JSONObject) {

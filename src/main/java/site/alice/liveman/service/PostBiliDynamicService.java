@@ -31,7 +31,8 @@ import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.io.*;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,21 +81,22 @@ public class PostBiliDynamicService {
                     return;
                 }
                 if (!dynamicPostedList.contains(mediaProxyTask.getVideoId())) {
+                    Matcher matcher = Pattern.compile("bili_jct=(.+)[;]?").matcher(biliCookie);
+                    String csrfToken = "";
+                    if (matcher.find()) {
+                        csrfToken = matcher.group(1);
+                    }
+                    String postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle()) + csrfToken;
                     try {
                         dynamicPostedList.add(mediaProxyTask.getVideoId());
                         FileUtils.writeLines(dynamicPostedListFile, dynamicPostedList);
-                        Matcher matcher = Pattern.compile("bili_jct=(.+)[;]?").matcher(biliCookie);
-                        String csrfToken = "";
-                        if (matcher.find()) {
-                            csrfToken = matcher.group(1);
-                        }
-                        String res = HttpRequestUtil.downloadUrl(new URL(DYNAMIC_POST_API), biliCookie, String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle()) + csrfToken, StandardCharsets.UTF_8, null);
+                        String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), biliCookie, postData, StandardCharsets.UTF_8, null);
                         JSONObject jsonObject = JSONObject.parseObject(res);
                         if (!jsonObject.getString("msg").equals("succ")) {
                             LOGGER.error("发送B站动态失败" + res);
                         }
-                    } catch (IOException ex) {
-                        LOGGER.error("发送B站动态失败", ex);
+                    } catch (Exception ex) {
+                        LOGGER.error("发送B站动态失败[postData=" + postData + "]", ex);
                     }
                 }
             }

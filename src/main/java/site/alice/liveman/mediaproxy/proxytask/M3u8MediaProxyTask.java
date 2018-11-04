@@ -35,7 +35,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -68,10 +67,10 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                 File seqFile = new File(queueDatas[1]);
                                 if (!seqFile.exists()) {
                                     if (mediaVideoInfo.getEncodeMethod() == null) {
-                                        HttpRequestUtil.downloadToFile(new URL(queueDatas[0]), seqFile, getProxy());
+                                        HttpRequestUtil.downloadToFile(new URI(queueDatas[0]), seqFile, getProxy());
                                     } else {
                                         seqFile.getParentFile().mkdirs();
-                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URL(queueDatas[0]), getProxy());
+                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URI(queueDatas[0]), getProxy());
                                         try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
                                             try {
                                                 SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
@@ -117,11 +116,13 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     @Override
     public void runTask() throws InterruptedException {
         MediaProxyManager.runProxy(downloadTask);
+        File m3u8File = new File(MediaProxyManager.getTempPath() + "/m3u8/" + getVideoId() + "/index.m3u8");
+        m3u8File.delete();
         while (retry.get() < MAX_RETRY_COUNT && !getTerminated()) {
             long start = System.currentTimeMillis();
             try {
                 log.debug("get m3u8 meta info from " + getSourceUrl());
-                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl().toURL(), Charset.defaultCharset(), getProxy()).split("\n");
+                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset(), getProxy()).split("\n");
                 int seqCount = 0;
                 int readSeqCount = 0;
                 int startSeq = 0;

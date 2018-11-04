@@ -26,7 +26,6 @@ import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,13 +40,13 @@ public class TwitcastingLiveService extends LiveService {
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         String roomName = channelUrl.replace("https://twitcasting.tv/", "").replace("/", "");
-        URL streamServerUrl = new URL("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
+        URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
         String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8, null);
         JSONObject streamServer = JSONObject.parseObject(serverInfo);
         JSONObject movie = streamServer.getJSONObject("movie");
         if (movie.getBoolean("live")) {
             String videoTitle = "";
-            String roomHtml = HttpRequestUtil.downloadUrl(new URL(channelUrl), StandardCharsets.UTF_8, null);
+            String roomHtml = HttpRequestUtil.downloadUrl(new URI(channelUrl), StandardCharsets.UTF_8, null);
             Matcher matcher = ROOM_TITLE_PATTERN.matcher(roomHtml);
             if (matcher.find()) {
                 videoTitle = matcher.group(1);

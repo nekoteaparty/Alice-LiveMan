@@ -36,7 +36,7 @@ public class MirrativLiveService extends LiveService {
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         String userId = channelUrl.replace("https://www.mirrativ.com/user/", "").replace("/", "");
-        URL liveHistoryUrl = new URL("https://www.mirrativ.com/api/live/live_history?user_id=" + userId + "&page=1");
+        URI liveHistoryUrl = new URI("https://www.mirrativ.com/api/live/live_history?user_id=" + userId + "&page=1");
         String liveHistoryJson = HttpRequestUtil.downloadUrl(liveHistoryUrl, StandardCharsets.UTF_8, null);
         JSONObject liveHistory = JSON.parseObject(liveHistoryJson);
         JSONArray lives = liveHistory.getJSONArray("lives");
@@ -44,10 +44,10 @@ public class MirrativLiveService extends LiveService {
             JSONObject liveObj = lives.getJSONObject(0);
             if (liveObj.getBoolean("is_live")) {
                 String videoId = liveObj.getString("live_id");
-                String liveDetailJson = HttpRequestUtil.downloadUrl(new URL("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8, null);
+                String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8, null);
                 JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
                 String videoTitle = liveDetailObj.getString("title");
-                URL m3u8ListUrl = new URL(liveDetailObj.getString("streaming_url_hls"));
+                URI m3u8ListUrl = new URI(liveDetailObj.getString("streaming_url_hls"));
                 String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
@@ -59,7 +59,7 @@ public class MirrativLiveService extends LiveService {
                 if (mediaUrl == null) {
                     mediaUrl = m3u8List[3];
                 }
-                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.toURI().resolve(mediaUrl), "m3u8");
+                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
             }
         }
         return null;
