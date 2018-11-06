@@ -21,6 +21,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -84,7 +86,7 @@ public class HttpRequestUtil {
         HttpClientContext context = HttpClientContext.create();
         context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setRedirectsEnabled(true);
+        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
         if (StringUtils.isNotBlank(cookies)) {
             httpGet.addHeader("Cookie", cookies);
@@ -107,7 +109,7 @@ public class HttpRequestUtil {
         HttpClientContext context = HttpClientContext.create();
         context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setRedirectsEnabled(true);
+        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpPost.setConfig(builder.build());
         if (StringUtils.isNotBlank(cookies)) {
             httpPost.addHeader("Cookie", cookies);
@@ -136,7 +138,7 @@ public class HttpRequestUtil {
         HttpClientContext context = HttpClientContext.create();
         context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setRedirectsEnabled(true);
+        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
@@ -151,7 +153,7 @@ public class HttpRequestUtil {
         HttpClientContext context = HttpClientContext.create();
         context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setRedirectsEnabled(true);
+        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");

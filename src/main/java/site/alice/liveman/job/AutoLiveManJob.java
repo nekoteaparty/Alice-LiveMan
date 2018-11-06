@@ -181,7 +181,7 @@ public class AutoLiveManJob {
                 }
                 String biliRtmpUrl = rtmpObject.getString("addr") + rtmpObject.getString("code");
                 String firstMainTitle = channelInfoList.isEmpty() ? "[空的直播位]" : " " + channelInfoList.get(0).getChannelName();
-                String loopCmdLine = "-stream_loop -1 -i " + (channelInfoList.isEmpty() ? "\"" + moviePlaceHolder + "\"" : "\"" + channelInfoList.get(0).getMediaUrl() + "\"");
+                String loopCmdLine = "-rw_timeout 3000 -stream_loop -1 -i " + (channelInfoList.isEmpty() ? "\"" + moviePlaceHolder + "\"" : "\"" + channelInfoList.get(0).getMediaUrl() + "\"");
                 String cmdLine = " -re " + loopCmdLine + " -vf \"[in]scale=-1:900, pad=1920:1080[main];[main]drawtext=x=1610:y=16+275*0:font='YaHei Consolas Hybrid':fontcolor=White:text='←" + firstMainTitle + "':fontsize=28[main_text];" +
                         "movie='%s',scale=-1:180[sub1];[main_text]drawtext=x=1610:y=16+275*1:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub1_text];[sub3_text][sub1]overlay=main_w-overlay_w:95+275*0[lay1_text];" +
                         "movie='%s',scale=-1:180[sub2];[sub1_text]drawtext=x=1610:y=16+275*2:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub2_text];[lay1_text][sub2]overlay=main_w-overlay_w:95+275*1[lay2_text];" +

@@ -98,7 +98,11 @@ public class AbemaTvLiveService extends LiveService {
             long currentTimeMillis = System.currentTimeMillis();
             String formattedDate = dateFormat.format(currentTimeMillis);
             String timetableInfo = HttpRequestUtil.downloadUrl(new URI(String.format("https://api.abema.io/v1/media?dateFrom=%s&dateTo=%s&channelIds=%s", formattedDate, formattedDate, channelId)), null, requestProperties, StandardCharsets.UTF_8, JAPAN_PROXY);
-            JSONArray channelSlots = JSON.parseObject(timetableInfo).getJSONArray("channelSchedules").getJSONObject(0).getJSONArray("slots");
+            JSONArray channelSchedules = JSON.parseObject(timetableInfo).getJSONArray("channelSchedules");
+            if (channelSchedules.isEmpty()) {
+                return null;
+            }
+            JSONArray channelSlots = channelSchedules.getJSONObject(0).getJSONArray("slots");
             for (int i = 0; i < channelSlots.size(); i++) {
                 JSONObject channelSlot = channelSlots.getJSONObject(i);
                 if (channelSlot.getJSONArray("programs").getJSONObject(0).getJSONObject("series").getString("id").equals(seriesId)) {

@@ -17,7 +17,7 @@
  */
 package site.alice.liveman.mediaproxy.proxytask;
 
-import site.alice.liveman.mediaproxy.MediaProxyManager;
+import lombok.extern.slf4j.Slf4j;
 import site.alice.liveman.model.VideoInfo;
 
 import java.io.Serializable;
@@ -25,6 +25,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
     private           String               videoId;
@@ -90,22 +91,19 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         isTerminated = false;
         try {
             runTask();
-        } catch (Exception ignored) {
-
+        } catch (Exception e) {
+            log.error(videoInfo.toString(), e);
         }
-        terminate();
+        isTerminated = true;
+        terminateTask();
+        // 将自身从代理列表中移除
+        if (parentProxyTasks != null) {
+            parentProxyTasks.remove(this);
+        }
     }
 
     public void terminate() {
-        if (!isTerminated) {
-            MediaProxyManager.removeProxy(this);
-            isTerminated = true;
-            terminateTask();
-            // 将自身从代理列表中移除
-            if (parentProxyTasks != null) {
-                parentProxyTasks.remove(this);
-            }
-        }
+        isTerminated = true;
     }
 
     protected abstract void runTask() throws Exception;

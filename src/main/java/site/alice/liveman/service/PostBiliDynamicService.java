@@ -81,7 +81,7 @@ public class PostBiliDynamicService {
                     return;
                 }
                 if (!dynamicPostedList.contains(mediaProxyTask.getVideoId())) {
-                    Matcher matcher = Pattern.compile("bili_jct=(.+)[;]?").matcher(biliCookie);
+                    Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(biliCookie);
                     String csrfToken = "";
                     if (matcher.find()) {
                         csrfToken = matcher.group(1);
@@ -93,7 +93,7 @@ public class PostBiliDynamicService {
                         String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), biliCookie, postData, StandardCharsets.UTF_8, null);
                         JSONObject jsonObject = JSONObject.parseObject(res);
                         if (!jsonObject.getString("msg").equals("succ")) {
-                            LOGGER.error("发送B站动态失败" + res);
+                            LOGGER.error("发送B站动态失败[postData=" + postData + "]" + res);
                         }
                     } catch (Exception ex) {
                         LOGGER.error("发送B站动态失败[postData=" + postData + "]", ex);

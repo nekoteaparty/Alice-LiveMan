@@ -50,14 +50,14 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     private              BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
     private              AtomicInteger         retry                = new AtomicInteger(0);
     private              int                   lastSeqIndex         = 0;
-    private              MediaProxyTask        downloadTask;
+    private final        MediaProxyTask        downloadTask;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
         super(videoId, sourceUrl, proxy);
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null, getProxy()) {
             @Override
             protected void runTask() throws InterruptedException {
-                while (!getTerminated()) {
+                while (retry.get() < MAX_RETRY_COUNT && !getTerminated()) {
                     String queueData = downloadQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (queueData != null) {
                         for (int i = 0; i < 3; i++) {
@@ -102,7 +102,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
             @Override
             protected void terminateTask() {
-
+                downloadTask.notifyAll();
             }
         };
     }
@@ -152,6 +152,9 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
             }
             Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
+        }
+        synchronized (downloadTask) {
+            downloadTask.wait();
         }
     }
 
