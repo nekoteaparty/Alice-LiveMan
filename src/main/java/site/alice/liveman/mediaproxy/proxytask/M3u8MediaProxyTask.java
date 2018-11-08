@@ -41,6 +41,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
@@ -50,6 +52,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     private              BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
     private              AtomicInteger         retry                = new AtomicInteger(0);
     private              int                   lastSeqIndex         = 0;
+    private transient    Lock                  lock                 = new ReentrantLock();
     private final        MediaProxyTask        downloadTask;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
@@ -57,6 +60,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null, getProxy()) {
             @Override
             protected void runTask() throws InterruptedException {
+                lock.lock();
                 while (retry.get() < MAX_RETRY_COUNT && !getTerminated()) {
                     String queueData = downloadQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (queueData != null) {
@@ -102,7 +106,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
             @Override
             protected void terminateTask() {
-                downloadTask.notifyAll();
+                lock.unlock();
             }
         };
     }
@@ -153,9 +157,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             }
             Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
         }
-        synchronized (downloadTask) {
-            downloadTask.wait();
-        }
+        while (!lock.tryLock(1000, TimeUnit.MILLISECONDS)) ;
     }
 
     private void createM3U8File() throws IOException {

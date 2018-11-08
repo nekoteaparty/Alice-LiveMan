@@ -56,26 +56,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 public class HttpRequestUtil {
 
-    private static final PoolingHttpClientConnectionManager connectionManager;
-    private static final CloseableHttpClient                client;
+    private static PoolingHttpClientConnectionManager connectionManager;
+    private static CloseableHttpClient                client;
 
     static {
+        initClient();
+    }
+
+    private static void initClient() {
+        if (client != null) {
+            try {
+                client.close();
+                connectionManager.shutdown();
+            } catch (IOException ignore) {
+
+            }
+        }
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
-        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null);
+        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 10, TimeUnit.MINUTES);
         connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
         // Increase max total connection to 200
         connectionManager.setMaxTotal(200);
         // Increase default max connection per route to 20
         connectionManager.setDefaultMaxPerRoute(20);
-        client = HttpClients.custom().setConnectionManager(connectionManager).build();
+        client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
     }
-
 
     public static String downloadUrl(URI url, Charset charset, Proxy proxy) throws IOException {
         return downloadUrl(url, null, Collections.emptyMap(), charset, proxy);
@@ -99,9 +111,18 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        CloseableHttpResponse httpResponse = client.execute(httpGet, context);
-        HttpEntity responseEntity = httpResponse.getEntity();
-        return EntityUtils.toString(responseEntity, charset);
+        try {
+            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+            HttpEntity responseEntity = httpResponse.getEntity();
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                EntityUtils.consume(responseEntity);
+                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
+            }
+            return EntityUtils.toString(responseEntity, charset);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
+        }
     }
 
     public static String downloadUrl(URI url, String cookies, String postData, Charset charset, Proxy proxy) throws IOException {
@@ -128,9 +149,18 @@ public class HttpRequestUtil {
             }
             httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, charset));
         }
-        CloseableHttpResponse httpResponse = client.execute(httpPost, context);
-        HttpEntity responseEntity = httpResponse.getEntity();
-        return EntityUtils.toString(responseEntity, charset);
+        try {
+            CloseableHttpResponse httpResponse = client.execute(httpPost, context);
+            HttpEntity responseEntity = httpResponse.getEntity();
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                EntityUtils.consume(responseEntity);
+                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
+            }
+            return EntityUtils.toString(responseEntity, charset);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
+        }
     }
 
     public static byte[] downloadUrl(URI url, Proxy proxy) throws IOException {
@@ -143,9 +173,14 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        CloseableHttpResponse httpResponse = client.execute(httpGet, context);
-        HttpEntity responseEntity = httpResponse.getEntity();
-        return EntityUtils.toByteArray(responseEntity);
+        try {
+            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+            HttpEntity responseEntity = httpResponse.getEntity();
+            return EntityUtils.toByteArray(responseEntity);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
+        }
     }
 
     public static void downloadToFile(URI url, File file, Proxy proxy) throws IOException {
@@ -158,25 +193,34 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        CloseableHttpResponse httpResponse = client.execute(httpGet, context);
-        HttpEntity responseEntity = httpResponse.getEntity();
-        InputStream is = responseEntity.getContent();
-        if (responseEntity.getContentEncoding() != null && StringUtils.containsIgnoreCase(responseEntity.getContentEncoding().getValue(), "gzip")) {
-            is = new GZIPInputStream(is);
-        }
-        File tempFile = new File(file.toString() + ".tmp");
-        tempFile.deleteOnExit();
-        tempFile.getParentFile().mkdirs();
-        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[1024];
-            int readCount = -1;
-            while ((readCount = is.read(buffer)) > -1) {
-                fos.write(buffer, 0, readCount);
+        try {
+            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+            HttpEntity responseEntity = httpResponse.getEntity();
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                EntityUtils.consume(responseEntity);
+                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
             }
-            is.close();
+            InputStream is = responseEntity.getContent();
+            if (responseEntity.getContentEncoding() != null && StringUtils.containsIgnoreCase(responseEntity.getContentEncoding().getValue(), "gzip")) {
+                is = new GZIPInputStream(is);
+            }
+            File tempFile = new File(file.toString() + ".tmp");
+            tempFile.deleteOnExit();
+            tempFile.getParentFile().mkdirs();
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[1024];
+                int readCount = -1;
+                while ((readCount = is.read(buffer)) > -1) {
+                    fos.write(buffer, 0, readCount);
+                }
+                is.close();
+            }
+            tempFile.renameTo(file);
+            EntityUtils.consume(responseEntity);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
         }
-        tempFile.renameTo(file);
-        EntityUtils.consume(responseEntity);
     }
 
     static class ProxySSLConnectionSocketFactory extends SSLConnectionSocketFactory {

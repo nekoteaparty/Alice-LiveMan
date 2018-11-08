@@ -167,9 +167,7 @@ public class AutoLiveManJob {
             }
         }
         if (!channelInfoList.equals(pidChannelInfoList)) {
-            if (pidFile != null) {
-                cleanupProcess(pidFile, false);
-            }
+            cleanupProcess(channelInfoList);
             try {
                 String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
                 JSONObject startLiveObject = JSON.parseObject(startLiveJson);
@@ -181,7 +179,7 @@ public class AutoLiveManJob {
                 }
                 String biliRtmpUrl = rtmpObject.getString("addr") + rtmpObject.getString("code");
                 String firstMainTitle = channelInfoList.isEmpty() ? "[空的直播位]" : " " + channelInfoList.get(0).getChannelName();
-                String loopCmdLine = "-rw_timeout 3000 -stream_loop -1 -i " + (channelInfoList.isEmpty() ? "\"" + moviePlaceHolder + "\"" : "\"" + channelInfoList.get(0).getMediaUrl() + "\"");
+                String loopCmdLine = "-stream_loop -1 -i " + (channelInfoList.isEmpty() ? "\"" + moviePlaceHolder + "\"" : "\"" + channelInfoList.get(0).getMediaUrl() + "\"");
                 String cmdLine = " -re " + loopCmdLine + " -vf \"[in]scale=-1:900, pad=1920:1080[main];[main]drawtext=x=1610:y=16+275*0:font='YaHei Consolas Hybrid':fontcolor=White:text='←" + firstMainTitle + "':fontsize=28[main_text];" +
                         "movie='%s',scale=-1:180[sub1];[main_text]drawtext=x=1610:y=16+275*1:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub1_text];[sub3_text][sub1]overlay=main_w-overlay_w:95+275*0[lay1_text];" +
                         "movie='%s',scale=-1:180[sub2];[sub1_text]drawtext=x=1610:y=16+275*2:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub2_text];[lay1_text][sub2]overlay=main_w-overlay_w:95+275*1[lay2_text];" +
@@ -212,6 +210,7 @@ public class AutoLiveManJob {
                 long pid = ProcessUtil.createProcess(ffmpegHome + "ffmpeg.exe", cmdLine, false);
                 if (pidFile != null) {
                     ProcessUtil.killProcess(Long.parseLong(FilenameUtils.getBaseName(pidFile.getName())));
+                    pidFile.delete();
                 }
                 ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(pidPath + "/" + pid + ".pid"));
                 oos.writeObject(channelInfoList);
@@ -229,22 +228,26 @@ public class AutoLiveManJob {
             LOGGER.info("清除无效的pid文件[" + pidFile.getName() + "]");
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(pidFile))) {
                 List<ChannelInfo> channelInfoList = (List<ChannelInfo>) ois.readObject();
-                for (ChannelInfo channelInfo : channelInfoList) {
-                    List<MediaProxyTask> mediaProxyTasks = channelInfo.getMediaProxyTasks();
-                    if (mediaProxyTasks != null) {
-                        for (MediaProxyTask mediaProxyTask : mediaProxyTasks) {
-                            if (mediaProxyTask instanceof FlvLivingMediaProxyTask) {
-                                mediaProxyTask.terminate();
-                            }
-                        }
-                    }
-                }
+                cleanupProcess(channelInfoList);
             } catch (ClassNotFoundException e) {
                 LOGGER.warn("清理pid[" + pid + "]子进程时发生异常", e);
             }
             return pidFile.delete();
         }
         return false;
+    }
+
+    private void cleanupProcess(List<ChannelInfo> channelInfoList) {
+        for (ChannelInfo channelInfo : channelInfoList) {
+            List<MediaProxyTask> mediaProxyTasks = channelInfo.getMediaProxyTasks();
+            if (mediaProxyTasks != null) {
+                for (MediaProxyTask mediaProxyTask : mediaProxyTasks) {
+                    if (mediaProxyTask instanceof FlvLivingMediaProxyTask) {
+                        mediaProxyTask.terminate();
+                    }
+                }
+            }
+        }
     }
 }
 

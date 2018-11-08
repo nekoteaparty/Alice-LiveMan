@@ -39,19 +39,21 @@ public class FlvLivingMediaProxyTask extends MediaProxyTask {
     @Override
     protected void runTask() {
         new File(getTempPath() + "/flvLiving/").mkdirs();
+        String livingFile = getTempPath() + "/flvLiving/" + getVideoId() + ".flv";
+        new File(livingFile).delete();
         URI sourceUrl = getSourceUrl();
         String source;
         if (sourceUrl.getScheme().equals("file")) {
             try {
                 source = URLDecoder.decode(sourceUrl.getAuthority(), "utf-8");
-                pid = ProcessUtil.createProcess(System.getenv("SystemRoot") + "/system32/ffmpeg.exe", " -re -stream_loop -1 -i \"" + source + "\" -flush_packets 1 -f flv " + getTempPath() + "/flvLiving/" + getVideoId() + ".flv -y", false);
+                pid = ProcessUtil.createProcess(System.getenv("SystemRoot") + "/system32/ffmpeg.exe", " -re -stream_loop -1 -i \"" + source + "\" -flush_packets 1 -f flv " + livingFile + " -y", false);
             } catch (UnsupportedEncodingException ignored) {
             }
         } else {
             source = sourceUrl.toString();
-            pid = ProcessUtil.createProcess(System.getenv("SystemRoot") + "/system32/ffmpeg.exe", " -re -i \"" + source + "\" -vf scale=320:180 -vcodec h264 -acodec aac -b:v 128K -b:a 16k -r 15 -preset ultrafast -flush_packets 1 -f flv " + getTempPath() + "/flvLiving/" + getVideoId() + ".flv -y", false);
+            pid = ProcessUtil.createProcess(System.getenv("SystemRoot") + "/system32/ffmpeg.exe", " -re -i \"" + source + "\" -vf scale=320:180 -vcodec h264 -acodec aac -b:v 128K -b:a 16k -r 15 -preset ultrafast -flush_packets 1 -f flv " + livingFile + " -y", false);
         }
-        ProcessUtil.waitProcess(pid);
+        while (!getTerminated() && ProcessUtil.waitProcess(pid, 1000) != 0) ;
     }
 
     @Override

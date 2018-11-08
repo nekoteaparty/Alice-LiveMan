@@ -81,4 +81,10 @@ public class ProcessUtil {
         HANDLE pHandle = getProcessHandle(pid);
         kernel.WaitForSingleObject(pHandle, -1);
     }
+
+    public static int waitProcess(long pid, int dwMilliseconds) {
+        Kernel32 kernel = Kernel32.INSTANCE;
+        HANDLE pHandle = getProcessHandle(pid);
+        return kernel.WaitForSingleObject(pHandle, dwMilliseconds);
+    }
 }
