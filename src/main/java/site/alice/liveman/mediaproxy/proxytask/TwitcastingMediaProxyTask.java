@@ -70,7 +70,7 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
                 }
                 Thread.sleep(1000);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(getVideoId() + "代理任务出错", e);
         }
     }
@@ -125,7 +125,7 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
                     }
                 }
             }, clientEndpointConfig, getSourceUrl());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(getVideoId() + "WebSocket连接失败", e);
         }
         return null;

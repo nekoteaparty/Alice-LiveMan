@@ -65,7 +65,7 @@ public class AbemaTvLiveService extends LiveService {
         try {
             ClassPathResource resource = new ClassPathResource("abematv.js");
             scriptEngine.eval(String.join("", IOUtils.readLines(resource.getInputStream())));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }

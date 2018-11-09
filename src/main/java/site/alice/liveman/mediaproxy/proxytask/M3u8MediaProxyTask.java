@@ -61,7 +61,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             @Override
             protected void runTask() throws InterruptedException {
                 lock.lock();
-                while (retry.get() < MAX_RETRY_COUNT && !getTerminated()) {
+                while (retry.get() < MAX_RETRY_COUNT) {
                     String queueData = downloadQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (queueData != null) {
                         for (int i = 0; i < 3; i++) {
@@ -83,7 +83,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                                 cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
                                                 byte[] decodedData = cipher.doFinal(encodedData);
                                                 IOUtils.write(decodedData, seqFileStream);
-                                            } catch (Exception e) {
+                                            } catch (Throwable e) {
                                                 log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
                                                 IOUtils.write(encodedData, seqFileStream);
                                             }
@@ -93,13 +93,15 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                     retry.set(0);
                                 }
                                 break;
-                            } catch (Exception e) {
+                            } catch (Throwable e) {
                                 log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
                                 if (e instanceof FileNotFoundException) {
                                     break;
                                 }
                             }
                         }
+                    } else if (M3u8MediaProxyTask.this.getTerminated()) {
+                        return;
                     }
                 }
             }
@@ -113,7 +115,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
     @Override
     public void terminateTask() {
-        downloadTask.terminate();
         createConcatListFile();
     }
 
@@ -152,7 +153,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 if (readSeqCount == 0) {
                     log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
             }
             Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
@@ -229,7 +230,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 FileUtils.write(new File(m3u8Path + "/concat.sh"), cmdLine);
                 FileUtils.write(new File(m3u8Path + "/play.cmd"), "ffplay -f concat -i list.txt");
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("创建TS文件列表失败", e);
         }
     }

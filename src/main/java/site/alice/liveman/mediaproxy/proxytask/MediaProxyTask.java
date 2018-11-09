@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
@@ -35,7 +36,9 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     private           VideoInfo            videoInfo;
     private           List<MediaProxyTask> parentProxyTasks;
     private transient Proxy                proxy;
+    private transient Thread               runThread;
     private volatile  Boolean              isTerminated;
+    private transient CountDownLatch       terminatedCountDown;
 
     public Proxy getProxy() {
         return proxy;
@@ -89,13 +92,18 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
 
     @Override
     public void run() {
+        runThread = Thread.currentThread();
+        terminatedCountDown = new CountDownLatch(1);
         isTerminated = false;
         try {
+            log.info(getVideoId() + "代理任务启动@" + runThread.getName());
             runTask();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(getVideoId() + "代理任务异常退出", e);
         } finally {
             isTerminated = true;
+            terminatedCountDown.countDown();
+            log.info(getVideoId() + "代理任务终止@" + runThread.getName());
             MediaProxyManager.removeProxy(this);
             // 将自身从代理列表中移除
             if (parentProxyTasks != null) {
@@ -107,6 +115,17 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
 
     public void terminate() {
         isTerminated = true;
+    }
+
+    public void waitForTerminate() {
+        try {
+            if (runThread == null) {
+                return;
+            }
+            terminatedCountDown.await();
+        } catch (InterruptedException ignored) {
+
+        }
     }
 
     protected abstract void runTask() throws Exception;

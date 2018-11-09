@@ -80,12 +80,11 @@ public class HttpRequestUtil {
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
-        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 10, TimeUnit.MINUTES);
-        connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
+        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 5, TimeUnit.MINUTES);
         // Increase max total connection to 200
-        connectionManager.setMaxTotal(200);
+        connectionManager.setMaxTotal(20000);
         // Increase default max connection per route to 20
-        connectionManager.setDefaultMaxPerRoute(20);
+        connectionManager.setDefaultMaxPerRoute(200);
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
     }
 
@@ -111,8 +110,7 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        try {
-            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+        try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
@@ -149,8 +147,7 @@ public class HttpRequestUtil {
             }
             httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, charset));
         }
-        try {
-            CloseableHttpResponse httpResponse = client.execute(httpPost, context);
+        try (CloseableHttpResponse httpResponse = client.execute(httpPost, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
@@ -173,8 +170,7 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        try {
-            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+        try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             return EntityUtils.toByteArray(responseEntity);
         } catch (IllegalStateException e) {
@@ -193,8 +189,7 @@ public class HttpRequestUtil {
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        try {
-            CloseableHttpResponse httpResponse = client.execute(httpGet, context);
+        try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);

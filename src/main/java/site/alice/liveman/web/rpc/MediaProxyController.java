@@ -36,7 +36,7 @@ public class MediaProxyController {
     public Object mediaProxyHandler(@PathVariable String proxyName, @PathVariable String videoId) {
         try {
             return MediaProxyManager.getMediaProxy(proxyName).requestHandler(videoId);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.error(e.getMessage());
         }
         return null;
