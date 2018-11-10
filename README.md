@@ -1,5 +1,5 @@
 # Alice-LiveMan
-## Supported live stream source
+## 支持的直播源
 + YouTube `https://www.youtube.com/channel/UCt0clH12Xk1-Ej5PXKGfdPA`
 + Twitcasting `https://twitcasting.tv/alice-liveman`
 + ShowRoom `https://www.showroom-live.com/alice-liveman`
@@ -7,5 +7,5 @@
 + OpenRec `https://www.openrec.tv/user/alice-liveman`
 + Mirrativ `https://www.mirrativ.com/user/alice-liveman`
 
-## Supported broadcast target
+## 支持的转播目标
 + Bilibili
