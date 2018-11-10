@@ -44,7 +44,6 @@ import site.alice.liveman.utils.HttpRequestUtil;
 import javax.annotation.PostConstruct;
 import java.io.*;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -69,8 +68,8 @@ public class AutoLiveManJob {
     private              String[]             bannedKeywords;
     @Value("${bili.cookie}")
     private              String               biliCookie;
-    @Value("${ffmpeg.home}")
-    private              String               ffmpegHome;
+    @Value("${ffmpeg.path}")
+    private              String               ffmpegPath;
 
     @PostConstruct
     public void init() throws IOException {
@@ -207,7 +206,7 @@ public class AutoLiveManJob {
                 }
                 Thread.sleep(1000);
                 cmdLine = String.format(cmdLine, args);
-                long pid = ProcessUtil.createProcess(ffmpegHome + "ffmpeg.exe", cmdLine, false);
+                long pid = ProcessUtil.createProcess(ffmpegPath, cmdLine, false);
                 if (pidFile != null) {
                     ProcessUtil.killProcess(Long.parseLong(FilenameUtils.getBaseName(pidFile.getName())));
                     pidFile.delete();
