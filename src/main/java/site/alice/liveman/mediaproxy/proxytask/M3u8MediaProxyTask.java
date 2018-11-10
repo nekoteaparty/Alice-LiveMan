@@ -52,7 +52,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     private              BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
     private              AtomicInteger         retry                = new AtomicInteger(0);
     private              int                   lastSeqIndex         = 0;
-    private transient    Lock                  lock                 = new ReentrantLock();
     private final        MediaProxyTask        downloadTask;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
@@ -60,7 +59,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null, getProxy()) {
             @Override
             protected void runTask() throws InterruptedException {
-                lock.lock();
                 while (retry.get() < MAX_RETRY_COUNT) {
                     String queueData = downloadQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (queueData != null) {
@@ -108,13 +106,14 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
             @Override
             protected void terminateTask() {
-                lock.unlock();
+
             }
         };
     }
 
     @Override
     public void terminateTask() {
+        downloadTask.waitForTerminate();
         createConcatListFile();
     }
 
@@ -158,7 +157,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             }
             Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
         }
-        while (!lock.tryLock(1000, TimeUnit.MILLISECONDS)) ;
     }
 
     private void createM3U8File() throws IOException {

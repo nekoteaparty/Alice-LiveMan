@@ -21,13 +21,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>site.alicemononobe.liveman</groupId>
+    <groupId>site.alice.liveman</groupId>
     <artifactId>liveman</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Alice LiveMan</name>
-    <description>♥♠物述有栖♦♣ LiveMan</description>
+    <description>Alice LiveMan</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

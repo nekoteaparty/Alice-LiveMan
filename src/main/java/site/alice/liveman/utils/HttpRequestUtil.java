@@ -21,7 +21,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.CookieStore;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -31,7 +30,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -46,7 +44,10 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
 import javax.net.ssl.SSLContext;
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
@@ -81,10 +82,8 @@ public class HttpRequestUtil {
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
         connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 5, TimeUnit.MINUTES);
-        // Increase max total connection to 200
-        connectionManager.setMaxTotal(20000);
-        // Increase default max connection per route to 20
-        connectionManager.setDefaultMaxPerRoute(200);
+        connectionManager.setMaxTotal(200);
+        connectionManager.setDefaultMaxPerRoute(20);
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
     }
 
@@ -114,7 +113,7 @@ public class HttpRequestUtil {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -151,7 +150,7 @@ public class HttpRequestUtil {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -172,6 +171,10 @@ public class HttpRequestUtil {
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                EntityUtils.consume(responseEntity);
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+            }
             return EntityUtils.toByteArray(responseEntity);
         } catch (IllegalStateException e) {
             initClient();
@@ -193,7 +196,7 @@ public class HttpRequestUtil {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
             }
             InputStream is = responseEntity.getContent();
             if (responseEntity.getContentEncoding() != null && StringUtils.containsIgnoreCase(responseEntity.getContentEncoding().getValue(), "gzip")) {
