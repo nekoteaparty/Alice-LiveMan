@@ -49,7 +49,7 @@ public class FlvLivingMediaProxy implements MediaProxy {
     }
 
     @Override
-    public Object requestHandler(String videoId) throws IOException, InterruptedException {
+    public void requestHandler(String videoId) throws IOException, InterruptedException {
         File sourceFile = new File(getTempPath() + "/flvLiving/" + videoId + ".flv");
         byte[] buffer = new byte[256 * 1024]; // 256K
         long fileSkipSize = 0;
@@ -72,7 +72,6 @@ public class FlvLivingMediaProxy implements MediaProxy {
                 Thread.sleep(300);
             }
         }
-        return null;
     }
 
 

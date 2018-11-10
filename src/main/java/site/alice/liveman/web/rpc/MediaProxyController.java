@@ -32,14 +32,12 @@ public class MediaProxyController {
     private static final Logger logger = LoggerFactory.getLogger(MediaProxyController.class);
 
     @RequestMapping("/{proxyName}/{videoId}")
-    @ResponseBody
-    public Object mediaProxyHandler(@PathVariable String proxyName, @PathVariable String videoId) {
+    public void mediaProxyHandler(@PathVariable String proxyName, @PathVariable String videoId) {
         try {
-            return MediaProxyManager.getMediaProxy(proxyName).requestHandler(videoId);
-        } catch (Exception e) {
+            MediaProxyManager.getMediaProxy(proxyName).requestHandler(videoId);
+        } catch (Throwable e) {
             logger.error(e.getMessage());
         }
-        return null;
     }
 
 }

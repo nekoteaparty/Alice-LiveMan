@@ -34,7 +34,7 @@ public class OpenRecLiveService extends LiveService {
     @Override
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
-        URL moviesUrl = new URL("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
+        URI moviesUrl = new URI("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
         String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8, null);
         JSONArray movies = JSON.parseArray(moviesJson);
         if (!movies.isEmpty()) {
@@ -43,7 +43,7 @@ public class OpenRecLiveService extends LiveService {
             if (onAirStatus == 1) {
                 String videoId = movieObj.getString("id");
                 String videoTitle = movieObj.getString("title");
-                URL m3u8ListUrl = new URL(movieObj.getJSONObject("media").getString("url"));
+                URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
                 String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
@@ -55,7 +55,7 @@ public class OpenRecLiveService extends LiveService {
                 if (mediaUrl == null) {
                     mediaUrl = m3u8List[3];
                 }
-                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.toURI().resolve(mediaUrl), "m3u8");
+                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
             }
         }
         return null;

@@ -17,6 +17,7 @@
  */
 package site.alice.liveman.mediaproxy.proxytask;
 
+import lombok.extern.slf4j.Slf4j;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.VideoInfo;
 
@@ -25,6 +26,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
     private           String               videoId;
@@ -33,6 +35,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     private           VideoInfo            videoInfo;
     private           List<MediaProxyTask> parentProxyTasks;
     private transient Proxy                proxy;
+    private transient Thread               runThread;
     private volatile  Boolean              isTerminated;
 
     public Proxy getProxy() {
@@ -86,26 +89,31 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         isTerminated = false;
         try {
+            runThread = Thread.currentThread();
+            log.info(getVideoId() + "代理任务启动@" + runThread.getName());
             runTask();
-        } catch (Exception ignored) {
-
-        }
-        terminate();
-    }
-
-    public void terminate() {
-        if (!isTerminated) {
-            MediaProxyManager.removeProxy(this);
+        } catch (Throwable e) {
+            log.error(getVideoId() + "代理任务异常退出", e);
+        } finally {
             isTerminated = true;
-            terminateTask();
+            log.info(getVideoId() + "代理任务终止@" + runThread.getName());
+            MediaProxyManager.removeProxy(this);
             // 将自身从代理列表中移除
             if (parentProxyTasks != null) {
                 parentProxyTasks.remove(this);
             }
+            terminateTask();
         }
+    }
+
+    public void terminate() {
+        isTerminated = true;
+    }
+
+    public synchronized void waitForTerminate() {
     }
 
     protected abstract void runTask() throws Exception;

@@ -43,13 +43,12 @@ public class M3u8MediaProxy implements MediaProxy {
     }
 
     @Override
-    public Object requestHandler(String videoId) {
+    public void requestHandler(String videoId) {
         try {
             response.sendRedirect("/mediaProxy/temp/m3u8/" + videoId + "/index.m3u8");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return null;
     }
 }
 

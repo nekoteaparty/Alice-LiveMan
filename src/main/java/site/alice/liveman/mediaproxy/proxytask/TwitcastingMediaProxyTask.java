@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TwitcastingMediaProxyTask extends MediaProxyTask {
 
     private static final int                         MAX_RETRY_COUNT   = 20;
-    private              long                        LAST_RECV_TIME    = System.currentTimeMillis();
+    private volatile     long                        LAST_RECV_TIME    = System.currentTimeMillis();
     private              AtomicInteger               retryCount        = new AtomicInteger(0);
     private transient    Session                     session           = null;
     private transient    BlockingQueue<byte[]>       bufferCache       = new ArrayBlockingQueue<>(20);
@@ -65,10 +65,12 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
                 long dt = System.currentTimeMillis() - LAST_RECV_TIME;
                 if (dt > 1000) {
                     log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
+                } else {
+                    retryCount.set(0);
                 }
                 Thread.sleep(1000);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(getVideoId() + "代理任务出错", e);
         }
     }
@@ -89,6 +91,9 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
                     session.addMessageHandler(new MessageHandler.Whole<byte[]>() {
                         @Override
                         public void onMessage(byte[] message) {
+                            if (getTerminated()) {
+                                return;
+                            }
                             if (m4sHeader == null) {
                                 m4sHeader = message;
                             } else {
@@ -113,11 +118,14 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
 
                 @Override
                 public void onClose(Session _session, CloseReason closeReason) {
-                    log.warn(getVideoId() + "WebSocket连接已断开[" + closeReason + "]，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
-                    session = connectToTwitcasting(fos);
+                    session = null;
+                    while (session == null && !getTerminated() && retryCount.get() < MAX_RETRY_COUNT) {
+                        log.warn(getVideoId() + "WebSocket连接已断开[" + closeReason + "]，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
+                        session = connectToTwitcasting(fos);
+                    }
                 }
             }, clientEndpointConfig, getSourceUrl());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(getVideoId() + "WebSocket连接失败", e);
         }
         return null;

@@ -20,6 +20,7 @@ package site.alice.liveman.model;
 import java.io.Serializable;
 import java.net.Proxy;
 import java.net.URI;
+import java.util.Arrays;
 
 public class VideoInfo implements Serializable {
 
@@ -120,5 +121,19 @@ public class VideoInfo implements Serializable {
 
     public void setEncodeIV(byte[] encodeIV) {
         this.encodeIV = encodeIV;
+    }
+
+    @Override
+    public String toString() {
+        return "VideoInfo{" +
+                "videoId='" + videoId + '\'' +
+                ", title='" + title + '\'' +
+                ", description='" + description + '\'' +
+                ", mediaUrl=" + mediaUrl +
+                ", mediaFormat='" + mediaFormat + '\'' +
+                ", encodeMethod='" + encodeMethod + '\'' +
+                ", encodeKey=" + Arrays.toString(encodeKey) +
+                ", encodeIV=" + Arrays.toString(encodeIV) +
+                '}';
     }
 }
