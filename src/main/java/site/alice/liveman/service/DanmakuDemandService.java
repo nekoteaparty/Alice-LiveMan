@@ -161,7 +161,7 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
             }
             Thread.sleep(1000);
             mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv", null);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             LOGGER.error("onAddDemand()", e);
         }
     }
@@ -175,7 +175,7 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
             }
             Thread.sleep(1000);
             mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv", null);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             LOGGER.error("onDemandStart()", e);
         }
     }

@@ -64,7 +64,7 @@ public class ProcessUtil {
             HANDLE handle = new HANDLE();
             handle.setPointer(Pointer.createConstant(pHandle));
             return kernel.GetProcessId(handle);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return 0;
         }
     }
@@ -80,5 +80,11 @@ public class ProcessUtil {
         Kernel32 kernel = Kernel32.INSTANCE;
         HANDLE pHandle = getProcessHandle(pid);
         kernel.WaitForSingleObject(pHandle, -1);
+    }
+
+    public static int waitProcess(long pid, int dwMilliseconds) {
+        Kernel32 kernel = Kernel32.INSTANCE;
+        HANDLE pHandle = getProcessHandle(pid);
+        return kernel.WaitForSingleObject(pHandle, dwMilliseconds);
     }
 }

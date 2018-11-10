@@ -32,13 +32,14 @@ import java.net.Proxy;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
     private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(20, 20, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(50));
-    private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new HashMap<>();
+    private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
     private static final List<MediaProxyEventListener> listeners            = new ArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
     private static       String                        tempPath;

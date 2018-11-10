@@ -48,7 +48,7 @@ public class YouTubeLiveService extends LiveService {
     @Override
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
-        URL url = new URL(channelUrl + LIVE_VIDEO_SUFFIX);
+        URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
         String resHtml = HttpRequestUtil.downloadUrl(url, StandardCharsets.UTF_8, WEB_PROXY);
         Matcher matcher = initDataJsonPattern.matcher(resHtml);
         if (matcher.find()) {
@@ -71,7 +71,7 @@ public class YouTubeLiveService extends LiveService {
                     JSONObject readerObject = (JSONObject) reader;
                     if (readerObject.toJSONString().contains("BADGE_STYLE_TYPE_LIVE_NOW")) {
                         videoId = readerObject.getJSONObject("gridVideoRenderer").getString("videoId");
-                        videoInfoRes = HttpRequestUtil.downloadUrl(new URL(GET_VIDEO_INFO_URL + videoId), StandardCharsets.UTF_8, WEB_PROXY);
+                        videoInfoRes = HttpRequestUtil.downloadUrl(new URI(GET_VIDEO_INFO_URL + videoId), StandardCharsets.UTF_8, WEB_PROXY);
                         break;
                     }
                 }
@@ -92,7 +92,7 @@ public class YouTubeLiveService extends LiveService {
                 }
                 if (hlsvpMatcher.find()) {
                     String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
-                    String[] m3u8List = HttpRequestUtil.downloadUrl(new URL(hlsvpUrl), StandardCharsets.UTF_8, VIDEO_PROXY).split("\n");
+                    String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8, VIDEO_PROXY).split("\n");
                     String mediaUrl = null;
                     for (int i = 0; i < m3u8List.length; i++) {
                         if (m3u8List[i].contains("1280x720")) {

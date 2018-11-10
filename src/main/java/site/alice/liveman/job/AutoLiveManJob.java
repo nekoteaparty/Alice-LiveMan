@@ -110,7 +110,7 @@ public class AutoLiveManJob {
                     } else {
                         LOGGER.info(channelName + "[" + channelUrl + "]没有正在直播的节目");
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     LOGGER.error("获取 " + channelName + "[" + channelUrl + "] 频道信息失败", e);
                 }
             }
@@ -120,12 +120,20 @@ public class AutoLiveManJob {
 
     @Scheduled(cron = "0/1 * * * * ?")
     public void pushToBilibili() throws IOException {
+        List<ChannelInfo> channelInfoList = new ArrayList<>();
+        Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+        for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
+            VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+            if (videoInfo != null) {
+                channelInfoList.add(videoInfo.getChannelInfo());
+            }
+        }
         File pidPath = new File(".");
         List<File> pidFiles = new ArrayList<>();
         CollectionUtils.addAll(pidFiles, pidPath.listFiles((file) -> file.getName().endsWith(".pid")));
         for (Iterator<File> iterator = pidFiles.iterator(); iterator.hasNext(); ) {
             File pidFile = iterator.next();
-            if (cleanupProcess(pidFile, true)) {
+            if (cleanupProcess(pidFile, channelInfoList)) {
                 iterator.remove();
             }
         }
@@ -137,14 +145,6 @@ public class AutoLiveManJob {
                 pidChannelInfoList = (List<ChannelInfo>) ois.readObject();
             } catch (ClassNotFoundException e) {
                 LOGGER.error("读取当前转播进程信息失败", e);
-            }
-        }
-        List<ChannelInfo> channelInfoList = new ArrayList<>();
-        Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-        for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
-            VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-            if (videoInfo != null) {
-                channelInfoList.add(videoInfo.getChannelInfo());
             }
         }
         danmakuDemandService.sortByDemand(channelInfoList);
@@ -167,11 +167,9 @@ public class AutoLiveManJob {
             }
         }
         if (!channelInfoList.equals(pidChannelInfoList)) {
-            if (pidFile != null) {
-                cleanupProcess(pidFile, false);
-            }
+            cleanupProcess(channelInfoList);
             try {
-                String startLiveJson = HttpRequestUtil.downloadUrl(new URL(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
+                String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
                 JSONObject startLiveObject = JSON.parseObject(startLiveJson);
                 JSONObject rtmpObject;
                 if (startLiveObject.get("data") instanceof JSONObject) {
@@ -212,39 +210,46 @@ public class AutoLiveManJob {
                 long pid = ProcessUtil.createProcess(ffmpegHome + "ffmpeg.exe", cmdLine, false);
                 if (pidFile != null) {
                     ProcessUtil.killProcess(Long.parseLong(FilenameUtils.getBaseName(pidFile.getName())));
+                    pidFile.delete();
                 }
                 ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(pidPath + "/" + pid + ".pid"));
                 oos.writeObject(channelInfoList);
                 oos.close();
                 LOGGER.info("ffmpeg转播进程已启动[PID:" + pid + "][" + cmdLine + "]");
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.error("ffmpeg转播进程启动失败", e);
             }
         }
     }
 
-    private boolean cleanupProcess(File pidFile, boolean checkProcessExist) throws IOException {
+    private boolean cleanupProcess(File pidFile, List<ChannelInfo> channelInfoList) throws IOException {
         long pid = Long.parseLong(FilenameUtils.getBaseName(pidFile.getName()));
-        if (!ProcessUtil.isProcessExist(pid) || !checkProcessExist) {
+        if (!ProcessUtil.isProcessExist(pid)) {
             LOGGER.info("清除无效的pid文件[" + pidFile.getName() + "]");
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(pidFile))) {
-                List<ChannelInfo> channelInfoList = (List<ChannelInfo>) ois.readObject();
-                for (ChannelInfo channelInfo : channelInfoList) {
-                    List<MediaProxyTask> mediaProxyTasks = channelInfo.getMediaProxyTasks();
-                    if (mediaProxyTasks != null) {
-                        for (MediaProxyTask mediaProxyTask : mediaProxyTasks) {
-                            if (mediaProxyTask instanceof FlvLivingMediaProxyTask) {
-                                mediaProxyTask.terminate();
-                            }
-                        }
-                    }
-                }
+                List<ChannelInfo> pidchannelInfoList = (List<ChannelInfo>) ois.readObject();
+                channelInfoList.retainAll(pidchannelInfoList);
+                cleanupProcess(channelInfoList);
             } catch (ClassNotFoundException e) {
                 LOGGER.warn("清理pid[" + pid + "]子进程时发生异常", e);
             }
             return pidFile.delete();
         }
         return false;
+    }
+
+    private void cleanupProcess(List<ChannelInfo> channelInfoList) {
+        for (ChannelInfo channelInfo : channelInfoList) {
+            List<MediaProxyTask> mediaProxyTasks = channelInfo.getMediaProxyTasks();
+            if (mediaProxyTasks != null) {
+                for (MediaProxyTask mediaProxyTask : mediaProxyTasks) {
+                    if (mediaProxyTask instanceof FlvLivingMediaProxyTask) {
+                        mediaProxyTask.terminate();
+                        mediaProxyTask.waitForTerminate();
+                    }
+                }
+            }
+        }
     }
 }
 
