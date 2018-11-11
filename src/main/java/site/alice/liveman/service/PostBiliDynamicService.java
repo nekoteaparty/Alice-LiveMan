@@ -21,15 +21,19 @@ import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
+import site.alice.liveman.model.AccountInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.utils.HttpRequestUtil;
 
+import javax.annotation.PostConstruct;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -44,25 +48,15 @@ public class PostBiliDynamicService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PostBiliDynamicService.class);
 
-    private static boolean postDynamic;
-
-    private static String biliCookie;
-
-    @Value("${bili.cookie}")
-    public void setBiliCookie(String biliCookie) {
-        PostBiliDynamicService.biliCookie = biliCookie;
-    }
-
-    @Value("${bili.post.dynamic}")
-    public void setPostDynamic(boolean postDynamic) {
-        PostBiliDynamicService.postDynamic = postDynamic;
-    }
+    @Autowired
+    private LiveManSetting liveManSetting;
 
     private static final File   dynamicPostedListFile = new File("dynamicPostedList.txt");
     private static final String DYNAMIC_POST_API      = "https://api.vc.bilibili.com/dynamic_repost/v1/dynamic_repost/repost";
     private static final String DYNAMIC_POST_PARAM    = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/36577&at_uids=&ctrl=[]&csrf_token=";
 
-    static {
+    @PostConstruct
+    public void init() {
         MediaProxyManager.addListener(new MediaProxyEventListener() {
             @Override
             public void onProxyStart(MediaProxyEvent e) {
@@ -72,33 +66,7 @@ public class PostBiliDynamicService {
                 } catch (IOException ignore) {
                     dynamicPostedList = new ArrayList<>();
                 }
-                if (!postDynamic) {
-                    return;
-                }
-                MediaProxyTask mediaProxyTask = e.getMediaProxyTask();
-                VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-                if (videoInfo == null) {
-                    return;
-                }
-                if (!dynamicPostedList.contains(mediaProxyTask.getVideoId())) {
-                    Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(biliCookie);
-                    String csrfToken = "";
-                    if (matcher.find()) {
-                        csrfToken = matcher.group(1);
-                    }
-                    String postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle()) + csrfToken;
-                    try {
-                        dynamicPostedList.add(mediaProxyTask.getVideoId());
-                        FileUtils.writeLines(dynamicPostedListFile, dynamicPostedList);
-                        String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), biliCookie, postData, StandardCharsets.UTF_8, null);
-                        JSONObject jsonObject = JSONObject.parseObject(res);
-                        if (!jsonObject.getString("msg").equals("succ")) {
-                            LOGGER.error("发送B站动态失败[postData=" + postData + "]" + res);
-                        }
-                    } catch (Exception ex) {
-                        LOGGER.error("发送B站动态失败[postData=" + postData + "]", ex);
-                    }
-                }
+
             }
         });
     }

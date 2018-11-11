@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;

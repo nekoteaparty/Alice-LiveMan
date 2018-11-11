@@ -155,7 +155,7 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
             }
         }
         try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", bannedKeywords)), 1920, 180);
+            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", bannedKeywords)), new File("dynamicImage.bmp"), 1920, 180);
             if (mediaProxyTask != null) {
                 mediaProxyTask.terminate();
             }
@@ -169,7 +169,7 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
     @Override
     public void onDemandStart() {
         try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", bannedKeywords)), 1920, 180);
+            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", bannedKeywords)), new File("dynamicImage.bmp"), 1920, 180);
             if (mediaProxyTask != null) {
                 mediaProxyTask.terminate();
             }

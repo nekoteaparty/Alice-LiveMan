@@ -31,19 +31,17 @@ import site.alice.liveman.model.VideoInfo;
 import java.net.Proxy;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
-    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(20, 20, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(50));
+    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(50, 50, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
-    private static final List<MediaProxyEventListener> listeners            = new ArrayList<>();
+    private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
     private static       String                        tempPath;
     private static final String                        targetUrlFormat      = "http://localhost:8080/mediaProxy/%s/%s";
+    private static       ApplicationContext            applicationContext;
 
     public static String getTempPath() {
         return tempPath;
@@ -72,6 +70,7 @@ public class MediaProxyManager implements ApplicationContextAware {
             MediaProxy metaProxy = metaProxyEntry.getValue();
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
                 MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl, proxy);
+                applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
                 String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
@@ -129,5 +128,6 @@ public class MediaProxyManager implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         proxyMap = applicationContext.getBeansOfType(MediaProxy.class);
+        MediaProxyManager.applicationContext = applicationContext;
     }
 }

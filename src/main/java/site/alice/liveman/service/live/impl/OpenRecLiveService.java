@@ -15,35 +15,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
-public class ShowRoomLiveService extends LiveService {
-
-    private static final Pattern initDataPattern = Pattern.compile("<script id=\"js-initial-data\" data-json=\"(.+?)\"></script>");
+public class OpenRecLiveService extends LiveService {
 
     @Override
-    protected VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelHtml = HttpRequestUtil.downloadUrl(new URI(channelInfo.getChannelUrl()), StandardCharsets.UTF_8, null);
-        Matcher matcher = initDataPattern.matcher(channelHtml);
-        if (matcher.find()) {
-            JSONObject liveDataObj = JSON.parseObject(matcher.group(1));
-            if (liveDataObj.getBoolean("isLive")) {
-                String videoId = liveDataObj.getString("liveId");
-                String videoTitle = liveDataObj.getString("roomName");
-                URI m3u8ListUrl = new URI(liveDataObj.getString("streamingUrlHls"));
+    public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
+        String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
+        URI moviesUrl = new URI("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
+        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8, null);
+        JSONArray movies = JSON.parseArray(moviesJson);
+        if (!movies.isEmpty()) {
+            JSONObject movieObj = (JSONObject) movies.get(0);
+            Integer onAirStatus = movieObj.getInteger("onair_status");
+            if (onAirStatus == 1) {
+                String videoId = movieObj.getString("id");
+                String videoTitle = movieObj.getString("title");
+                URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
                 String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
@@ -62,7 +63,7 @@ public class ShowRoomLiveService extends LiveService {
     }
 
     @Override
-    protected boolean isMatch(URI channelUrl) {
-        return channelUrl.getHost().contains("showroom-live.com");
+    public boolean isMatch(URI channelUrl) {
+        return channelUrl.getHost().contains("openrec.tv");
     }
 }

@@ -69,7 +69,7 @@ public class HttpRequestUtil {
         initClient();
     }
 
-    private static void initClient() {
+    private static synchronized void initClient() {
         if (client != null) {
             try {
                 client.close();

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.*;
@@ -35,15 +36,14 @@ import java.util.regex.Pattern;
 @Service
 public class YouTubeLiveService extends LiveService {
 
-    private static final String   LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
-    private static final String   GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
-    private static final Proxy    VIDEO_PROXY         = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 1080));
-    private static final Proxy    WEB_PROXY           = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8001));
-    private static final Pattern  initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
-    private static final Pattern  hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
-    private static final Pattern  videoTitlePattern   = Pattern.compile("\\\"title\\\":\\\"(.+?)\\\"");
-    @Value("${bili.banned.youtube.channel}")
-    private              String[] bannedChannels;
+    private static final String  LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
+    private static final String  GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
+    private static final Proxy   VIDEO_PROXY         = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 1080));
+    private static final Proxy   WEB_PROXY           = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8001));
+    private static final Pattern initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
+    private static final Pattern hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
+    private static final Pattern videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
+    private static final Pattern browseIdPattern     = Pattern.compile("\\{\"browseId\":\"(.+?)\"}");
 
     @Override
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
@@ -79,16 +79,14 @@ public class YouTubeLiveService extends LiveService {
             if (videoInfoRes != null) {
                 Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
                 Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
+                Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
                 String videoTitle = "";
+                String description = "";
                 if (videoTitleMatcher.find()) {
                     videoTitle = videoTitleMatcher.group(1);
                 }
-                for (String bannedChannel : bannedChannels) {
-                    String[] bannedChannelInfo = bannedChannel.split(":");
-                    if (videoInfoRes.contains("{\"browseId\":\"" + bannedChannelInfo[1] + "\"}")) {
-                        videoTitle += "[" + bannedChannelInfo[0] + "]";
-                        break;
-                    }
+                if (browseIdMatcher.find()) {
+                    description = browseIdMatcher.group(1);
                 }
                 if (hlsvpMatcher.find()) {
                     String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
@@ -105,6 +103,7 @@ public class YouTubeLiveService extends LiveService {
                     }
                     VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
                     videoInfo.setNetworkProxy(VIDEO_PROXY);
+                    videoInfo.setDescription(description);
                     return videoInfo;
                 } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
                     return null;

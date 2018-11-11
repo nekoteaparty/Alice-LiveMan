@@ -105,7 +105,6 @@ public class ProcessUtil {
                 }
             }
         }
-
     }
 
     public static void waitProcess(long pid) {
@@ -125,6 +124,11 @@ public class ProcessUtil {
         }
     }
 
+    /**
+     * @param pid
+     * @param dwMilliseconds
+     * @return 如果在等待期间进程退出返回true，否则返回false
+     */
     public static boolean waitProcess(long pid, int dwMilliseconds) {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;

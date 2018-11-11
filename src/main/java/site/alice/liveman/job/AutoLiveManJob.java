@@ -20,26 +20,26 @@ package site.alice.liveman.job;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.FlvLivingMediaProxyTask;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.DanmakuDemandService;
-import site.alice.liveman.utils.ProcessUtil;
-import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.service.VideoFilterService;
 import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.ProcessUtil;
 
 import javax.annotation.PostConstruct;
 import java.io.*;
@@ -54,22 +54,17 @@ import java.util.Map;
 public class AutoLiveManJob {
     private static final Logger               LOGGER              = LoggerFactory.getLogger(AutoLiveManJob.class);
     private static final int                  MAX_SUB_MOVIE_COUNT = 3;
+    private static       String               moviePlaceHolder    = "placeholder.png";
+    private static       String               audioPlaceHolder    = "placeholder.mp3";
     private static final String               BILI_START_LIVE_URL = "https://api.live.bilibili.com/room/v1/Room/startLive";
-    private static       String               moviePlaceHolder    = "placeholder.flv";
     @Autowired
     private              DanmakuDemandService danmakuDemandService;
     @Autowired
     private              LiveServiceFactory   liveServiceFactory;
-    @Value("${channel.config.file}")
-    private              File                 channelConfigFile;
-    @Value("${channel.status.file}")
-    private              File                 channelStatusFile;
-    @Value("${bili.banned.keywords}")
-    private              String[]             bannedKeywords;
-    @Value("${bili.cookie}")
-    private              String               biliCookie;
-    @Value("${ffmpeg.path}")
-    private              String               ffmpegPath;
+    @Autowired
+    private              VideoFilterService   videoFilterService;
+    @Autowired
+    private              LiveManSetting       liveManSetting;
 
     @PostConstruct
     public void init() throws IOException {
@@ -79,46 +74,40 @@ public class AutoLiveManJob {
             IOUtils.copy(resource.getInputStream(), new FileOutputStream(moviePlaceFile));
         }
         moviePlaceHolder = FilenameUtils.separatorsToUnix(moviePlaceFile.getAbsolutePath());
+        File audioPlaceFile = new File("./" + audioPlaceHolder);
+        if (!audioPlaceFile.exists()) {
+            ClassPathResource resource = new ClassPathResource(audioPlaceHolder);
+            IOUtils.copy(resource.getInputStream(), new FileOutputStream(audioPlaceFile));
+        }
+        audioPlaceHolder = FilenameUtils.separatorsToUnix(audioPlaceFile.getAbsolutePath());
     }
 
     @Scheduled(cron = "0/1 * * * * ?")
-    public void youTubeLiveJob() throws IOException, InterruptedException {
-        if (!channelConfigFile.exists()) {
-            channelConfigFile.createNewFile();
-        }
-        List<String> channels = FileUtils.readLines(channelConfigFile, StandardCharsets.UTF_8);
-        if (channels.isEmpty()) {
+    public void youTubeLiveJob() {
+        if (liveManSetting.getChannels().isEmpty()) {
             LOGGER.warn("频道列表为空！");
         }
-
         /* 获取频道状态信息 */
-        for (String channel : channels) {
-            String[] channelInfos = channel.split("\\|");
-            if (channelInfos.length > 1) {
-                String channelName = channelInfos[0];
-                String channelUrl = channelInfos[1];
-                URI mediaUrl;
-                try {
-                    ChannelInfo channelInfo = new ChannelInfo();
-                    channelInfo.setChannelName(channelName);
-                    channelInfo.setChannelUrl(channelUrl);
-                    mediaUrl = liveServiceFactory.getLiveService(channelUrl).getLiveVideoAddress(channelInfo);
-                    if (mediaUrl != null) {
-                        LOGGER.info(channelName + "[" + channelUrl + "]正在直播，媒体地址:" + mediaUrl);
-                        channelInfo.setMediaUrl(mediaUrl.toString());
-                    } else {
-                        LOGGER.info(channelName + "[" + channelUrl + "]没有正在直播的节目");
-                    }
-                } catch (Throwable e) {
-                    LOGGER.error("获取 " + channelName + "[" + channelUrl + "] 频道信息失败", e);
+        liveManSetting.getChannels().parallelStream().forEach((channelInfo -> {
+            URI mediaUrl;
+            try {
+                mediaUrl = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).getLiveVideoAddress(channelInfo);
+                if (mediaUrl != null) {
+                    LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]正在直播，媒体地址:" + mediaUrl);
+                    channelInfo.setMediaUrl(mediaUrl.toString());
+                } else {
+                    LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]没有正在直播的节目");
                 }
+                Thread.sleep(500);
+            } catch (Throwable e) {
+                LOGGER.error("获取 " + channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "] 频道信息失败", e);
             }
-            Thread.sleep(500);
-        }
+        }));
     }
 
     @Scheduled(cron = "0/1 * * * * ?")
     public void pushToBilibili() throws IOException {
+        AccountInfo defaultAccount = liveManSetting.getAccounts().get(0);
         List<ChannelInfo> channelInfoList = new ArrayList<>();
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
@@ -151,24 +140,13 @@ public class AutoLiveManJob {
             List<MediaProxyTask> mediaProxyTasks = channelInfo.getMediaProxyTasks();
             for (MediaProxyTask mediaProxyTask : mediaProxyTasks) {
                 VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-                if (videoInfo != null) {
-                    String videoTitle = videoInfo.getTitle();
-                    for (String bannedKeyword : bannedKeywords) {
-                        if (StringUtils.containsIgnoreCase(videoTitle, bannedKeyword)) {
-                            channelInfo.setMediaUrl(moviePlaceHolder);
-                            if (!channelInfo.getChannelName().contains("屏蔽")) {
-                                channelInfo.setChannelName(channelInfo.getChannelName() + "\n[屏蔽\\:" + bannedKeyword + "]");
-                            }
-                            break;
-                        }
-                    }
-                }
+                videoFilterService.doFilter(videoInfo);
             }
         }
         if (!channelInfoList.equals(pidChannelInfoList)) {
             cleanupProcess(channelInfoList);
             try {
-                String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), biliCookie, "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
+                String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), defaultAccount.getCookies(), "room_id=36577&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
                 JSONObject startLiveObject = JSON.parseObject(startLiveJson);
                 JSONObject rtmpObject;
                 if (startLiveObject.get("data") instanceof JSONObject) {
@@ -178,7 +156,15 @@ public class AutoLiveManJob {
                 }
                 String biliRtmpUrl = rtmpObject.getString("addr") + rtmpObject.getString("code");
                 String firstMainTitle = channelInfoList.isEmpty() ? "[空的直播位]" : " " + channelInfoList.get(0).getChannelName();
-                String loopCmdLine = "-stream_loop -1 -i " + (channelInfoList.isEmpty() ? "\"" + moviePlaceHolder + "\"" : "\"" + channelInfoList.get(0).getMediaUrl() + "\"");
+                String loopCmdLine = "-stream_loop -1";
+                if (channelInfoList.isEmpty()) {
+                    loopCmdLine += " -i \"" + moviePlaceHolder + "\" -i \"" + audioPlaceHolder + "\"";
+                } else {
+                    loopCmdLine += " -i \"" + channelInfoList.get(0).getMediaUrl() + "\"";
+                    if (FilenameUtils.getExtension(channelInfoList.get(0).getMediaUrl()).equals("png")) {
+                        loopCmdLine += " -i \"" + audioPlaceHolder + "\"";
+                    }
+                }
                 String cmdLine = " -re " + loopCmdLine + " -vf \"[in]scale=-1:900, pad=1920:1080[main];[main]drawtext=x=1610:y=16+275*0:font='YaHei Consolas Hybrid':fontcolor=White:text='←" + firstMainTitle + "':fontsize=28[main_text];" +
                         "movie='%s',scale=-1:180[sub1];[main_text]drawtext=x=1610:y=16+275*1:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub1_text];[sub3_text][sub1]overlay=main_w-overlay_w:95+275*0[lay1_text];" +
                         "movie='%s',scale=-1:180[sub2];[sub1_text]drawtext=x=1610:y=16+275*2:font='YaHei Consolas Hybrid':fontcolor=White:text='↑ %s':fontsize=28[sub2_text];[lay1_text][sub2]overlay=main_w-overlay_w:95+275*1[lay2_text];" +
@@ -206,7 +192,7 @@ public class AutoLiveManJob {
                 }
                 Thread.sleep(1000);
                 cmdLine = String.format(cmdLine, args);
-                long pid = ProcessUtil.createProcess(ffmpegPath, cmdLine, false);
+                long pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), cmdLine, false);
                 if (pidFile != null) {
                     ProcessUtil.killProcess(Long.parseLong(FilenameUtils.getBaseName(pidFile.getName())));
                     pidFile.delete();
