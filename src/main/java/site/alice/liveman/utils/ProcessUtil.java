@@ -40,12 +40,14 @@ public class ProcessUtil {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
-            DWORD dwCreationFlags = new DWORD(!isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
-            kernel.CreateProcess(execPath, cmdLine, null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
+            DWORD dwCreationFlags = new DWORD(isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
+            kernel.CreateProcess(execPath, cmdLine.replace("\t", " "), null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
             return process_information.dwProcessId.longValue();
         } else {
             try {
-                Process process = Runtime.getRuntime().exec(execPath + cmdLine);
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command((execPath + cmdLine).split("\t"));
+                Process process = processBuilder.start();
                 long processHandle = getProcessHandle(process);
                 processTargetMap.put(processHandle, process);
                 return processHandle;
@@ -79,7 +81,12 @@ public class ProcessUtil {
 
     public static long getProcessHandle(Process process) {
         try {
-            Field handleField = process.getClass().getDeclaredField("handle");
+            Field handleField;
+            if (Platform.isWindows()) {
+                handleField = process.getClass().getDeclaredField("handle");
+            } else {
+                handleField = process.getClass().getDeclaredField("pid");
+            }
             handleField.setAccessible(true);
             return handleField.getLong(process);
         } catch (Throwable e) {

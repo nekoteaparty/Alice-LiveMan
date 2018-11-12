@@ -52,12 +52,12 @@ public class FlvLivingMediaProxyTask extends MediaProxyTask {
         if (sourceUrl.getScheme().equals("file")) {
             try {
                 source = URLDecoder.decode(sourceUrl.getAuthority(), "utf-8");
-                pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), " -re -stream_loop -1 -i \"" + source + "\" -flush_packets 1 -f flv " + livingFile + " -y", false);
+                pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), "\t-re\t-stream_loop\t-1\t-i\t\"" + source + "\"\t-flush_packets\t1\t-f\tflv\t" + livingFile + "\t-y", false);
             } catch (UnsupportedEncodingException ignored) {
             }
         } else {
             source = sourceUrl.toString();
-            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), " -re -i \"" + source + "\" -vf scale=320:180 -vcodec h264 -acodec aac -b:v 128K -b:a 16k -r 15 -preset ultrafast -flush_packets 1 -f flv " + livingFile + " -y", false);
+            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), "\t-re\t-i\t\"" + source + "\"\t-vf\tscale=320:180\t-vcodec\th264\t-acodec\taac\t-b:v\t128K\t-b:a\t16k\t-r\t15\t-preset\tultrafast\t-flush_packets\t1\t-f\tflv\t" + livingFile + "\t-y", false);
         }
         while (!getTerminated() && !ProcessUtil.waitProcess(pid, 1000)) ;
     }

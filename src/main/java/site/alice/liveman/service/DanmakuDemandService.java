@@ -143,37 +143,37 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
 
     @Override
     public void onAddDemand(DemandEvent demandEvent) {
-        Map<String, Integer> demandCountMap = demandEvent.getDemandCountMap();
-        StringBuilder sb = new StringBuilder();
-        for (Entry<String, Integer> entry : demandCountMap.entrySet()) {
-            if (entry.getValue() > 0) {
-                sb.append(entry.getKey()).append("(").append(entry.getValue()).append(") ");
-            }
-        }
-        try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
-            if (mediaProxyTask != null) {
-                mediaProxyTask.terminate();
-            }
-            Thread.sleep(1000);
-            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
-        } catch (Throwable e) {
-            LOGGER.error("onAddDemand()", e);
-        }
+//        Map<String, Integer> demandCountMap = demandEvent.getDemandCountMap();
+//        StringBuilder sb = new StringBuilder();
+//        for (Entry<String, Integer> entry : demandCountMap.entrySet()) {
+//            if (entry.getValue() > 0) {
+//                sb.append(entry.getKey()).append("(").append(entry.getValue()).append(") ");
+//            }
+//        }
+//        try {
+//            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
+//            if (mediaProxyTask != null) {
+//                mediaProxyTask.terminate();
+//            }
+//            Thread.sleep(1000);
+//            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
+//        } catch (Throwable e) {
+//            LOGGER.error("onAddDemand()", e);
+//        }
     }
 
     @Override
     public void onDemandStart() {
-        try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
-            if (mediaProxyTask != null) {
-                mediaProxyTask.terminate();
-            }
-            Thread.sleep(1000);
-            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
-        } catch (Throwable e) {
-            LOGGER.error("onDemandStart()", e);
-        }
+//        try {
+//            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
+//            if (mediaProxyTask != null) {
+//                mediaProxyTask.terminate();
+//            }
+//            Thread.sleep(1000);
+//            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
+//        } catch (Throwable e) {
+//            LOGGER.error("onDemandStart()", e);
+//        }
     }
 
     @Override
