@@ -36,7 +36,7 @@ public class LiveServiceFactory implements ApplicationContextAware {
         liveServiceMap = applicationContext.getBeansOfType(LiveService.class);
     }
 
-    public LiveService getLiveService(String channelUrl) throws URISyntaxException {
+    public LiveService getLiveService(String channelUrl) {
         for (LiveService liveService : liveServiceMap.values()) {
             try {
                 if (liveService.isMatch(new URI(channelUrl))) {

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import javax.annotation.PostConstruct;
@@ -36,7 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class RealityLiveService extends LiveService {
-    private static final Proxy                   WEB_PROXY        = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8001));
     private              Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
 
     @Override
@@ -52,7 +52,7 @@ public class RealityLiveService extends LiveService {
             log.warn(nickname + "的用户信息不存在，请核对！");
             return null;
         }
-        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8, WEB_PROXY);
+        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
         JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
         JSONArray lives = liveDetailObj.getJSONArray("payload");
         if (!lives.isEmpty()) {
@@ -60,7 +60,7 @@ public class RealityLiveService extends LiveService {
             String videoId = liveObj.getString("media_id");
             String videoTitle = liveObj.getString("title");
             URI m3u8ListUrl = new URI(liveObj.getJSONObject("StreamingServer").getString("view_endpoint"));
-            String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
+            String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
                 if (m3u8List[i].contains("720x1280")) {
@@ -78,9 +78,9 @@ public class RealityLiveService extends LiveService {
 
     private void refreshStreamUsers() throws IOException, URISyntaxException {
         URI officialUsersUrl = new URI("https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official");
-        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8, WEB_PROXY));
+        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
         JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
-        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8, WEB_PROXY));
+        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
         streamerUsers.addAll(unofficialUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
         for (int i = 0; i < streamerUsers.size(); i++) {
             JSONObject streamerUser = streamerUsers.getJSONObject(i);

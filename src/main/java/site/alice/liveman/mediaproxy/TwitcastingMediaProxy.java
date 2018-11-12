@@ -41,12 +41,12 @@ public class TwitcastingMediaProxy implements MediaProxy {
     }
 
     @Override
-    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        return new TwitcastingMediaProxyTask(videoId, sourceUrl, proxy);
+    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) {
+        return new TwitcastingMediaProxyTask(videoId, sourceUrl);
     }
 
     @Override
-    public Object requestHandler(String videoId) throws Exception {
+    public void requestHandler(String videoId) throws Exception {
         MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
         if (mediaProxyTask instanceof TwitcastingMediaProxyTask) {
             TwitcastingMediaProxyTask twcProxyTask = (TwitcastingMediaProxyTask) mediaProxyTask;
@@ -66,7 +66,6 @@ public class TwitcastingMediaProxy implements MediaProxy {
                 twcProxyTask.removeBufferedQueue(bufferedQueue);
             }
         }
-        return null;
     }
 }
 

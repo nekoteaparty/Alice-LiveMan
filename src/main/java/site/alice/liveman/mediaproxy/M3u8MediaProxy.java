@@ -38,18 +38,17 @@ public class M3u8MediaProxy implements MediaProxy {
     }
 
     @Override
-    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        return new M3u8MediaProxyTask(videoId, sourceUrl, proxy);
+    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) {
+        return new M3u8MediaProxyTask(videoId, sourceUrl);
     }
 
     @Override
-    public Object requestHandler(String videoId) {
+    public void requestHandler(String videoId) {
         try {
             response.sendRedirect("/mediaProxy/temp/m3u8/" + videoId + "/index.m3u8");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return null;
     }
 }
 

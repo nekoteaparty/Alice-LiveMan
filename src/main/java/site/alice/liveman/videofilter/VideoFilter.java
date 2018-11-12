@@ -15,22 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.config;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.SchedulingConfigurer;
-import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+package site.alice.liveman.videofilter;
 
-import java.util.concurrent.Executors;
+import site.alice.liveman.model.VideoInfo;
 
-/**
- * 所有的定时任务都放在一个线程池中，定时任务启动时使用不同都线程。
- */
-@Configuration
-public class ScheduleConfig implements SchedulingConfigurer {
-    @Override
-    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        //设定一个长度10的定时任务线程池
-        taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
-    }
+public interface VideoFilter {
+
+    boolean doFilter(VideoInfo videoInfo);
+
 }

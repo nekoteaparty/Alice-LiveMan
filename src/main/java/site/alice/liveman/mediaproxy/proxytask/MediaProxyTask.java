@@ -34,17 +34,8 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     private           URI                  targetUrl;
     private           VideoInfo            videoInfo;
     private           List<MediaProxyTask> parentProxyTasks;
-    private transient Proxy                proxy;
     private transient Thread               runThread;
     private volatile  Boolean              isTerminated;
-
-    public Proxy getProxy() {
-        return proxy;
-    }
-
-    public void setProxy(Proxy proxy) {
-        this.proxy = proxy;
-    }
 
     public String getVideoId() {
         return videoId;
@@ -82,10 +73,9 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return isTerminated;
     }
 
-    public MediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
+    public MediaProxyTask(String videoId, URI sourceUrl) {
         this.videoId = videoId;
         this.sourceUrl = sourceUrl;
-        this.proxy = proxy;
     }
 
     @Override

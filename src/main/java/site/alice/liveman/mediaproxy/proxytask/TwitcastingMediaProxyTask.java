@@ -49,8 +49,8 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
         return m4sHeader;
     }
 
-    public TwitcastingMediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        super(videoId, sourceUrl, proxy);
+    public TwitcastingMediaProxyTask(String videoId, URI sourceUrl) {
+        super(videoId, sourceUrl);
     }
 
     @Override

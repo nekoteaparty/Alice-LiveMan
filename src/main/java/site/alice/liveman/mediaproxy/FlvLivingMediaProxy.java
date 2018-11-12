@@ -44,12 +44,12 @@ public class FlvLivingMediaProxy implements MediaProxy {
     }
 
     @Override
-    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) throws IOException {
-        return new FlvLivingMediaProxyTask(videoId, sourceUrl, proxy);
+    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) throws IOException {
+        return new FlvLivingMediaProxyTask(videoId, sourceUrl);
     }
 
     @Override
-    public Object requestHandler(String videoId) throws IOException, InterruptedException {
+    public void requestHandler(String videoId) throws IOException, InterruptedException {
         File sourceFile = new File(getTempPath() + "/flvLiving/" + videoId + ".flv");
         byte[] buffer = new byte[256 * 1024]; // 256K
         long fileSkipSize = 0;
@@ -72,7 +72,6 @@ public class FlvLivingMediaProxy implements MediaProxy {
                 Thread.sleep(300);
             }
         }
-        return null;
     }
 
 

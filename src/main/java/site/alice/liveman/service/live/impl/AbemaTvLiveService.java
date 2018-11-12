@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -28,6 +28,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import javax.script.ScriptEngine;
@@ -55,7 +56,6 @@ public class AbemaTvLiveService extends LiveService {
     private static final String       bearer         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
     private static final String       userId         = "8nVcD2vSyDFNnj";
     private static final Pattern      channelPattern = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
-    private static final Proxy        JAPAN_PROXY    = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8002));
     private static final Pattern      m3u8KeyPattern = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
     private static final ScriptEngine scriptEngine;
 
@@ -89,7 +89,7 @@ public class AbemaTvLiveService extends LiveService {
             String slotId = matcher.group(2);
             Map<String, String> requestProperties = new HashMap<>();
             requestProperties.put("Authorization", "bearer " + bearer);
-            String slotInfo = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/slots/" + slotId), null, requestProperties, StandardCharsets.UTF_8, JAPAN_PROXY);
+            String slotInfo = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/slots/" + slotId), null, requestProperties, StandardCharsets.UTF_8);
             JSONObject slotInfoObj = JSON.parseObject(slotInfo);
             String seriesId = slotInfoObj.getJSONObject("slot").getJSONArray("programs").getJSONObject(0).getJSONObject("series").getString("id");
             Calendar japanCalendar = Calendar.getInstance(TimeZone.getTimeZone("JST"));
@@ -97,7 +97,7 @@ public class AbemaTvLiveService extends LiveService {
             dateFormat.setCalendar(japanCalendar);
             long currentTimeMillis = System.currentTimeMillis();
             String formattedDate = dateFormat.format(currentTimeMillis);
-            String timetableInfo = HttpRequestUtil.downloadUrl(new URI(String.format("https://api.abema.io/v1/media?dateFrom=%s&dateTo=%s&channelIds=%s", formattedDate, formattedDate, channelId)), null, requestProperties, StandardCharsets.UTF_8, JAPAN_PROXY);
+            String timetableInfo = HttpRequestUtil.downloadUrl(new URI(String.format("https://api.abema.io/v1/media?dateFrom=%s&dateTo=%s&channelIds=%s", formattedDate, formattedDate, channelId)), null, requestProperties, StandardCharsets.UTF_8);
             JSONArray channelSchedules = JSON.parseObject(timetableInfo).getJSONArray("channelSchedules");
             if (channelSchedules.isEmpty()) {
                 return null;
@@ -112,22 +112,21 @@ public class AbemaTvLiveService extends LiveService {
                     String videoId = channelSlot.getString("id");
                     if (currentTimeMillis > startAt && currentTimeMillis < endAt) {
                         // 在节目播出时间内
-                        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8, JAPAN_PROXY);
+                        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
                         String token = JSON.parseObject(tokenJSON).getString("token");
                         String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=486";
-                        String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8, JAPAN_PROXY);
+                        String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
                         Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
                         if (keyMatcher.find()) {
                             String lt = keyMatcher.group(2);
                             byte[] iv = Hex.decodeHex(keyMatcher.group(3));
-                            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":486}", StandardCharsets.UTF_8, JAPAN_PROXY);
+                            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":486}", StandardCharsets.UTF_8);
                             String cid = JSON.parseObject(licenseJson).getString("cid");
                             String k = JSON.parseObject(licenseJson).getString("k");
                             VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
                             videoInfo.setEncodeMethod(keyMatcher.group(1));
                             videoInfo.setEncodeKey(getDecodeKey(cid, k));
                             videoInfo.setEncodeIV(iv);
-                            videoInfo.setNetworkProxy(JAPAN_PROXY);
                             return videoInfo;
                         }
                     }
