@@ -33,6 +33,7 @@ public class VideoInfo implements Serializable {
     private           String      encodeMethod;
     private           byte[]      encodeKey;
     private           byte[]      encodeIV;
+    private           boolean     banned;
     private transient Proxy       networkProxy;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
@@ -97,6 +98,14 @@ public class VideoInfo implements Serializable {
 
     public void setNetworkProxy(Proxy networkProxy) {
         this.networkProxy = networkProxy;
+    }
+
+    public boolean isBanned() {
+        return banned;
+    }
+
+    public void setBanned(boolean banned) {
+        this.banned = banned;
     }
 
     public String getEncodeMethod() {

@@ -31,6 +31,7 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.VideoFilterService;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.ProcessUtil;
@@ -133,7 +134,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);
                             String ffmpegCmdLine = ffmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             long pid = ProcessUtil.createProcess(ffmpegUtil.getFfmpegPath(), ffmpegCmdLine, false);
-                            log.info("ffmpeg转播进程已启动[PID:" + pid + "][" + ffmpegCmdLine + "]");
+                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
                             // 杀死进程
@@ -141,10 +142,18 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException ignore) {
+                            }
                         }
                     }
                 } catch (Throwable e) {
                     log.error("startBroadcast failed", e);
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException ignore) {
+                    }
                 }
             }
         }

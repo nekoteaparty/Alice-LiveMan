@@ -40,7 +40,7 @@ public class ProcessUtil {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
-            DWORD dwCreationFlags = new DWORD(isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
+            DWORD dwCreationFlags = new DWORD(!isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
             kernel.CreateProcess(execPath, cmdLine, null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
             return process_information.dwProcessId.longValue();
         } else {

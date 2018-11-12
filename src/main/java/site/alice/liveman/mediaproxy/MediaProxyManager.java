@@ -20,13 +20,16 @@ package site.alice.liveman.mediaproxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.VideoFilterService;
 
 import java.net.Proxy;
 import java.net.URI;
@@ -42,19 +45,27 @@ public class MediaProxyManager implements ApplicationContextAware {
     private static       String                        tempPath;
     private static final String                        targetUrlFormat      = "http://localhost:8080/mediaProxy/%s/%s";
     private static       ApplicationContext            applicationContext;
+    private static       VideoFilterService            videoFilterService;
+
+    @Autowired
+    public void setVideoFilterService(VideoFilterService videoFilterService) {
+        MediaProxyManager.videoFilterService = videoFilterService;
+    }
 
     public static String getTempPath() {
         return tempPath;
     }
 
-    @Value("${media.proxy.temp.path}")
-    public void setTempPath(String tempPath) {
-        MediaProxyManager.tempPath = tempPath;
+    @Autowired
+    public void setTempPath(LiveManSetting liveManSetting) {
+        MediaProxyManager.tempPath = liveManSetting.getTempPath();
     }
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
         MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat(), videoInfo.getNetworkProxy());
         mediaProxyTask.setVideoInfo(videoInfo);
+        videoInfo.getChannelInfo().setMediaUrl(mediaProxyTask.getTargetUrl().toString());
+        videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
         return mediaProxyTask;
     }
@@ -130,4 +141,5 @@ public class MediaProxyManager implements ApplicationContextAware {
         proxyMap = applicationContext.getBeansOfType(MediaProxy.class);
         MediaProxyManager.applicationContext = applicationContext;
     }
+
 }

@@ -28,6 +28,7 @@ public class LiveManSetting {
     private boolean                           postBiliDynamic;
     private CopyOnWriteArrayList<AccountInfo> accounts;
     private CopyOnWriteArrayList<ChannelInfo> channels;
+    private ProxyInfo                         proxyInfo;
 
     public String[] getBannedYoutubeChannel() {
         return bannedYoutubeChannel;

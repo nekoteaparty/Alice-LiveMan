@@ -63,10 +63,11 @@ public class FfmpegUtil {
     public String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
         String loopCmdLine = " -re -stream_loop -1";
         loopCmdLine += " -i \"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
-        if (FilenameUtils.getExtension(videoInfo.getChannelInfo().getMediaUrl()).equals("png")) {
-            loopCmdLine += " -i \"" + audioPlaceHolder + "\"";
+        if (videoInfo.isBanned()) {
+            loopCmdLine += " -ac 1 -vcodec h264 -acodec aac -vf \"[in]scale=32:-1[out]\" -b:v 256K -b:a 64K -preset ultrafast -flush_packets 1 -f flv \"" + broadcastAddress + "\"";
+        } else {
+            loopCmdLine += " -vcodec copy -acodec aac -b:a 128K -f flv \"" + broadcastAddress + "\"";
         }
-        loopCmdLine += " -vcodec h264 -acodec aac -r 30 -b:v 2500K -b:a 128K -f flv \"" + broadcastAddress + "\"";
         return loopCmdLine;
     }
 }

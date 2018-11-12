@@ -43,7 +43,7 @@ public class YouTubeLiveService extends LiveService {
     private static final Pattern initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
     private static final Pattern hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
     private static final Pattern videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
-    private static final Pattern browseIdPattern     = Pattern.compile("\\{\"browseId\":\"(.+?)\"}");
+    private static final Pattern browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
 
     @Override
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {

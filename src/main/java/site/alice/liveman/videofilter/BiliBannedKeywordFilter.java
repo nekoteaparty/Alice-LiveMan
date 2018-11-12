@@ -20,8 +20,9 @@ package site.alice.liveman.videofilter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.DynamicAreaUtil;
 
@@ -31,39 +32,29 @@ import java.io.IOException;
 @Slf4j
 @Component
 public class BiliBannedKeywordFilter implements VideoFilter {
-    @Value("${bili.banned.keywords}")
-    private String[] bannedKeywords;
-    @Value("${bili.banned.youtube.channel}")
-    private String[] bannedChannels;
-    @Value("${media.proxy.temp.path}")
-    private String   tempPath;
+    @Autowired
+    private LiveManSetting liveManSetting;
 
     @Override
     public boolean doFilter(VideoInfo videoInfo) {
         String bannedKeyword = null;
-        for (String bannedChannel : bannedChannels) {
+        for (String bannedChannel : liveManSetting.getBannedYoutubeChannel()) {
             String[] bannedChannelInfo = bannedChannel.split(":");
             if (bannedChannelInfo[1].equals(videoInfo.getDescription())) {
                 bannedKeyword = bannedChannelInfo[0];
                 break;
             }
         }
-        for (String _bannedKeyword : bannedKeywords) {
-            if (StringUtils.containsIgnoreCase(videoInfo.getTitle(), _bannedKeyword)) {
+        for (String _bannedKeyword : liveManSetting.getBannedKeywords()) {
+            if (StringUtils.containsIgnoreCase(videoInfo.getTitle(), _bannedKeyword) || _bannedKeyword.equals(bannedKeyword)) {
                 bannedKeyword = _bannedKeyword;
                 break;
             }
         }
-        File file = new File(tempPath + "/filter/" + videoInfo.getVideoId() + ".png");
-        if (file.exists() && file.length() > 0) {
-            file.getParentFile().mkdirs();
-            try {
-                DynamicAreaUtil.createAreaImage("屏蔽:" + bannedKeyword, file, 1280, 720);
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
-            }
+        if (bannedKeyword == null) {
+            return true;
         }
-        videoInfo.getChannelInfo().setMediaUrl(file.toString());
+        videoInfo.setBanned(true);
         return true;
     }
 }

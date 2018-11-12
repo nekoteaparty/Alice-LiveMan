@@ -94,18 +94,17 @@ public class AutoLiveManJob {
                 mediaUrl = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).getLiveVideoAddress(channelInfo);
                 if (mediaUrl != null) {
                     LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]正在直播，媒体地址:" + mediaUrl);
-                    channelInfo.setMediaUrl(mediaUrl.toString());
                 } else {
                     LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]没有正在直播的节目");
                 }
-                Thread.sleep(500);
+                Thread.sleep(1000);
             } catch (Throwable e) {
                 LOGGER.error("获取 " + channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "] 频道信息失败", e);
             }
         }));
     }
 
-    @Scheduled(cron = "0/1 * * * * ?")
+    // @Scheduled(cron = "0/1 * * * * ?")
     public void pushToBilibili() throws IOException {
         AccountInfo defaultAccount = liveManSetting.getAccounts().get(0);
         List<ChannelInfo> channelInfoList = new ArrayList<>();
