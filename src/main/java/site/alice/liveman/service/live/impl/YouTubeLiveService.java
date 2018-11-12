@@ -38,8 +38,6 @@ public class YouTubeLiveService extends LiveService {
 
     private static final String  LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
     private static final String  GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
-    private static final Proxy   VIDEO_PROXY         = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 1080));
-    private static final Proxy   WEB_PROXY           = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8001));
     private static final Pattern initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
     private static final Pattern hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
     private static final Pattern videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
@@ -49,7 +47,7 @@ public class YouTubeLiveService extends LiveService {
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
-        String resHtml = HttpRequestUtil.downloadUrl(url, StandardCharsets.UTF_8, WEB_PROXY);
+        String resHtml = HttpRequestUtil.downloadUrl(url, StandardCharsets.UTF_8);
         Matcher matcher = initDataJsonPattern.matcher(resHtml);
         if (matcher.find()) {
             String initDataJson = matcher.group(1);
@@ -71,7 +69,7 @@ public class YouTubeLiveService extends LiveService {
                     JSONObject readerObject = (JSONObject) reader;
                     if (readerObject.toJSONString().contains("BADGE_STYLE_TYPE_LIVE_NOW")) {
                         videoId = readerObject.getJSONObject("gridVideoRenderer").getString("videoId");
-                        videoInfoRes = HttpRequestUtil.downloadUrl(new URI(GET_VIDEO_INFO_URL + videoId), StandardCharsets.UTF_8, WEB_PROXY);
+                        videoInfoRes = HttpRequestUtil.downloadUrl(new URI(GET_VIDEO_INFO_URL + videoId), StandardCharsets.UTF_8);
                         break;
                     }
                 }
@@ -90,7 +88,7 @@ public class YouTubeLiveService extends LiveService {
                 }
                 if (hlsvpMatcher.find()) {
                     String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
-                    String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8, VIDEO_PROXY).split("\n");
+                    String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
                     String mediaUrl = null;
                     for (int i = 0; i < m3u8List.length; i++) {
                         if (m3u8List[i].contains("1280x720")) {
@@ -102,7 +100,6 @@ public class YouTubeLiveService extends LiveService {
                         mediaUrl = m3u8List[m3u8List.length - 1];
                     }
                     VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
-                    videoInfo.setNetworkProxy(VIDEO_PROXY);
                     videoInfo.setDescription(description);
                     return videoInfo;
                 } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {

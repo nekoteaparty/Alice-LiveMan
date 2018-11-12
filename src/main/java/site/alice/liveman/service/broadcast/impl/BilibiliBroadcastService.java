@@ -50,7 +50,7 @@ public class BilibiliBroadcastService implements BroadcastService {
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         VideoInfo videoInfo = accountInfo.getCurrentVideo();
         if (StringUtils.isEmpty(accountInfo.getRoomId())) {
-            String liveInfoJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_INFO_URL), accountInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8, null);
+            String liveInfoJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_INFO_URL), accountInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
             JSONObject liveInfoObject = JSON.parseObject(liveInfoJson);
             if (liveInfoObject.get("data") instanceof JSONObject) {
                 accountInfo.setRoomId(liveInfoObject.getJSONObject("data").getString("roomid"));
@@ -65,7 +65,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                 csrfToken = matcher.group(1);
             }
             String postData = "room_id=" + accountInfo.getRoomId() + "&title=" + videoInfo.getTitle() + "&csrf_token=" + csrfToken;
-            String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8, null);
+            String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
                 log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败" + resJson);
@@ -73,7 +73,7 @@ public class BilibiliBroadcastService implements BroadcastService {
         } catch (Throwable e) {
             log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
         }
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=33", StandardCharsets.UTF_8, null);
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=33", StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.get("data") instanceof JSONObject) {

@@ -36,7 +36,7 @@ public class OpenRecLiveService extends LiveService {
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
         String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
         URI moviesUrl = new URI("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
-        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8, null);
+        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8);
         JSONArray movies = JSON.parseArray(moviesJson);
         if (!movies.isEmpty()) {
             JSONObject movieObj = (JSONObject) movies.get(0);
@@ -45,7 +45,7 @@ public class OpenRecLiveService extends LiveService {
                 String videoId = movieObj.getString("id");
                 String videoTitle = movieObj.getString("title");
                 URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
+                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
                     if (m3u8List[i].contains("1280x720")) {

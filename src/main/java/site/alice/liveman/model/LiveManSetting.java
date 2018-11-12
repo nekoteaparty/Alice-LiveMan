@@ -18,6 +18,10 @@
 
 package site.alice.liveman.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LiveManSetting {
@@ -28,7 +32,7 @@ public class LiveManSetting {
     private boolean                           postBiliDynamic;
     private CopyOnWriteArrayList<AccountInfo> accounts;
     private CopyOnWriteArrayList<ChannelInfo> channels;
-    private ProxyInfo                         proxyInfo;
+    private Proxy                             proxy;
 
     public String[] getBannedYoutubeChannel() {
         return bannedYoutubeChannel;
@@ -84,6 +88,27 @@ public class LiveManSetting {
 
     public void setChannels(CopyOnWriteArrayList<ChannelInfo> channels) {
         this.channels = channels;
+    }
+
+    @JSONField(serialize = false)
+    public Proxy getProxy() {
+        return proxy;
+    }
+
+    public ProxyInfo getProxyInfo() {
+        if (proxy != null) {
+            ProxyInfo proxyInfo = new ProxyInfo();
+            InetSocketAddress address = (InetSocketAddress) proxy.address();
+            proxyInfo.setHost(address.getHostName());
+            proxyInfo.setPort(address.getPort());
+            proxyInfo.setType(proxy.type());
+            return proxyInfo;
+        }
+        return null;
+    }
+
+    public void setProxyInfo(ProxyInfo proxyInfo) {
+        this.proxy = new Proxy(proxyInfo.getType(), new InetSocketAddress(proxyInfo.getHost(), proxyInfo.getPort()));
     }
 
     public AccountInfo findByAccountId(String accountId) {

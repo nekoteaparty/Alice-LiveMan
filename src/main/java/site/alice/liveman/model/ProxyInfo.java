@@ -18,21 +18,20 @@
 
 package site.alice.liveman.model;
 
-import java.net.InetAddress;
 import java.net.Proxy;
 
 public class ProxyInfo {
-    private InetAddress address;
-    private int         port;
-    private Proxy.Type  type;
-    private String      proxyId;
+    private String     host;
+    private int        port;
+    private Proxy.Type type;
+    private String     proxyId;
 
-    public InetAddress getAddress() {
-        return address;
+    public String getHost() {
+        return host;
     }
 
-    public void setAddress(InetAddress address) {
-        this.address = address;
+    public void setHost(String host) {
+        this.host = host;
     }
 
     public int getPort() {

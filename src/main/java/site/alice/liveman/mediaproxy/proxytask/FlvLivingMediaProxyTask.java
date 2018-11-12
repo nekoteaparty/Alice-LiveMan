@@ -38,8 +38,8 @@ public class FlvLivingMediaProxyTask extends MediaProxyTask {
     @Autowired
     private LiveManSetting liveManSetting;
 
-    public FlvLivingMediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        super(videoId, sourceUrl, proxy);
+    public FlvLivingMediaProxyTask(String videoId, URI sourceUrl) {
+        super(videoId, sourceUrl);
     }
 
     @Override

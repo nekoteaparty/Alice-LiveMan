@@ -42,6 +42,10 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.model.ProxyInfo;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -60,7 +64,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
+@Component
 public class HttpRequestUtil {
+
+    private static LiveManSetting liveManSetting;
+
+    @Autowired
+    public void setLiveManSetting(LiveManSetting liveManSetting) {
+        HttpRequestUtil.liveManSetting = liveManSetting;
+    }
 
     private static PoolingHttpClientConnectionManager connectionManager;
     private static CloseableHttpClient                client;
@@ -87,14 +99,13 @@ public class HttpRequestUtil {
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
     }
 
-    public static String downloadUrl(URI url, Charset charset, Proxy proxy) throws IOException {
-        return downloadUrl(url, null, Collections.emptyMap(), charset, proxy);
+    public static String downloadUrl(URI url, Charset charset) throws IOException {
+        return downloadUrl(url, null, Collections.emptyMap(), charset);
     }
 
-    public static String downloadUrl(URI url, String cookies, Map<String, String> requestProperties, Charset charset, Proxy proxy) throws IOException {
+    public static String downloadUrl(URI url, String cookies, Map<String, String> requestProperties, Charset charset) throws IOException {
         HttpGet httpGet = new HttpGet(url);
         HttpClientContext context = HttpClientContext.create();
-        context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
@@ -122,10 +133,9 @@ public class HttpRequestUtil {
         }
     }
 
-    public static String downloadUrl(URI url, String cookies, String postData, Charset charset, Proxy proxy) throws IOException {
+    public static String downloadUrl(URI url, String cookies, String postData, Charset charset) throws IOException {
         HttpPost httpPost = new HttpPost(url);
         HttpClientContext context = HttpClientContext.create();
-        context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpPost.setConfig(builder.build());
@@ -159,10 +169,9 @@ public class HttpRequestUtil {
         }
     }
 
-    public static byte[] downloadUrl(URI url, Proxy proxy) throws IOException {
+    public static byte[] downloadUrl(URI url) throws IOException {
         HttpGet httpGet = new HttpGet(url);
         HttpClientContext context = HttpClientContext.create();
-        context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
@@ -182,10 +191,9 @@ public class HttpRequestUtil {
         }
     }
 
-    public static void downloadToFile(URI url, File file, Proxy proxy) throws IOException {
+    public static void downloadToFile(URI url, File file) throws IOException {
         HttpGet httpGet = new HttpGet(url);
         HttpClientContext context = HttpClientContext.create();
-        context.setAttribute("proxy", proxy);
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
@@ -229,7 +237,7 @@ public class HttpRequestUtil {
 
         @Override
         public Socket createSocket(final HttpContext context) {
-            Proxy proxy = (Proxy) context.getAttribute("proxy");
+            Proxy proxy = liveManSetting.getProxy();
             if (proxy == null) {
                 return new Socket();
             } else {
@@ -253,7 +261,7 @@ public class HttpRequestUtil {
 
         @Override
         public Socket createSocket(final HttpContext context) {
-            Proxy proxy = (Proxy) context.getAttribute("proxy");
+            Proxy proxy = liveManSetting.getProxy();
             if (proxy == null) {
                 return new Socket();
             } else {

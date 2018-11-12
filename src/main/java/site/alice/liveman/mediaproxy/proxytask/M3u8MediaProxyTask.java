@@ -52,9 +52,9 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     private              int                   lastSeqIndex         = 0;
     private final        MediaProxyTask        downloadTask;
 
-    public M3u8MediaProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        super(videoId, sourceUrl, proxy);
-        downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null, getProxy()) {
+    public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
+        super(videoId, sourceUrl);
+        downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null) {
             @Override
             protected void runTask() throws InterruptedException {
                 while (retry.get() < MAX_RETRY_COUNT) {
@@ -67,10 +67,10 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                 File seqFile = new File(queueDatas[1]);
                                 if (!seqFile.exists()) {
                                     if (mediaVideoInfo.getEncodeMethod() == null) {
-                                        HttpRequestUtil.downloadToFile(new URI(queueDatas[0]), seqFile, getProxy());
+                                        HttpRequestUtil.downloadToFile(new URI(queueDatas[0]), seqFile);
                                     } else {
                                         seqFile.getParentFile().mkdirs();
-                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URI(queueDatas[0]), getProxy());
+                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URI(queueDatas[0]));
                                         try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
                                             try {
                                                 SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
@@ -124,7 +124,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             long start = System.currentTimeMillis();
             try {
                 log.debug("get m3u8 meta info from " + getSourceUrl());
-                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset(), getProxy()).split("\n");
+                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset()).split("\n");
                 int seqCount = 0;
                 int readSeqCount = 0;
                 int startSeq = 0;

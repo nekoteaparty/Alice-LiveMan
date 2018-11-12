@@ -18,23 +18,21 @@
 package site.alice.liveman.model;
 
 import java.io.Serializable;
-import java.net.Proxy;
 import java.net.URI;
 import java.util.Arrays;
 
 public class VideoInfo implements Serializable {
 
-    private           ChannelInfo channelInfo;
-    private           String      videoId;
-    private           String      title;
-    private           String      description;
-    private           URI         mediaUrl;
-    private           String      mediaFormat;
-    private           String      encodeMethod;
-    private           byte[]      encodeKey;
-    private           byte[]      encodeIV;
-    private           boolean     banned;
-    private transient Proxy       networkProxy;
+    private ChannelInfo channelInfo;
+    private String      videoId;
+    private String      title;
+    private String      description;
+    private URI         mediaUrl;
+    private String      mediaFormat;
+    private String      encodeMethod;
+    private byte[]      encodeKey;
+    private byte[]      encodeIV;
+    private boolean     banned;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
@@ -90,14 +88,6 @@ public class VideoInfo implements Serializable {
 
     public void setMediaFormat(String mediaFormat) {
         this.mediaFormat = mediaFormat;
-    }
-
-    public Proxy getNetworkProxy() {
-        return networkProxy;
-    }
-
-    public void setNetworkProxy(Proxy networkProxy) {
-        this.networkProxy = networkProxy;
     }
 
     public boolean isBanned() {

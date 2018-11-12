@@ -62,7 +62,7 @@ public class MediaProxyManager implements ApplicationContextAware {
     }
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat(), videoInfo.getNetworkProxy());
+        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
         mediaProxyTask.setVideoInfo(videoInfo);
         videoInfo.getChannelInfo().setMediaUrl(mediaProxyTask.getTargetUrl().toString());
         videoFilterService.doFilter(videoInfo);
@@ -70,17 +70,17 @@ public class MediaProxyManager implements ApplicationContextAware {
         return mediaProxyTask;
     }
 
-    public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat, proxy);
+    public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat) throws Exception {
+        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat);
         runProxy(mediaProxyTask);
         return mediaProxyTask;
     }
 
-    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
+    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat) throws Exception {
         for (Map.Entry<String, MediaProxy> metaProxyEntry : proxyMap.entrySet()) {
             MediaProxy metaProxy = metaProxyEntry.getValue();
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
-                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl, proxy);
+                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl);
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
                 String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
@@ -118,7 +118,6 @@ public class MediaProxyManager implements ApplicationContextAware {
         } else {
             MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(task.getVideoId());
             mediaProxyTask.setSourceUrl(task.getSourceUrl());
-            mediaProxyTask.setProxy(task.getProxy());
         }
     }
 

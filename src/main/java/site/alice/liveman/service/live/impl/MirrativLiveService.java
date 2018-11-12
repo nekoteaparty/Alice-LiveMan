@@ -38,18 +38,18 @@ public class MirrativLiveService extends LiveService {
         String channelUrl = channelInfo.getChannelUrl();
         String userId = channelUrl.replace("https://www.mirrativ.com/user/", "").replace("/", "");
         URI liveHistoryUrl = new URI("https://www.mirrativ.com/api/live/live_history?user_id=" + userId + "&page=1");
-        String liveHistoryJson = HttpRequestUtil.downloadUrl(liveHistoryUrl, StandardCharsets.UTF_8, null);
+        String liveHistoryJson = HttpRequestUtil.downloadUrl(liveHistoryUrl, StandardCharsets.UTF_8);
         JSONObject liveHistory = JSON.parseObject(liveHistoryJson);
         JSONArray lives = liveHistory.getJSONArray("lives");
         if (!lives.isEmpty()) {
             JSONObject liveObj = lives.getJSONObject(0);
             if (liveObj.getBoolean("is_live")) {
                 String videoId = liveObj.getString("live_id");
-                String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8, null);
+                String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8);
                 JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
                 String videoTitle = liveDetailObj.getString("title");
                 URI m3u8ListUrl = new URI(liveDetailObj.getString("streaming_url_hls"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
+                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
                     if (m3u8List[i].contains("432x768")) {

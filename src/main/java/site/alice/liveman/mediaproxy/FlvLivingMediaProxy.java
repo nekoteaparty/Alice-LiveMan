@@ -44,8 +44,8 @@ public class FlvLivingMediaProxy implements MediaProxy {
     }
 
     @Override
-    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) throws IOException {
-        return new FlvLivingMediaProxyTask(videoId, sourceUrl, proxy);
+    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) throws IOException {
+        return new FlvLivingMediaProxyTask(videoId, sourceUrl);
     }
 
     @Override

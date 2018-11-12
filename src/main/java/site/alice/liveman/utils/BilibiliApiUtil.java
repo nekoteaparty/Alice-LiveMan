@@ -66,7 +66,7 @@ public class BilibiliApiUtil {
         }
         String postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), accountInfo.getRoomId()) + csrfToken;
         try {
-            String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), postAccount.getCookies(), postData, StandardCharsets.UTF_8, null);
+            String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), postAccount.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject jsonObject = JSONObject.parseObject(res);
             if (!jsonObject.getString("msg").equals("succ")) {
                 log.error("发送B站动态失败[postData=" + postData + "]" + res);

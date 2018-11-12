@@ -27,7 +27,7 @@ public interface MediaProxy {
 
     boolean isMatch(URI url, String requestFormat);
 
-    MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) throws IOException;
+    MediaProxyTask createProxyTask(String videoId, URI sourceUrl) throws IOException;
 
     void requestHandler(String videoId) throws Exception;
 }
