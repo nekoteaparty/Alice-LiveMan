@@ -19,10 +19,12 @@
 package site.alice.liveman.model;
 
 import java.net.InetAddress;
+import java.net.Proxy;
 
 public class ProxyInfo {
     private InetAddress address;
     private int         port;
+    private Proxy.Type  type;
     private String      proxyId;
 
     public InetAddress getAddress() {
@@ -39,6 +41,14 @@ public class ProxyInfo {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public Proxy.Type getType() {
+        return type;
+    }
+
+    public void setType(Proxy.Type type) {
+        this.type = type;
     }
 
     public String getProxyId() {

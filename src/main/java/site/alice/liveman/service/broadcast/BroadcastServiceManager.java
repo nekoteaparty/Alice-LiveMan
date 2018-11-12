@@ -31,9 +31,8 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
-import site.alice.liveman.service.VideoFilterService;
-import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.BilibiliApiUtil;
+import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
 
 import javax.annotation.PostConstruct;
