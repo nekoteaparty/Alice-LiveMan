@@ -15,13 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
@@ -36,7 +37,7 @@ public class ShowRoomLiveService extends LiveService {
 
     @Override
     protected VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelHtml = HttpRequestUtil.downloadUrl(new URI(channelInfo.getChannelUrl()), StandardCharsets.UTF_8, null);
+        String channelHtml = HttpRequestUtil.downloadUrl(new URI(channelInfo.getChannelUrl()), StandardCharsets.UTF_8);
         Matcher matcher = initDataPattern.matcher(channelHtml);
         if (matcher.find()) {
             JSONObject liveDataObj = JSON.parseObject(matcher.group(1));
@@ -44,7 +45,7 @@ public class ShowRoomLiveService extends LiveService {
                 String videoId = liveDataObj.getString("liveId");
                 String videoTitle = liveDataObj.getString("roomName");
                 URI m3u8ListUrl = new URI(liveDataObj.getString("streamingUrlHls"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
+                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
                     if (m3u8List[i].contains("1280x720")) {

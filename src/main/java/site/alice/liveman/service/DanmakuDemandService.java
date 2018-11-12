@@ -26,7 +26,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.event.DemandEvent;
@@ -34,10 +33,12 @@ import site.alice.liveman.event.DemandEventListener;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
-import site.alice.liveman.utils.DynamicAreaUtil;
-import site.alice.liveman.model.ChannelInfo;
-import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.AccountInfo;
+import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.utils.DynamicAreaUtil;
 
 import java.io.File;
 import java.net.URI;
@@ -53,13 +54,12 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
     private static final Map<String, Integer>      demandCountMap   = new ConcurrentHashMap<>();
     private static final Set<Integer>              demandUserIdSet  = new HashSet<>();
     private static       long                      NEXT_RESET_TIME  = System.currentTimeMillis();
-    private              DanmakuReceiver           danmakuReceiver;
     private static final List<DemandEventListener> listeners        = new ArrayList<>();
     private static final String                    dynamicTipFormat = "当前点播信息：%s\n发送对应VTuber直播间名称点播（可以从简介中复制），点播有效期1分钟，1分钟后点播权重减半\n创建和谐社会，当直播节目名或相关游戏带有下列关键字时将不会转播：\n%s";
     @Autowired
     private              MediaProxyManager         mediaProxyManager;
-    @Value("${bili.banned.keywords}")
-    private              String[]                  bannedKeywords;
+    @Autowired
+    private              LiveManSetting            liveManSetting;
 
     public MediaProxyTask getMediaProxyTask() {
         return mediaProxyTask;
@@ -72,13 +72,13 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
     private MediaProxyTask mediaProxyTask = null;
 
     @Bean
-    public DanmakuReceiver getDanmakuReceiver(@Value("${bili.live.room.id}") int roomId) {
-        return new DanmakuReceiver(roomId);
+    public DanmakuReceiver getDanmakuReceiver() {
+        AccountInfo accountInfo = liveManSetting.getAccounts().get(0);
+        return new DanmakuReceiver(Integer.parseInt(accountInfo.getRoomId()));
     }
 
     @Autowired
     public void setDanmakuReceiver(DanmakuReceiver danmakuReceiver) {
-        this.danmakuReceiver = danmakuReceiver;
         listeners.add(this);
         MediaProxyManager.addListener(this);
         danmakuReceiver.getDispatchManager().registerDispatcher(new DanmakuDispatcher());
@@ -123,10 +123,6 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
         }
     }
 
-    public DanmakuReceiver getDanmakuReceiver() {
-        return danmakuReceiver;
-    }
-
     public void addDemandItem(String demandItem) {
         if (!demandCountMap.containsKey(demandItem)) {
             demandCountMap.put(demandItem, 0);
@@ -155,12 +151,12 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
             }
         }
         try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", bannedKeywords)), 1920, 180);
+            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, sb, String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
             if (mediaProxyTask != null) {
                 mediaProxyTask.terminate();
             }
             Thread.sleep(1000);
-            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv", null);
+            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
         } catch (Throwable e) {
             LOGGER.error("onAddDemand()", e);
         }
@@ -169,12 +165,12 @@ public class DanmakuDemandService implements DemandEventListener, MediaProxyEven
     @Override
     public void onDemandStart() {
         try {
-            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", bannedKeywords)), 1920, 180);
+            File areaImage = DynamicAreaUtil.createAreaImage(String.format(dynamicTipFormat, "[无]", String.join("、", liveManSetting.getBannedKeywords())), new File("dynamicImage.bmp"), 1920, 180);
             if (mediaProxyTask != null) {
                 mediaProxyTask.terminate();
             }
             Thread.sleep(1000);
-            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv", null);
+            mediaProxyTask = MediaProxyManager.createProxy(areaImage.getName(), new URI("file://" + URLEncoder.encode(areaImage.getAbsolutePath(), "utf-8")), "flv");
         } catch (Throwable e) {
             LOGGER.error("onDemandStart()", e);
         }

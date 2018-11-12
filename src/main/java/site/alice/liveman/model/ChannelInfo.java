@@ -17,6 +17,7 @@
  */
 package site.alice.liveman.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
 import java.io.Serializable;
@@ -25,11 +26,49 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChannelInfo implements Serializable {
-    private String               channelName;
+    private String               defaultAccountId;
+    private boolean              autoBalance;
+    private String               dynamicPostAccountId;
     private String               channelUrl;
+    private String               channelName;
+    @JSONField(serialize = false)
     private String               mediaUrl;
+    @JSONField(serialize = false)
     private List<MediaProxyTask> mediaProxyTasks;
+    @JSONField(serialize = false)
     private Integer              sort;
+
+    public ChannelInfo() {
+    }
+
+    public ChannelInfo(String channelName, String channelUrl) {
+        this.channelName = channelName;
+        this.channelUrl = channelUrl;
+    }
+
+    public String getDefaultAccountId() {
+        return defaultAccountId;
+    }
+
+    public void setDefaultAccountId(String defaultAccountId) {
+        this.defaultAccountId = defaultAccountId;
+    }
+
+    public boolean isAutoBalance() {
+        return autoBalance;
+    }
+
+    public void setAutoBalance(boolean autoBalance) {
+        this.autoBalance = autoBalance;
+    }
+
+    public String getDynamicPostAccountId() {
+        return dynamicPostAccountId;
+    }
+
+    public void setDynamicPostAccountId(String dynamicPostAccountId) {
+        this.dynamicPostAccountId = dynamicPostAccountId;
+    }
 
     public String getChannelName() {
         return channelName;

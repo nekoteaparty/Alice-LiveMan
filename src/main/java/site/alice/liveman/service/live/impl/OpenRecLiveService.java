@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -23,35 +23,32 @@ import com.alibaba.fastjson.JSONObject;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 @Service
-public class MirrativLiveService extends LiveService {
+public class OpenRecLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelUrl = channelInfo.getChannelUrl();
-        String userId = channelUrl.replace("https://www.mirrativ.com/user/", "").replace("/", "");
-        URI liveHistoryUrl = new URI("https://www.mirrativ.com/api/live/live_history?user_id=" + userId + "&page=1");
-        String liveHistoryJson = HttpRequestUtil.downloadUrl(liveHistoryUrl, StandardCharsets.UTF_8, null);
-        JSONObject liveHistory = JSON.parseObject(liveHistoryJson);
-        JSONArray lives = liveHistory.getJSONArray("lives");
-        if (!lives.isEmpty()) {
-            JSONObject liveObj = lives.getJSONObject(0);
-            if (liveObj.getBoolean("is_live")) {
-                String videoId = liveObj.getString("live_id");
-                String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8, null);
-                JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
-                String videoTitle = liveDetailObj.getString("title");
-                URI m3u8ListUrl = new URI(liveDetailObj.getString("streaming_url_hls"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8, null).split("\n");
+        String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
+        URI moviesUrl = new URI("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
+        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8);
+        JSONArray movies = JSON.parseArray(moviesJson);
+        if (!movies.isEmpty()) {
+            JSONObject movieObj = (JSONObject) movies.get(0);
+            Integer onAirStatus = movieObj.getInteger("onair_status");
+            if (onAirStatus == 1) {
+                String videoId = movieObj.getString("id");
+                String videoTitle = movieObj.getString("title");
+                URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
+                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
-                    if (m3u8List[i].contains("432x768")) {
+                    if (m3u8List[i].contains("1280x720")) {
                         mediaUrl = m3u8List[i + 1];
                         break;
                     }
@@ -67,6 +64,6 @@ public class MirrativLiveService extends LiveService {
 
     @Override
     public boolean isMatch(URI channelUrl) {
-        return channelUrl.getHost().contains("mirrativ.com");
+        return channelUrl.getHost().contains("openrec.tv");
     }
 }

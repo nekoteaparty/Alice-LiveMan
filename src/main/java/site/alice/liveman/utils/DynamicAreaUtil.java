@@ -27,18 +27,17 @@ import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 
 public class DynamicAreaUtil {
 
-    public static File createAreaImage(String context, int width, int height) throws IOException {
-        File imageFile = new File("dynamicImage.bmp");
+    public static File createAreaImage(String context, File imageFile, int width, int height) throws IOException {
         BufferedImage image = new BufferedImage(width, height, TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
-        g.setFont(new Font("YaHei Consolas Hybrid", Font.PLAIN, 28));
+        g.setFont(new Font(null, Font.PLAIN, 28));
         g.setBackground(Color.BLACK);
         int x = 0;
         int y = 0;
         for (String line : context.split("\n")) {
             g.drawString(line, x, y += g.getFontMetrics().getHeight());
         }
-        ImageIO.write(image, "bmp", imageFile);
+        ImageIO.write(image, "png", imageFile);
         return imageFile;
     }
 

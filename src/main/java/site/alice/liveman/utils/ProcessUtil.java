@@ -40,7 +40,7 @@ public class ProcessUtil {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
-            DWORD dwCreationFlags = new DWORD(isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
+            DWORD dwCreationFlags = new DWORD(!isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
             kernel.CreateProcess(execPath, cmdLine, null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
             return process_information.dwProcessId.longValue();
         } else {
@@ -105,7 +105,6 @@ public class ProcessUtil {
                 }
             }
         }
-
     }
 
     public static void waitProcess(long pid) {
@@ -125,6 +124,11 @@ public class ProcessUtil {
         }
     }
 
+    /**
+     * @param pid
+     * @param dwMilliseconds
+     * @return 如果在等待期间进程退出返回true，否则返回false
+     */
     public static boolean waitProcess(long pid, int dwMilliseconds) {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;

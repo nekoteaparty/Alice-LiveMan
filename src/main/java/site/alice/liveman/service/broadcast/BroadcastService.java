@@ -15,19 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.mediaproxy;
 
-import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+package site.alice.liveman.service.broadcast;
 
-import java.io.IOException;
-import java.net.Proxy;
-import java.net.URI;
+import site.alice.liveman.model.AccountInfo;
 
-public interface MediaProxy {
+public interface BroadcastService {
 
-    boolean isMatch(URI url, String requestFormat);
+    boolean isMatch(String accountSite);
 
-    MediaProxyTask createProxyTask(String videoId, URI sourceUrl) throws IOException;
-
-    void requestHandler(String videoId) throws Exception;
+    String getBroadcastAddress(AccountInfo accountInfo) throws Exception;
 }

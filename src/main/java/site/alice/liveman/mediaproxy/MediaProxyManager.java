@@ -20,58 +20,68 @@ package site.alice.liveman.mediaproxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.VideoFilterService;
 
 import java.net.Proxy;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
-    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(20, 20, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(50));
+    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(50, 50, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
-    private static final List<MediaProxyEventListener> listeners            = new ArrayList<>();
+    private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
     private static       String                        tempPath;
     private static final String                        targetUrlFormat      = "http://localhost:8080/mediaProxy/%s/%s";
+    private static       ApplicationContext            applicationContext;
+    private static       VideoFilterService            videoFilterService;
+
+    @Autowired
+    public void setVideoFilterService(VideoFilterService videoFilterService) {
+        MediaProxyManager.videoFilterService = videoFilterService;
+    }
 
     public static String getTempPath() {
         return tempPath;
     }
 
-    @Value("${media.proxy.temp.path}")
-    public void setTempPath(String tempPath) {
-        MediaProxyManager.tempPath = tempPath;
+    @Autowired
+    public void setTempPath(LiveManSetting liveManSetting) {
+        MediaProxyManager.tempPath = liveManSetting.getTempPath();
     }
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat(), videoInfo.getNetworkProxy());
+        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
         mediaProxyTask.setVideoInfo(videoInfo);
+        videoInfo.getChannelInfo().setMediaUrl(mediaProxyTask.getTargetUrl().toString());
+        videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
         return mediaProxyTask;
     }
 
-    public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat, proxy);
+    public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat) throws Exception {
+        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat);
         runProxy(mediaProxyTask);
         return mediaProxyTask;
     }
 
-    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat, Proxy proxy) throws Exception {
+    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat) throws Exception {
         for (Map.Entry<String, MediaProxy> metaProxyEntry : proxyMap.entrySet()) {
             MediaProxy metaProxy = metaProxyEntry.getValue();
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
-                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl, proxy);
+                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl);
+                applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
                 String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
@@ -108,7 +118,6 @@ public class MediaProxyManager implements ApplicationContextAware {
         } else {
             MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(task.getVideoId());
             mediaProxyTask.setSourceUrl(task.getSourceUrl());
-            mediaProxyTask.setProxy(task.getProxy());
         }
     }
 
@@ -129,5 +138,7 @@ public class MediaProxyManager implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         proxyMap = applicationContext.getBeansOfType(MediaProxy.class);
+        MediaProxyManager.applicationContext = applicationContext;
     }
+
 }

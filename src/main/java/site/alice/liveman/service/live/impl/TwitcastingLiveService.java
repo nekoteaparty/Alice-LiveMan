@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.service.live;
+package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
@@ -33,7 +34,6 @@ import java.util.regex.Pattern;
 @Service
 public class TwitcastingLiveService extends LiveService {
 
-    private static final Logger  logger             = LoggerFactory.getLogger(TwitcastingLiveService.class);
     private static final Pattern ROOM_TITLE_PATTERN = Pattern.compile("<meta name=\"twitter:title\" content=\"(.+?)\">");
 
     @Override
@@ -41,12 +41,12 @@ public class TwitcastingLiveService extends LiveService {
         String channelUrl = channelInfo.getChannelUrl();
         String roomName = channelUrl.replace("https://twitcasting.tv/", "").replace("/", "");
         URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
-        String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8, null);
+        String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8);
         JSONObject streamServer = JSONObject.parseObject(serverInfo);
         JSONObject movie = streamServer.getJSONObject("movie");
         if (movie.getBoolean("live")) {
             String videoTitle = "";
-            String roomHtml = HttpRequestUtil.downloadUrl(new URI(channelUrl), StandardCharsets.UTF_8, null);
+            String roomHtml = HttpRequestUtil.downloadUrl(new URI(channelUrl), StandardCharsets.UTF_8);
             Matcher matcher = ROOM_TITLE_PATTERN.matcher(roomHtml);
             if (matcher.find()) {
                 videoTitle = matcher.group(1);

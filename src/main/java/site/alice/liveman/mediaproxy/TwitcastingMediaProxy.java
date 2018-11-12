@@ -41,8 +41,8 @@ public class TwitcastingMediaProxy implements MediaProxy {
     }
 
     @Override
-    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl, Proxy proxy) {
-        return new TwitcastingMediaProxyTask(videoId, sourceUrl, proxy);
+    public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) {
+        return new TwitcastingMediaProxyTask(videoId, sourceUrl);
     }
 
     @Override

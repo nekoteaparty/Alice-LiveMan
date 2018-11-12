@@ -15,19 +15,46 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.mediaproxy;
 
-import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+package site.alice.liveman.model;
 
-import java.io.IOException;
 import java.net.Proxy;
-import java.net.URI;
 
-public interface MediaProxy {
+public class ProxyInfo {
+    private String     host;
+    private int        port;
+    private Proxy.Type type;
+    private String     proxyId;
 
-    boolean isMatch(URI url, String requestFormat);
+    public String getHost() {
+        return host;
+    }
 
-    MediaProxyTask createProxyTask(String videoId, URI sourceUrl) throws IOException;
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-    void requestHandler(String videoId) throws Exception;
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public Proxy.Type getType() {
+        return type;
+    }
+
+    public void setType(Proxy.Type type) {
+        this.type = type;
+    }
+
+    public String getProxyId() {
+        return proxyId;
+    }
+
+    public void setProxyId(String proxyId) {
+        this.proxyId = proxyId;
+    }
 }
