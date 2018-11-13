@@ -17,12 +17,14 @@
  */
 package site.alice.liveman.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -46,7 +48,19 @@ public class ProcessUtil {
         } else {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command((execPath + cmdLine).split("\t"));
+                String[] args = (execPath + cmdLine).split("\t");
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i].startsWith("\"")) {
+                        args[i] = args[i].substring(1);
+                    }
+                    if (args[i].endsWith("\"")) {
+                        args[i] = args[i].substring(0, args[i].length() - 1);
+                    }
+                }
+                log.info(JSON.toJSONString(args));
+                processBuilder.command(args);
+                processBuilder.redirectOutput(new File("process.out"));
+                processBuilder.redirectError(new File("process.err"));
                 Process process = processBuilder.start();
                 long processHandle = getProcessHandle(process);
                 processTargetMap.put(processHandle, process);

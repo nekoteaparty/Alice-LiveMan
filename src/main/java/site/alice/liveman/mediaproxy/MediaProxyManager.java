@@ -111,9 +111,13 @@ public class MediaProxyManager implements ApplicationContextAware {
             executedProxyTaskMap.put(task.getVideoId(), task);
             threadPoolExecutor.execute(task);
             for (MediaProxyEventListener listener : listeners) {
-                MediaProxyEvent mediaProxyEvent = new MediaProxyEvent(MediaProxyManager.class);
-                mediaProxyEvent.setMediaProxyTask(task);
-                listener.onProxyStart(mediaProxyEvent);
+                try {
+                    MediaProxyEvent mediaProxyEvent = new MediaProxyEvent(MediaProxyManager.class);
+                    mediaProxyEvent.setMediaProxyTask(task);
+                    listener.onProxyStart(mediaProxyEvent);
+                } catch (Exception e) {
+                    LOGGER.error("调用" + listener + "失败", e);
+                }
             }
         } else {
             MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(task.getVideoId());
@@ -124,6 +128,15 @@ public class MediaProxyManager implements ApplicationContextAware {
     public static void removeProxy(MediaProxyTask task) {
         LOGGER.info("停止节目直播流代理[" + task.getVideoId() + "]");
         executedProxyTaskMap.remove(task.getVideoId());
+        for (MediaProxyEventListener listener : listeners) {
+            try {
+                MediaProxyEvent mediaProxyEvent = new MediaProxyEvent(MediaProxyManager.class);
+                mediaProxyEvent.setMediaProxyTask(task);
+                listener.onProxyStop(mediaProxyEvent);
+            } catch (Exception e) {
+                LOGGER.error("调用" + listener + "失败", e);
+            }
+        }
     }
 
     public static Map<String, MediaProxyTask> getExecutedProxyTaskMap() {

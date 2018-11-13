@@ -133,7 +133,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);
                             String ffmpegCmdLine = ffmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             long pid = ProcessUtil.createProcess(ffmpegUtil.getFfmpegPath(), ffmpegCmdLine, false);
-                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine + "]");
+                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
                             // 杀死进程
