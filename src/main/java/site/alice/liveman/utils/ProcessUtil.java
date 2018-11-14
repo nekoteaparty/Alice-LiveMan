@@ -59,8 +59,8 @@ public class ProcessUtil {
                 }
                 log.info(JSON.toJSONString(args));
                 processBuilder.command(args);
-                processBuilder.redirectOutput(new File("process.out"));
-                processBuilder.redirectError(new File("process.err"));
+                processBuilder.redirectOutput(new File("ffmpeg.out"));
+                processBuilder.redirectError(new File("ffmpeg.err"));
                 Process process = processBuilder.start();
                 long processHandle = getProcessHandle(process);
                 processTargetMap.put(processHandle, process);

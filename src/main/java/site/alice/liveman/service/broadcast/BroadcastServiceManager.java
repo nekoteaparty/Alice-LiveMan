@@ -50,8 +50,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     @Autowired
     private              LiveManSetting                liveManSetting;
     @Autowired
-    private              FfmpegUtil                    ffmpegUtil;
-    @Autowired
     private              BilibiliApiUtil               bilibiliApiUtil;
 
     @PostConstruct
@@ -113,26 +111,45 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
-    class BroadcastTask implements Runnable {
+    public class BroadcastTask implements Runnable {
 
-        private VideoInfo videoInfo;
+        private VideoInfo   videoInfo;
+        private long        pid;
+        private AccountInfo broadcastAccount;
+        private boolean     terminate;
 
         public BroadcastTask(VideoInfo videoInfo) {
             this.videoInfo = videoInfo;
         }
 
+        public VideoInfo getVideoInfo() {
+            return videoInfo;
+        }
+
+        public long getPid() {
+            return pid;
+        }
+
+        public AccountInfo getBroadcastAccount() {
+            return broadcastAccount;
+        }
+
+        public boolean isTerminate() {
+            return terminate;
+        }
+
         @Override
         public void run() {
-            while (MediaProxyManager.getExecutedProxyTaskMap().containsKey(videoInfo.getVideoId())) {
+            while (MediaProxyManager.getExecutedProxyTaskMap().containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
-                    AccountInfo broadcastAccount = getBroadcastAccount(videoInfo);
+                    broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
                     bilibiliApiUtil.postDynamic(broadcastAccount);
                     while (broadcastAccount.getCurrentVideo() == videoInfo) {
                         try {
                             VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                             String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);
-                            String ffmpegCmdLine = ffmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
-                            long pid = ProcessUtil.createProcess(ffmpegUtil.getFfmpegPath(), ffmpegCmdLine, false);
+                            String ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), ffmpegCmdLine, false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
@@ -156,5 +173,17 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 }
             }
         }
+
+        public boolean terminateTask() {
+            log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
+            if (broadcastAccount.removeCurrentVideo(videoInfo)) {
+                terminate = true;
+                ProcessUtil.killProcess(pid);
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
+
 }

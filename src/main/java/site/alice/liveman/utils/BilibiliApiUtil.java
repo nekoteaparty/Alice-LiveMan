@@ -27,6 +27,7 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +42,9 @@ public class BilibiliApiUtil {
     private static final String DYNAMIC_POST_PARAM = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/%s&at_uids=&ctrl=[]&csrf_token=";
 
     @Autowired
-    private LiveManSetting liveManSetting;
+    private LiveManSetting          liveManSetting;
+    @Autowired
+    private BroadcastServiceManager broadcastServiceManager;
 
     public void postDynamic(AccountInfo accountInfo) {
         AccountInfo postAccount = accountInfo;
@@ -64,8 +67,10 @@ public class BilibiliApiUtil {
         if (matcher.find()) {
             csrfToken = matcher.group(1);
         }
-        String postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), accountInfo.getRoomId()) + csrfToken;
+        String postData = null;
         try {
+            String broadcastRoomId = broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
+            postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), broadcastRoomId) + csrfToken;
             String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), postAccount.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject jsonObject = JSONObject.parseObject(res);
             if (!jsonObject.getString("msg").equals("succ")) {

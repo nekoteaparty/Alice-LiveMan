@@ -25,4 +25,6 @@ public interface BroadcastService {
     boolean isMatch(String accountSite);
 
     String getBroadcastAddress(AccountInfo accountInfo) throws Exception;
+
+    String getBroadcastRoomId(AccountInfo accountInfo) throws Exception;
 }

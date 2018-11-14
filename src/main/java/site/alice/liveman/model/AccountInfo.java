@@ -26,7 +26,9 @@ public class AccountInfo {
 
     private String                     accountId;
     private String                     accountSite;
+    @JSONField(serialize = false)
     private String                     cookies;
+    private String                     nickname;
     private String                     description;
     private String                     roomId;
     private boolean                    joinAutoBalance;
@@ -63,6 +65,14 @@ public class AccountInfo {
 
     public void setCookies(String cookies) {
         this.cookies = cookies;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getDescription() {
