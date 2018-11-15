@@ -36,8 +36,13 @@ public class ShowRoomLiveService extends LiveService {
     private static final Pattern initDataPattern = Pattern.compile("<script id=\"js-initial-data\" data-json=\"(.+?)\"></script>");
 
     @Override
-    protected VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelHtml = HttpRequestUtil.downloadUrl(new URI(channelInfo.getChannelUrl()), StandardCharsets.UTF_8);
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
+        return new URI(channelInfo.getChannelUrl());
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String channelHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
         Matcher matcher = initDataPattern.matcher(channelHtml);
         if (matcher.find()) {
             JSONObject liveDataObj = JSON.parseObject(matcher.group(1));

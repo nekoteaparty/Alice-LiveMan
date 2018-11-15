@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.live.LiveServiceFactory;
 
@@ -42,11 +43,11 @@ public class AutoLiveManJob {
         }
         /* 获取频道状态信息 */
         liveManSetting.getChannels().parallelStream().forEach((channelInfo -> {
-            URI mediaUrl;
+            MediaProxyTask mediaProxyTask;
             try {
-                mediaUrl = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).getLiveVideoAddress(channelInfo);
-                if (mediaUrl != null) {
-                    LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]正在直播，媒体地址:" + mediaUrl);
+                mediaProxyTask = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).createMediaProxyTask(channelInfo);
+                if (mediaProxyTask != null) {
+                    LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]正在直播，媒体地址:" + mediaProxyTask);
                 } else {
                     LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]没有正在直播的节目");
                 }

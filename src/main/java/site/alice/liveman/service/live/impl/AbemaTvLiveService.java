@@ -50,13 +50,11 @@ import java.util.regex.Pattern;
 @Service
 public class AbemaTvLiveService extends LiveService {
 
-    /**
-     * TODO 如何获取这个票据？这里的混淆过于强壮了<br/>https://api.abema.io/v1/users<br/>Req:{"deviceId":"be2b3830-951c-4826-b716-4bf3d2e3df61","applicationKeySecret":"QNO3Do1X06BMQ7tFW-2Ex4aNFT_LSYpdWi6mfeFHDjw"}<br/>Res:{"profile":{"userId":"8oERbLifmKKkeb","createdAt":1540990620},"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJiZTJiMzgzMC05NTFjLTQ4MjYtYjcxNi00YmYzZDJlM2RmNjEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG9FUmJMaWZtS0trZWIifQ.bV1i84i9ydm9hS949mjahxzRDQFyXMiUnHILvkEs0fs"}
-     */
     private static final String       bearer         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
     private static final String       userId         = "8nVcD2vSyDFNnj";
     private static final Pattern      channelPattern = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
     private static final Pattern      m3u8KeyPattern = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
+    private static final String       NOW_ON_AIR_URL = "https://abema.tv/now-on-air/";
     private static final ScriptEngine scriptEngine;
 
     static {
@@ -81,7 +79,7 @@ public class AbemaTvLiveService extends LiveService {
     }
 
     @Override
-    protected VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         Matcher matcher = channelPattern.matcher(channelUrl);
         if (matcher.find()) {
@@ -108,27 +106,9 @@ public class AbemaTvLiveService extends LiveService {
                 if (channelSlot.getJSONArray("programs").getJSONObject(0).getJSONObject("series").getString("id").equals(seriesId)) {
                     long startAt = channelSlot.getLongValue("startAt") * 1000;
                     long endAt = channelSlot.getLongValue("endAt") * 1000;
-                    String videoTitle = channelSlot.getString("title");
-                    String videoId = channelSlot.getString("id");
+                    // 在节目播出时间内
                     if (currentTimeMillis > startAt && currentTimeMillis < endAt) {
-                        // 在节目播出时间内
-                        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
-                        String token = JSON.parseObject(tokenJSON).getString("token");
-                        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=486";
-                        String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
-                        Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
-                        if (keyMatcher.find()) {
-                            String lt = keyMatcher.group(2);
-                            byte[] iv = Hex.decodeHex(keyMatcher.group(3));
-                            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":486}", StandardCharsets.UTF_8);
-                            String cid = JSON.parseObject(licenseJson).getString("cid");
-                            String k = JSON.parseObject(licenseJson).getString("k");
-                            VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
-                            videoInfo.setEncodeMethod(keyMatcher.group(1));
-                            videoInfo.setEncodeKey(getDecodeKey(cid, k));
-                            videoInfo.setEncodeIV(iv);
-                            return videoInfo;
-                        }
+                        return new URI(NOW_ON_AIR_URL + channelId);
                     }
                 }
             }
@@ -137,7 +117,34 @@ public class AbemaTvLiveService extends LiveService {
     }
 
     @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String channelId = videoInfoUrl.toString().substring(NOW_ON_AIR_URL.length());
+        Map<String, String> requestProperties = new HashMap<>();
+        requestProperties.put("Authorization", "bearer " + bearer);
+        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
+        String token = JSON.parseObject(tokenJSON).getString("token");
+        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=486";
+        String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
+        Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
+        if (keyMatcher.find()) {
+            String lt = keyMatcher.group(2);
+            byte[] iv = Hex.decodeHex(keyMatcher.group(3));
+            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":486}", StandardCharsets.UTF_8);
+            String cid = JSON.parseObject(licenseJson).getString("cid");
+            String k = JSON.parseObject(licenseJson).getString("k");
+            String slotsJson = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/broadcast/slots/" + cid), StandardCharsets.UTF_8);
+            JSONObject slotsObj = JSON.parseObject(slotsJson);
+            VideoInfo videoInfo = new VideoInfo(channelInfo, cid, slotsObj.getString("title"), new URI(mediaUrl), "m3u8");
+            videoInfo.setEncodeMethod(keyMatcher.group(1));
+            videoInfo.setEncodeKey(getDecodeKey(cid, k));
+            videoInfo.setEncodeIV(iv);
+            return videoInfo;
+        }
+        return null;
+    }
+
+    @Override
     protected boolean isMatch(URI channelUrl) {
-        return channelPattern.matcher(channelUrl.toString()).find();
+        return channelPattern.matcher(channelUrl.toString()).find() || channelUrl.toString().startsWith(NOW_ON_AIR_URL);
     }
 }
