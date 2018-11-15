@@ -28,7 +28,9 @@ import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.regex.Matcher;
@@ -49,22 +51,13 @@ public class BilibiliBroadcastService implements BroadcastService {
     @Override
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         VideoInfo videoInfo = accountInfo.getCurrentVideo();
-        if (StringUtils.isEmpty(accountInfo.getRoomId())) {
-            String liveInfoJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_INFO_URL), accountInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
-            JSONObject liveInfoObject = JSON.parseObject(liveInfoJson);
-            if (liveInfoObject.get("data") instanceof JSONObject) {
-                accountInfo.setRoomId(liveInfoObject.getJSONObject("data").getString("roomid"));
-            } else {
-                throw new Exception("开启B站直播间失败" + liveInfoObject);
-            }
-        }
         try {
             Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
             String csrfToken = "";
             if (matcher.find()) {
                 csrfToken = matcher.group(1);
             }
-            String postData = "room_id=" + accountInfo.getRoomId() + "&title=" + videoInfo.getTitle() + "&csrf_token=" + csrfToken;
+            String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&title=" + videoInfo.getTitle() + "&csrf_token=" + csrfToken;
             String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
@@ -79,8 +72,24 @@ public class BilibiliBroadcastService implements BroadcastService {
         if (startLiveObject.get("data") instanceof JSONObject) {
             rtmpObject = startLiveObject.getJSONObject("data").getJSONObject("rtmp");
         } else {
-            throw new Exception("开启B站直播间失败" + startLiveJson);
+            throw new RuntimeException("开启B站直播间失败" + startLiveJson);
         }
         return rtmpObject.getString("addr") + rtmpObject.getString("code");
+    }
+
+    @Override
+    public String getBroadcastRoomId(AccountInfo accountInfo) throws Exception {
+        if (StringUtils.isEmpty(accountInfo.getRoomId())) {
+            String liveInfoJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_INFO_URL), accountInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+            JSONObject liveInfoObject = JSON.parseObject(liveInfoJson);
+            if (liveInfoObject.get("data") instanceof JSONObject) {
+                JSONObject data = liveInfoObject.getJSONObject("data");
+                accountInfo.setRoomId(data.getString("roomid"));
+                accountInfo.setNickname(data.getJSONObject("userInfo").getString("uname"));
+            } else {
+                throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);
+            }
+        }
+        return accountInfo.getRoomId();
     }
 }

@@ -17,22 +17,27 @@
  */
 package site.alice.liveman.model;
 
+import site.alice.liveman.service.broadcast.BroadcastServiceManager;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Arrays;
 
 public class VideoInfo implements Serializable {
 
-    private ChannelInfo channelInfo;
-    private String      videoId;
-    private String      title;
-    private String      description;
-    private URI         mediaUrl;
-    private String      mediaFormat;
-    private String      encodeMethod;
-    private byte[]      encodeKey;
-    private byte[]      encodeIV;
-    private boolean     banned;
+    private ChannelInfo   channelInfo;
+    private String        videoId;
+    private String        title;
+    private String        description;
+    private URI           mediaUrl;
+    private String        mediaFormat;
+    private String        encodeMethod;
+    private byte[]        encodeKey;
+    private byte[]        encodeIV;
+    private boolean       isVideoBanned;
+    private boolean       isAudioBanned;
+    private BroadcastTask broadcastTask;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
@@ -90,12 +95,28 @@ public class VideoInfo implements Serializable {
         this.mediaFormat = mediaFormat;
     }
 
-    public boolean isBanned() {
-        return banned;
+    public boolean isVideoBanned() {
+        return isVideoBanned;
     }
 
-    public void setBanned(boolean banned) {
-        this.banned = banned;
+    public void setVideoBanned(boolean videoBanned) {
+        isVideoBanned = videoBanned;
+    }
+
+    public boolean isAudioBanned() {
+        return isAudioBanned;
+    }
+
+    public void setAudioBanned(boolean audioBanned) {
+        isAudioBanned = audioBanned;
+    }
+
+    public BroadcastTask getBroadcastTask() {
+        return broadcastTask;
+    }
+
+    public void setBroadcastTask(BroadcastTask broadcastTask) {
+        this.broadcastTask = broadcastTask;
     }
 
     public String getEncodeMethod() {

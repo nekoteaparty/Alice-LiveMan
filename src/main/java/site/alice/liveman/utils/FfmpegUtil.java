@@ -32,42 +32,43 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-@Component
 public class FfmpegUtil {
 
-    @Autowired
-    private        LiveManSetting liveManSetting;
-    private static String         moviePlaceHolder = "placeholder.png";
-    private static String         audioPlaceHolder = "placeholder.mp3";
+    private static String moviePlaceHolder = "placeholder.png";
+    private static String audioPlaceHolder = "placeholder.mp3";
 
-    @PostConstruct
-    public void init() throws IOException {
-        File moviePlaceFile = new File("./" + moviePlaceHolder);
-        if (!moviePlaceFile.exists()) {
-            ClassPathResource resource = new ClassPathResource(moviePlaceHolder);
-            IOUtils.copy(resource.getInputStream(), new FileOutputStream(moviePlaceFile));
+    static {
+        try {
+            File moviePlaceFile = new File("./" + moviePlaceHolder);
+            if (!moviePlaceFile.exists()) {
+                ClassPathResource resource = new ClassPathResource(moviePlaceHolder);
+                IOUtils.copy(resource.getInputStream(), new FileOutputStream(moviePlaceFile));
+            }
+            moviePlaceHolder = FilenameUtils.separatorsToUnix(moviePlaceFile.getAbsolutePath());
+            File audioPlaceFile = new File("./" + audioPlaceHolder);
+            if (!audioPlaceFile.exists()) {
+                ClassPathResource resource = new ClassPathResource(audioPlaceHolder);
+                IOUtils.copy(resource.getInputStream(), new FileOutputStream(audioPlaceFile));
+            }
+            audioPlaceHolder = FilenameUtils.separatorsToUnix(audioPlaceFile.getAbsolutePath());
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
         }
-        moviePlaceHolder = FilenameUtils.separatorsToUnix(moviePlaceFile.getAbsolutePath());
-        File audioPlaceFile = new File("./" + audioPlaceHolder);
-        if (!audioPlaceFile.exists()) {
-            ClassPathResource resource = new ClassPathResource(audioPlaceHolder);
-            IOUtils.copy(resource.getInputStream(), new FileOutputStream(audioPlaceFile));
-        }
-        audioPlaceHolder = FilenameUtils.separatorsToUnix(audioPlaceFile.getAbsolutePath());
     }
 
-    public String getFfmpegPath() {
-        return liveManSetting.getFfmpegPath();
-    }
-
-    public String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String loopCmdLine = " -re -stream_loop -1";
-        loopCmdLine += " -i \"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
-        if (videoInfo.isBanned()) {
-            loopCmdLine += " -ac 1 -vcodec h264 -acodec aac -vf \"[in]scale=32:-1[out]\" -b:v 256K -b:a 64K -preset ultrafast -flush_packets 1 -f flv \"" + broadcastAddress + "\"";
+    public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
+        String loopCmdLine = "\t-re\t-stream_loop\t-1";
+        loopCmdLine += "\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
+        if (videoInfo.isAudioBanned()) {
+            loopCmdLine += "\t-ac\t1";
+        }
+        if (videoInfo.isVideoBanned()) {
+            loopCmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
+            loopCmdLine += "\t-vcodec\th264";
         } else {
-            loopCmdLine += " -vcodec copy -acodec aac -b:a 128K -f flv \"" + broadcastAddress + "\"";
+            loopCmdLine += "\t-vcodec\tcopy";
         }
+        loopCmdLine += "\t-acodec\taac\t-b:a\t128K\t-f\tflv\t\"" + broadcastAddress + "\"";
         return loopCmdLine;
     }
 }

@@ -54,7 +54,7 @@ public class BiliBannedKeywordFilter implements VideoFilter {
         if (bannedKeyword == null) {
             return true;
         }
-        videoInfo.setBanned(true);
+        videoInfo.setVideoBanned(true);
         return true;
     }
 }

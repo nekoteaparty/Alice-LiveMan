@@ -17,12 +17,14 @@
  */
 package site.alice.liveman.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -40,12 +42,26 @@ public class ProcessUtil {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
-            DWORD dwCreationFlags = new DWORD(!isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
-            kernel.CreateProcess(execPath, cmdLine, null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
+            DWORD dwCreationFlags = new DWORD(isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
+            kernel.CreateProcess(execPath, cmdLine.replace("\t", " "), null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
             return process_information.dwProcessId.longValue();
         } else {
             try {
-                Process process = Runtime.getRuntime().exec(execPath + cmdLine);
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                String[] args = (execPath + cmdLine).split("\t");
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i].startsWith("\"")) {
+                        args[i] = args[i].substring(1);
+                    }
+                    if (args[i].endsWith("\"")) {
+                        args[i] = args[i].substring(0, args[i].length() - 1);
+                    }
+                }
+                log.info(JSON.toJSONString(args));
+                processBuilder.command(args);
+                processBuilder.redirectOutput(new File("ffmpeg.out"));
+                processBuilder.redirectError(new File("ffmpeg.err"));
+                Process process = processBuilder.start();
                 long processHandle = getProcessHandle(process);
                 processTargetMap.put(processHandle, process);
                 return processHandle;
@@ -79,7 +95,12 @@ public class ProcessUtil {
 
     public static long getProcessHandle(Process process) {
         try {
-            Field handleField = process.getClass().getDeclaredField("handle");
+            Field handleField;
+            if (Platform.isWindows()) {
+                handleField = process.getClass().getDeclaredField("handle");
+            } else {
+                handleField = process.getClass().getDeclaredField("pid");
+            }
             handleField.setAccessible(true);
             return handleField.getLong(process);
         } catch (Throwable e) {
