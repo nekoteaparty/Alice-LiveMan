@@ -112,6 +112,9 @@ public class LiveManSetting {
     }
 
     public AccountInfo findByAccountId(String accountId) {
+        if (accountId == null) {
+            return null;
+        }
         for (AccountInfo account : accounts) {
             if (account.getAccountId().equals(accountId)) {
                 return account;

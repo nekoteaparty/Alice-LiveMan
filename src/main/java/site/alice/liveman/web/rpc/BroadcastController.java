@@ -28,13 +28,19 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.broadcast.BroadcastService;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
+import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.BroadcastTaskVO;
 
 import javax.servlet.http.HttpSession;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequestMapping("/broadcast")
@@ -42,28 +48,33 @@ import java.util.List;
 public class BroadcastController {
 
     @Autowired
-    private HttpSession    session;
+    private HttpSession             session;
     @Autowired
-    private LiveManSetting liveManSetting;
+    private LiveManSetting          liveManSetting;
+    @Autowired
+    private LiveServiceFactory      liveServiceFactory;
+    @Autowired
+    private BroadcastServiceManager broadcastServiceManager;
 
     @RequestMapping("/taskList.json")
     public ActionResult<List<BroadcastTaskVO>> taskList() {
         List<BroadcastTaskVO> broadcastTaskVOList = new ArrayList<>();
-        List<AccountInfo> accounts = liveManSetting.getAccounts();
-        for (AccountInfo account : accounts) {
-            VideoInfo currentVideo = account.getCurrentVideo();
-            if (currentVideo != null) {
+        Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+        for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
+            VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+            if (videoInfo != null && videoInfo.getBroadcastTask() != null) {
+                AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
-                broadcastTaskVO.setAccountSite(account.getAccountSite());
-                broadcastTaskVO.setNickname(account.getNickname());
-                ChannelInfo channelInfo = currentVideo.getChannelInfo();
+                broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
+                broadcastTaskVO.setNickname(broadcastAccount.getNickname());
+                ChannelInfo channelInfo = videoInfo.getChannelInfo();
                 if (channelInfo != null) {
                     broadcastTaskVO.setChannelName(channelInfo.getChannelName());
                 }
-                broadcastTaskVO.setRoomId(account.getRoomId());
-                broadcastTaskVO.setVideoId(currentVideo.getVideoId());
-                broadcastTaskVO.setVideoTitle(currentVideo.getTitle());
-                broadcastTaskVO.setSourceUrl(currentVideo.getMediaUrl().toString());
+                broadcastTaskVO.setRoomId(broadcastAccount.getRoomId());
+                broadcastTaskVO.setVideoId(videoInfo.getVideoId());
+                broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
+                broadcastTaskVO.setSourceUrl(videoInfo.getMediaUrl().toString());
                 broadcastTaskVOList.add(broadcastTaskVO);
             }
         }
@@ -99,5 +110,37 @@ public class BroadcastController {
             log.info("终止转播任务失败：CAS操作失败，请刷新页面后重试[videoId=" + videoId + "]");
             return ActionResult.getErrorResult("终止转播任务失败：CAS操作失败，请刷新页面后重试");
         }
+    }
+
+    @RequestMapping("/createTask.json")
+    public ActionResult createTask(String videoUrl) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        try {
+            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), null);
+            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(liveVideoInfo.getVideoId());
+            if (mediaProxyTask != null) {
+                return ActionResult.getErrorResult("操作失败：此媒体已在推流任务列表中，无法添加");
+            }
+            BroadcastTask broadcastTask = broadcastServiceManager.createSingleBroadcastTask(liveVideoInfo, account);
+            if (broadcastTask != null) {
+                mediaProxyTask = MediaProxyManager.createProxy(liveVideoInfo);
+                if (mediaProxyTask != null) {
+                    return ActionResult.getSuccessResult(null);
+                } else {
+                    return ActionResult.getErrorResult("操作失败：MediaProxyTask创建失败");
+                }
+            } else {
+                return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");
+            }
+        } catch (Exception e) {
+            log.error("createTask() failed, videoUrl=" + videoUrl, e);
+            if (e instanceof URISyntaxException) {
+                return ActionResult.getErrorResult("输入的媒体地址不正确");
+            } else {
+                return ActionResult.getErrorResult("操作失败：" + e.getMessage());
+            }
+        }
+
     }
 }

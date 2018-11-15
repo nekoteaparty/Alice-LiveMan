@@ -26,18 +26,18 @@ import java.net.URI;
 
 public abstract class LiveService {
 
-    public URI getLiveVideoAddress(ChannelInfo channelInfo) throws Exception {
-        VideoInfo videoInfo = getLiveVideoInfo(channelInfo);
+    public MediaProxyTask createMediaProxyTask(ChannelInfo channelInfo) throws Exception {
+        VideoInfo videoInfo = getLiveVideoInfo(getLiveVideoInfoUrl(channelInfo), channelInfo);
         if (videoInfo != null) {
-            MediaProxyTask mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
-            channelInfo.addProxyTask(mediaProxyTask);
-            return mediaProxyTask.getTargetUrl();
+            return MediaProxyManager.createProxy(videoInfo);
         } else {
             return null;
         }
     }
 
-    protected abstract VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception;
+    public abstract URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception;
+
+    public abstract VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception;
 
     protected abstract boolean isMatch(URI channelUrl);
 }

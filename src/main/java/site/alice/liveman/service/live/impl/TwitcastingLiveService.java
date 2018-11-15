@@ -18,8 +18,6 @@
 package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
@@ -37,16 +35,20 @@ public class TwitcastingLiveService extends LiveService {
     private static final Pattern ROOM_TITLE_PATTERN = Pattern.compile("<meta name=\"twitter:title\" content=\"(.+?)\">");
 
     @Override
-    public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelUrl = channelInfo.getChannelUrl();
-        String roomName = channelUrl.replace("https://twitcasting.tv/", "").replace("/", "");
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
+        return new URI(channelInfo.getChannelUrl());
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String roomName = videoInfoUrl.toString().replace("https://twitcasting.tv/", "").replace("/", "");
         URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
         String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8);
         JSONObject streamServer = JSONObject.parseObject(serverInfo);
         JSONObject movie = streamServer.getJSONObject("movie");
         if (movie.getBoolean("live")) {
             String videoTitle = "";
-            String roomHtml = HttpRequestUtil.downloadUrl(new URI(channelUrl), StandardCharsets.UTF_8);
+            String roomHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
             Matcher matcher = ROOM_TITLE_PATTERN.matcher(roomHtml);
             if (matcher.find()) {
                 videoTitle = matcher.group(1);

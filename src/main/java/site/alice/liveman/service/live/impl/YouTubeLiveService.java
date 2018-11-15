@@ -44,7 +44,7 @@ public class YouTubeLiveService extends LiveService {
     private static final Pattern browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
 
     @Override
-    public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
         String resHtml = HttpRequestUtil.downloadUrl(url, StandardCharsets.UTF_8);
@@ -62,56 +62,61 @@ public class YouTubeLiveService extends LiveService {
                     break;
                 }
             }
-            String videoInfoRes = null;
             String videoId = null;
             if (gridVideoRender != null) {
                 for (Object reader : gridVideoRender) {
                     JSONObject readerObject = (JSONObject) reader;
                     if (readerObject.toJSONString().contains("BADGE_STYLE_TYPE_LIVE_NOW")) {
                         videoId = readerObject.getJSONObject("gridVideoRenderer").getString("videoId");
-                        videoInfoRes = HttpRequestUtil.downloadUrl(new URI(GET_VIDEO_INFO_URL + videoId), StandardCharsets.UTF_8);
-                        break;
+                        return new URI(GET_VIDEO_INFO_URL + videoId);
                     }
-                }
-            }
-            if (videoInfoRes != null) {
-                Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
-                Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
-                Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
-                String videoTitle = "";
-                String description = "";
-                if (videoTitleMatcher.find()) {
-                    videoTitle = videoTitleMatcher.group(1);
-                }
-                if (browseIdMatcher.find()) {
-                    description = browseIdMatcher.group(1);
-                }
-                if (hlsvpMatcher.find()) {
-                    String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
-                    String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
-                    String mediaUrl = null;
-                    for (int i = 0; i < m3u8List.length; i++) {
-                        if (m3u8List[i].contains("1280x720")) {
-                            mediaUrl = m3u8List[i + 1];
-                            // 这里不需要加break，取相同分辨率下码率最高的
-                        }
-                    }
-                    if (mediaUrl == null) {
-                        mediaUrl = m3u8List[m3u8List.length - 1];
-                    }
-                    VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
-                    videoInfo.setDescription(description);
-                    return videoInfo;
-                } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
-                    return null;
-                } else {
-                    throw new RuntimeException("没有找到InitData[" + GET_VIDEO_INFO_URL + videoId + "]");
                 }
             }
         } else {
             throw new RuntimeException("没有找到InitData[" + url + "]");
         }
         return null;
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
+        String videoId = videoInfoUrl.toString().substring(GET_VIDEO_INFO_URL.length());
+        String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
+        Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
+        Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
+        Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
+        String videoTitle = "";
+        String description = "";
+        if (videoTitleMatcher.find()) {
+            videoTitle = videoTitleMatcher.group(1);
+        }
+        if (browseIdMatcher.find()) {
+            description = browseIdMatcher.group(1);
+        }
+        if (hlsvpMatcher.find()) {
+            String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
+            String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
+            String mediaUrl = null;
+            for (int i = 0; i < m3u8List.length; i++) {
+                if (m3u8List[i].contains("1280x720")) {
+                    mediaUrl = m3u8List[i + 1];
+                    // 这里不需要加break，取相同分辨率下码率最高的
+                }
+            }
+            if (mediaUrl == null) {
+                mediaUrl = m3u8List[m3u8List.length - 1];
+            }
+            VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
+            videoInfo.setDescription(description);
+            return videoInfo;
+        } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
+            return null;
+        } else {
+            throw new RuntimeException("没有找到InitData[" + GET_VIDEO_INFO_URL + videoId + "]");
+        }
     }
 
     @Override

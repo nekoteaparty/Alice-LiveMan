@@ -37,12 +37,28 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class RealityLiveService extends LiveService {
-    private              Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
+    private Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
+
+    private void refreshStreamUsers() throws IOException, URISyntaxException {
+        URI officialUsersUrl = new URI("https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official");
+        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
+        JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
+        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
+        streamerUsers.addAll(unofficialUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
+        for (int i = 0; i < streamerUsers.size(); i++) {
+            JSONObject streamerUser = streamerUsers.getJSONObject(i);
+            streamerUsersMap.put(streamerUser.getString("nickname"), streamerUser);
+        }
+    }
 
     @Override
-    protected VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
-        String channelUrl = channelInfo.getChannelUrl();
-        String nickname = channelUrl.replace("reality://", "");
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
+        return new URI(channelInfo.getChannelUrl());
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String nickname = videoInfoUrl.toString().replace("reality://", "");
         JSONObject streamUser = streamerUsersMap.get(nickname);
         if (streamUser == null) {
             refreshStreamUsers();
@@ -74,18 +90,6 @@ public class RealityLiveService extends LiveService {
             return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
         }
         return null;
-    }
-
-    private void refreshStreamUsers() throws IOException, URISyntaxException {
-        URI officialUsersUrl = new URI("https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official");
-        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
-        JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
-        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
-        streamerUsers.addAll(unofficialUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
-        for (int i = 0; i < streamerUsers.size(); i++) {
-            JSONObject streamerUser = streamerUsers.getJSONObject(i);
-            streamerUsersMap.put(streamerUser.getString("nickname"), streamerUser);
-        }
     }
 
     @Override

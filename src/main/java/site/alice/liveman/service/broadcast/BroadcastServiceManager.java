@@ -59,21 +59,39 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             public void onProxyStart(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
                 if (videoInfo != null) {
-                    threadPoolExecutor.execute(new BroadcastTask(videoInfo));
+                    BroadcastTask broadcastTask;
+                    if (videoInfo.getBroadcastTask() == null) {
+                        broadcastTask = new BroadcastTask(videoInfo);
+                        videoInfo.setBroadcastTask(broadcastTask);
+                    } else {
+                        broadcastTask = videoInfo.getBroadcastTask();
+                    }
+                    threadPoolExecutor.execute(broadcastTask);
                 }
             }
 
             @Override
             public void onProxyStop(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
-                List<AccountInfo> accounts = liveManSetting.getAccounts();
-                for (AccountInfo accountInfo : accounts) {
-                    if (accountInfo.removeCurrentVideo(videoInfo)) {
-                        return;
+                BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                if (broadcastTask != null) {
+                    AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+                    if (broadcastAccount != null) {
+                        broadcastAccount.removeCurrentVideo(videoInfo);
                     }
                 }
             }
         });
+    }
+
+    public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) {
+        if (broadcastAccount.setCurrentVideo(videoInfo)) {
+            BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+            videoInfo.setBroadcastTask(broadcastTask);
+            return broadcastTask;
+        } else {
+            throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
+        }
     }
 
     public AccountInfo getBroadcastAccount(VideoInfo videoInfo) {
@@ -117,6 +135,13 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         private long        pid;
         private AccountInfo broadcastAccount;
         private boolean     terminate;
+        private boolean     singleTask;
+
+        public BroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) {
+            this.videoInfo = videoInfo;
+            this.broadcastAccount = broadcastAccount;
+            singleTask = true;
+        }
 
         public BroadcastTask(VideoInfo videoInfo) {
             this.videoInfo = videoInfo;
@@ -138,12 +163,18 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             return terminate;
         }
 
+        public boolean isSingleTask() {
+            return singleTask;
+        }
+
         @Override
         public void run() {
             while (MediaProxyManager.getExecutedProxyTaskMap().containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
-                    broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
-                    bilibiliApiUtil.postDynamic(broadcastAccount);
+                    if (!singleTask) {
+                        broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
+                        bilibiliApiUtil.postDynamic(broadcastAccount);
+                    }
                     while (broadcastAccount.getCurrentVideo() == videoInfo) {
                         try {
                             VideoInfo currentVideo = broadcastAccount.getCurrentVideo();

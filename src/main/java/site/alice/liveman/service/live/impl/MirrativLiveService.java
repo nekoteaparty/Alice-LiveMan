@@ -33,8 +33,10 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class MirrativLiveService extends LiveService {
 
+    private static final String GET_LIVE_INFO_URL = "https://www.mirrativ.com/live/";
+
     @Override
-    public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         String userId = channelUrl.replace("https://www.mirrativ.com/user/", "").replace("/", "");
         URI liveHistoryUrl = new URI("https://www.mirrativ.com/api/live/live_history?user_id=" + userId + "&page=1");
@@ -45,25 +47,22 @@ public class MirrativLiveService extends LiveService {
             JSONObject liveObj = lives.getJSONObject(0);
             if (liveObj.getBoolean("is_live")) {
                 String videoId = liveObj.getString("live_id");
-                String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8);
-                JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
-                String videoTitle = liveDetailObj.getString("title");
-                URI m3u8ListUrl = new URI(liveDetailObj.getString("streaming_url_hls"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
-                String mediaUrl = null;
-                for (int i = 0; i < m3u8List.length; i++) {
-                    if (m3u8List[i].contains("432x768")) {
-                        mediaUrl = m3u8List[i + 1];
-                        break;
-                    }
-                }
-                if (mediaUrl == null) {
-                    mediaUrl = m3u8List[3];
-                }
-                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
+                return new URI(GET_LIVE_INFO_URL + videoId);
             }
         }
         return null;
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String videoId = videoInfoUrl.toString().substring(GET_LIVE_INFO_URL.length());
+        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8);
+        JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
+        String videoTitle = liveDetailObj.getString("title");
+        URI m3u8ListUrl = new URI(liveDetailObj.getString("streaming_url_hls"));
+        String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
+        String mediaUrl = m3u8List[3];
+        return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
     }
 
     @Override

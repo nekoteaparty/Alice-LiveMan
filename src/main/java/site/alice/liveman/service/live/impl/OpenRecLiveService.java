@@ -32,10 +32,13 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class OpenRecLiveService extends LiveService {
 
+    private static final String GET_VIDEO_INFO_URL = "https://www.openrec.tv/live/";
+    private static final String GET_MOVIES_API     = "https://public.openrec.tv/external/api/v5/movies";
+
     @Override
-    public VideoInfo getLiveVideoInfo(ChannelInfo channelInfo) throws Exception {
+    public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
-        URI moviesUrl = new URI("https://public.openrec.tv/external/api/v5/movies?channel_id=" + channelName + "&sort=onair_status");
+        URI moviesUrl = new URI(GET_MOVIES_API + "?channel_id=" + channelName + "&sort=onair_status");
         String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8);
         JSONArray movies = JSON.parseArray(moviesJson);
         if (!movies.isEmpty()) {
@@ -43,23 +46,31 @@ public class OpenRecLiveService extends LiveService {
             Integer onAirStatus = movieObj.getInteger("onair_status");
             if (onAirStatus == 1) {
                 String videoId = movieObj.getString("id");
-                String videoTitle = movieObj.getString("title");
-                URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
-                String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
-                String mediaUrl = null;
-                for (int i = 0; i < m3u8List.length; i++) {
-                    if (m3u8List[i].contains("1280x720")) {
-                        mediaUrl = m3u8List[i + 1];
-                        break;
-                    }
-                }
-                if (mediaUrl == null) {
-                    mediaUrl = m3u8List[3];
-                }
-                return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
+                return new URI(GET_VIDEO_INFO_URL + videoId);
             }
         }
         return null;
+    }
+
+    @Override
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        String videoId = videoInfoUrl.toString().substring(GET_VIDEO_INFO_URL.length());
+        String movieObjJson = HttpRequestUtil.downloadUrl(new URI(GET_MOVIES_API + "/" + videoId), StandardCharsets.UTF_8);
+        JSONObject movieObj = JSON.parseObject(movieObjJson);
+        String videoTitle = movieObj.getString("title");
+        URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));
+        String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
+        String mediaUrl = null;
+        for (int i = 0; i < m3u8List.length; i++) {
+            if (m3u8List[i].contains("1280x720")) {
+                mediaUrl = m3u8List[i + 1];
+                break;
+            }
+        }
+        if (mediaUrl == null) {
+            mediaUrl = m3u8List[3];
+        }
+        return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
     }
 
     @Override

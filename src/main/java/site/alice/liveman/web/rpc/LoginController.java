@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.model.AccountInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.web.dataobject.ActionResult;
 
@@ -38,11 +39,17 @@ public class LoginController {
     private HttpSession             session;
     @Autowired
     private BroadcastServiceManager broadcastServiceManager;
+    @Autowired
+    private LiveManSetting          liveManSetting;
 
     @RequestMapping("/login.json")
     public ActionResult<AccountInfo> loginWithBili(@RequestBody AccountInfo accountInfo) {
         try {
             broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
+            AccountInfo byAccountId;
+            if ((byAccountId = liveManSetting.findByAccountId(accountInfo.getAccountId())) != null) {
+                accountInfo = byAccountId;
+            }
             session.setAttribute("account", accountInfo);
             return ActionResult.getSuccessResult(accountInfo);
         } catch (Exception e) {
