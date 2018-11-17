@@ -75,7 +75,7 @@ public class AccountController {
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {
-            log.error("添加账户信息失败", e);
+            log.error("保存系统配置信息失败", e);
             return ActionResult.getErrorResult("系统内部错误，请联系管理员");
         }
         return ActionResult.getSuccessResult(null);
@@ -95,7 +95,7 @@ public class AccountController {
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {
-            log.error("删除账户信息失败", e);
+            log.error("保存系统配置信息失败", e);
             return ActionResult.getErrorResult("系统内部错误，请联系管理员");
         }
         return ActionResult.getSuccessResult(null);
