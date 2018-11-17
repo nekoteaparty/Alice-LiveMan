@@ -19,14 +19,15 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class AccountInfo {
+public class AccountInfo implements Comparable<AccountInfo> {
 
     private String                     accountId;
     private String                     accountSite;
-    @JSONField(serialize = false)
     private String                     cookies;
     private String                     nickname;
     private String                     description;
@@ -101,5 +102,24 @@ public class AccountInfo {
 
     public boolean removeCurrentVideo(VideoInfo currentVideo) {
         return this.currentVideo.compareAndSet(currentVideo, null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AccountInfo that = (AccountInfo) o;
+        return Objects.equals(accountSite, that.accountSite) &&
+                Objects.equals(roomId, that.roomId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accountSite, roomId);
+    }
+
+    @Override
+    public int compareTo(@NotNull AccountInfo o) {
+        return this.getAccountId().compareTo(o.getAccountId());
     }
 }

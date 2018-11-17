@@ -86,7 +86,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                 JSONObject data = liveInfoObject.getJSONObject("data");
                 accountInfo.setRoomId(data.getString("roomid"));
                 accountInfo.setNickname(data.getJSONObject("userInfo").getString("uname"));
-                accountInfo.setAccountId(accountInfo.getNickname());
+                accountInfo.setAccountId(accountInfo.getRoomId());
             } else {
                 throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);
             }

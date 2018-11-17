@@ -22,17 +22,17 @@ import com.alibaba.fastjson.annotation.JSONField;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class LiveManSetting {
-    private String[]                          bannedYoutubeChannel;
-    private String[]                          bannedKeywords;
-    private String                            tempPath;
-    private String                            ffmpegPath;
-    private boolean                           postBiliDynamic;
-    private CopyOnWriteArrayList<AccountInfo> accounts;
-    private CopyOnWriteArrayList<ChannelInfo> channels;
-    private Proxy                             proxy;
+    private String[]                           bannedYoutubeChannel;
+    private String[]                           bannedKeywords;
+    private String                             tempPath;
+    private String                             ffmpegPath;
+    private boolean                            postBiliDynamic;
+    private ConcurrentSkipListSet<AccountInfo> accounts;
+    private ConcurrentSkipListSet<ChannelInfo> channels;
+    private Proxy                              proxy;
 
     public String[] getBannedYoutubeChannel() {
         return bannedYoutubeChannel;
@@ -74,19 +74,19 @@ public class LiveManSetting {
         this.postBiliDynamic = postBiliDynamic;
     }
 
-    public CopyOnWriteArrayList<AccountInfo> getAccounts() {
+    public ConcurrentSkipListSet<AccountInfo> getAccounts() {
         return accounts;
     }
 
-    public void setAccounts(CopyOnWriteArrayList<AccountInfo> accounts) {
+    public void setAccounts(ConcurrentSkipListSet<AccountInfo> accounts) {
         this.accounts = accounts;
     }
 
-    public CopyOnWriteArrayList<ChannelInfo> getChannels() {
+    public ConcurrentSkipListSet<ChannelInfo> getChannels() {
         return channels;
     }
 
-    public void setChannels(CopyOnWriteArrayList<ChannelInfo> channels) {
+    public void setChannels(ConcurrentSkipListSet<ChannelInfo> channels) {
         this.channels = channels;
     }
 

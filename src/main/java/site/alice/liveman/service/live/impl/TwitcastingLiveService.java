@@ -41,6 +41,9 @@ public class TwitcastingLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String roomName = videoInfoUrl.toString().replace("https://twitcasting.tv/", "").replace("/", "");
         URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
         String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8);

@@ -55,6 +55,9 @@ public class MirrativLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String videoId = videoInfoUrl.toString().substring(GET_LIVE_INFO_URL.length());
         String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://www.mirrativ.com/api/live/live?live_id=" + videoId), StandardCharsets.UTF_8);
         JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);

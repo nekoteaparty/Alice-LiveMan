@@ -19,40 +19,83 @@
 package site.alice.liveman.config;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.commons.io.IOUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 @Configuration
 public class SettingConfig {
 
+    private static final File settingFile = new File("setting.bin");
+
     @Bean
-    public LiveManSetting getLiveManSetting() throws IOException {
+    public LiveManSetting getLiveManSetting() throws Exception {
         LiveManSetting liveManSetting;
-        File file = new File("setting.json");
-        if (file.exists()) {
-            try (InputStream is = new FileInputStream(file)) {
-                String setting = IOUtils.toString(is, StandardCharsets.UTF_8);
-                liveManSetting = JSON.parseObject(setting, LiveManSetting.class);
-            }
+        if (settingFile.exists()) {
+            liveManSetting = readSetting();
         } else {
             liveManSetting = new LiveManSetting();
-            liveManSetting.setAccounts(new CopyOnWriteArrayList<>());
-            liveManSetting.setChannels(new CopyOnWriteArrayList<>());
+            liveManSetting.setAccounts(new ConcurrentSkipListSet<>());
+            liveManSetting.setChannels(new ConcurrentSkipListSet<>());
             liveManSetting.setBannedKeywords(new String[0]);
             liveManSetting.setBannedYoutubeChannel(new String[0]);
             liveManSetting.setTempPath("liveManTemp");
-            IOUtils.write(JSON.toJSONString(liveManSetting, SerializerFeature.PrettyFormat), new FileOutputStream(file));
+            saveSetting(liveManSetting);
         }
         return liveManSetting;
+    }
+
+    public synchronized LiveManSetting readSetting() throws Exception {
+        try (InputStream is = new FileInputStream(settingFile)) {
+            byte[] data = IOUtils.toByteArray(is);
+            long keyTimestamp = settingFile.lastModified();
+            Cipher cipher = getCipher(keyTimestamp / 1000 + "", Cipher.DECRYPT_MODE);
+            byte[] decodedData = cipher.doFinal(data);
+            String settingJson = new String(decodedData, StandardCharsets.UTF_8);
+            return JSON.parseObject(settingJson, LiveManSetting.class);
+        }
+    }
+
+    public synchronized void saveSetting(LiveManSetting liveManSetting) throws Exception {
+        long keyTimestamp = System.currentTimeMillis();
+        String settingJson = JSON.toJSONString(liveManSetting);
+        byte[] data = settingJson.getBytes(StandardCharsets.UTF_8);
+        Cipher cipher = getCipher(keyTimestamp / 1000 + "", Cipher.ENCRYPT_MODE);
+        byte[] encodedData = cipher.doFinal(data);
+        File tempFile = new File(settingFile.toString() + ".tmp");
+        tempFile.getAbsoluteFile().getParentFile().mkdirs();
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
+            IOUtils.write(encodedData, fileOutputStream);
+        }
+        if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File(keyTimestamp + ".key").createNewFile()) {
+            settingFile.delete();
+            tempFile.renameTo(settingFile);
+            return;
+        }
+        throw new Exception("配置文件保存失败");
+    }
+
+    private Cipher getCipher(String key, int mode) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+        KeyGenerator keygen = KeyGenerator.getInstance("AES");
+        keygen.init(128, new SecureRandom(key.getBytes()));
+        SecretKey originalKey = keygen.generateKey();
+        byte[] raw = originalKey.getEncoded();
+        SecretKey secretKey = new SecretKeySpec(raw, "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(mode, secretKey);
+        return cipher;
     }
 }

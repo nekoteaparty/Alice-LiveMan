@@ -58,6 +58,9 @@ public class RealityLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String nickname = videoInfoUrl.toString().replace("reality://", "");
         JSONObject streamUser = streamerUsersMap.get(nickname);
         if (streamUser == null) {
