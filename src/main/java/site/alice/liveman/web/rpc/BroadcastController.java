@@ -26,9 +26,7 @@ import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
-import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
-import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.service.live.LiveServiceFactory;
@@ -43,14 +41,12 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@RequestMapping("/broadcast")
 @RestController
+@RequestMapping("/api/broadcast")
 public class BroadcastController {
 
     @Autowired
     private HttpSession             session;
-    @Autowired
-    private LiveManSetting          liveManSetting;
     @Autowired
     private LiveServiceFactory      liveServiceFactory;
     @Autowired
@@ -117,22 +113,11 @@ public class BroadcastController {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         try {
             VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), null);
-            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(liveVideoInfo.getVideoId());
-            if (mediaProxyTask != null) {
-                return ActionResult.getErrorResult("操作失败：此媒体已在推流任务列表中，无法添加");
-            }
             BroadcastTask broadcastTask = broadcastServiceManager.createSingleBroadcastTask(liveVideoInfo, account);
-            if (broadcastTask != null) {
-                mediaProxyTask = MediaProxyManager.createProxy(liveVideoInfo);
-                if (mediaProxyTask != null) {
-                    return ActionResult.getSuccessResult(null);
-                } else {
-                    return ActionResult.getErrorResult("操作失败：MediaProxyTask创建失败");
-                }
-            } else {
+            if (broadcastTask == null) {
                 return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");
             }
+            return ActionResult.getSuccessResult(null);
         } catch (Exception e) {
             log.error("createTask() failed, videoUrl=" + videoUrl, e);
             if (e instanceof URISyntaxException) {
@@ -141,6 +126,6 @@ public class BroadcastController {
                 return ActionResult.getErrorResult("操作失败：" + e.getMessage());
             }
         }
-
     }
 }
+

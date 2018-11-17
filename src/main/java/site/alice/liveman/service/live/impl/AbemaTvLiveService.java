@@ -118,6 +118,9 @@ public class AbemaTvLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String channelId = videoInfoUrl.toString().substring(NOW_ON_AIR_URL.length());
         Map<String, String> requestProperties = new HashMap<>();
         requestProperties.put("Authorization", "bearer " + bearer);

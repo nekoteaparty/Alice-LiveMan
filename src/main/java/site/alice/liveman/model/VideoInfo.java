@@ -23,21 +23,22 @@ import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTas
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class VideoInfo implements Serializable {
 
-    private ChannelInfo   channelInfo;
-    private String        videoId;
-    private String        title;
-    private String        description;
-    private URI           mediaUrl;
-    private String        mediaFormat;
-    private String        encodeMethod;
-    private byte[]        encodeKey;
-    private byte[]        encodeIV;
-    private boolean       isVideoBanned;
-    private boolean       isAudioBanned;
-    private BroadcastTask broadcastTask;
+    private ChannelInfo                    channelInfo;
+    private String                         videoId;
+    private String                         title;
+    private String                         description;
+    private URI                            mediaUrl;
+    private String                         mediaFormat;
+    private String                         encodeMethod;
+    private byte[]                         encodeKey;
+    private byte[]                         encodeIV;
+    private boolean                        isVideoBanned;
+    private boolean                        isAudioBanned;
+    private AtomicReference<BroadcastTask> broadcastTask;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
@@ -112,11 +113,15 @@ public class VideoInfo implements Serializable {
     }
 
     public BroadcastTask getBroadcastTask() {
-        return broadcastTask;
+        return broadcastTask.get();
     }
 
-    public void setBroadcastTask(BroadcastTask broadcastTask) {
-        this.broadcastTask = broadcastTask;
+    public boolean setBroadcastTask(BroadcastTask broadcastTask) {
+        return this.broadcastTask.compareAndSet(null, broadcastTask);
+    }
+
+    public boolean removeBroadcastTask(BroadcastTask broadcastTask) {
+        return this.broadcastTask.compareAndSet(broadcastTask, null);
     }
 
     public String getEncodeMethod() {

@@ -54,6 +54,9 @@ public class OpenRecLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String videoId = videoInfoUrl.toString().substring(GET_VIDEO_INFO_URL.length());
         String movieObjJson = HttpRequestUtil.downloadUrl(new URI(GET_MOVIES_API + "/" + videoId), StandardCharsets.UTF_8);
         JSONObject movieObj = JSON.parseObject(movieObjJson);

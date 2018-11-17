@@ -42,6 +42,9 @@ public class ShowRoomLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String channelHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
         Matcher matcher = initDataPattern.matcher(channelHtml);
         if (matcher.find()) {

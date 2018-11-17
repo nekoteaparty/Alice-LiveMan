@@ -18,6 +18,7 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import org.jetbrains.annotations.NotNull;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
 import java.io.Serializable;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ChannelInfo implements Serializable {
+public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     private String               defaultAccountId;
     private boolean              autoBalance;
     private String               dynamicPostAccountId;
@@ -35,8 +36,6 @@ public class ChannelInfo implements Serializable {
     private String               mediaUrl;
     @JSONField(serialize = false)
     private List<MediaProxyTask> mediaProxyTasks;
-    @JSONField(serialize = false)
-    private Integer              sort;
 
     public ChannelInfo() {
     }
@@ -94,14 +93,6 @@ public class ChannelInfo implements Serializable {
         this.mediaUrl = mediaUrl;
     }
 
-    public Integer getSort() {
-        return sort;
-    }
-
-    public void setSort(Integer sort) {
-        this.sort = sort;
-    }
-
     public List<MediaProxyTask> getMediaProxyTasks() {
         return mediaProxyTasks;
     }
@@ -123,13 +114,16 @@ public class ChannelInfo implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ChannelInfo that = (ChannelInfo) o;
-        return Objects.equals(channelUrl, that.channelUrl) &&
-                Objects.equals(mediaUrl, that.mediaUrl) &&
-                Objects.equals(sort, that.sort);
+        return Objects.equals(channelUrl, that.channelUrl);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(channelUrl, mediaUrl, sort);
+        return Objects.hash(channelUrl);
+    }
+
+    @Override
+    public int compareTo(@NotNull ChannelInfo o) {
+        return this.getChannelName().compareTo(o.getChannelName());
     }
 }

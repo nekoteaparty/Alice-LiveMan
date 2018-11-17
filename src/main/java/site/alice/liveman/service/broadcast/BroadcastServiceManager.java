@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
@@ -34,10 +35,12 @@ import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
+import site.alice.liveman.web.dataobject.ActionResult;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +65,17 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     BroadcastTask broadcastTask;
                     if (videoInfo.getBroadcastTask() == null) {
                         broadcastTask = new BroadcastTask(videoInfo);
-                        videoInfo.setBroadcastTask(broadcastTask);
+                        if (!videoInfo.setBroadcastTask(broadcastTask)) {
+                            BroadcastTask currentBroadcastTask = videoInfo.getBroadcastTask();
+                            try {
+                                log.warn("试图创建推流任务的媒体资源已存在推流任务[roomId={}]，这是不正常的意外情况，将尝试终止已存在的推流任务[videoId={}]", currentBroadcastTask.getBroadcastAccount().getRoomId(), videoInfo.getVideoId());
+                                if (!currentBroadcastTask.terminateTask()) {
+                                    log.warn("终止转播任务失败：CAS操作失败");
+                                }
+                            } catch (Throwable throwable) {
+                                log.error("启动推流任务时发生异常", throwable);
+                            }
+                        }
                     } else {
                         broadcastTask = videoInfo.getBroadcastTask();
                     }
@@ -84,10 +97,27 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         });
     }
 
-    public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) {
+    public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) throws Exception {
         if (broadcastAccount.setCurrentVideo(videoInfo)) {
             BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-            videoInfo.setBroadcastTask(broadcastTask);
+            if (!videoInfo.setBroadcastTask(broadcastTask)) {
+                throw new RuntimeException("提供的VideoInfo已包含推流任务，请先终止现有任务[videoId=" + videoInfo.getVideoId() + "]");
+            }
+            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+            // 如果要推流的媒体已存在，则直接创建推流任务
+            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
+            if (mediaProxyTask != null) {
+                if (mediaProxyTask.getVideoInfo() != null && mediaProxyTask.getVideoInfo().getBroadcastTask() != null) {
+                    throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+                }
+                threadPoolExecutor.execute(broadcastTask);
+            } else {
+                // 创建直播流代理任务
+                mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
+                if (mediaProxyTask == null) {
+                    throw new RuntimeException("MediaProxyTask创建失败");
+                }
+            }
             return broadcastTask;
         } else {
             throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
@@ -105,7 +135,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
         if (channelInfo.isAutoBalance()) {
             /* 默认直播间不可用或没有设置默认 */
-            List<AccountInfo> accounts = liveManSetting.getAccounts();
+            Set<AccountInfo> accounts = liveManSetting.getAccounts();
             for (AccountInfo accountInfo : accounts) {
                 if (accountInfo.isJoinAutoBalance() && accountInfo.setCurrentVideo(videoInfo)) {
                     return accountInfo;
@@ -209,6 +239,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
             if (broadcastAccount.removeCurrentVideo(videoInfo)) {
                 terminate = true;
+                videoInfo.removeBroadcastTask(this);
                 ProcessUtil.killProcess(pid);
                 return true;
             } else {

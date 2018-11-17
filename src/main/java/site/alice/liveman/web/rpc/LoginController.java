@@ -19,6 +19,7 @@
 package site.alice.liveman.web.rpc;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,12 +28,13 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.web.dataobject.ActionResult;
+import site.alice.liveman.web.dataobject.vo.AccountInfoVO;
 
 import javax.servlet.http.HttpSession;
 
 @Slf4j
 @RestController
-@RequestMapping("/login")
+@RequestMapping("/api/login")
 public class LoginController {
 
     @Autowired
@@ -43,7 +45,7 @@ public class LoginController {
     private LiveManSetting          liveManSetting;
 
     @RequestMapping("/login.json")
-    public ActionResult<AccountInfo> loginWithBili(@RequestBody AccountInfo accountInfo) {
+    public ActionResult<AccountInfoVO> loginWithBili(@RequestBody AccountInfo accountInfo) {
         try {
             broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
             AccountInfo byAccountId;
@@ -51,7 +53,9 @@ public class LoginController {
                 accountInfo = byAccountId;
             }
             session.setAttribute("account", accountInfo);
-            return ActionResult.getSuccessResult(accountInfo);
+            AccountInfoVO accountInfoVO = new AccountInfoVO();
+            BeanUtils.copyProperties(accountInfo, accountInfoVO);
+            return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
             return ActionResult.getErrorResult("登录失败");
