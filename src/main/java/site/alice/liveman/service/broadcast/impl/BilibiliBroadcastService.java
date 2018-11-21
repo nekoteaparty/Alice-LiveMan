@@ -62,6 +62,7 @@ public class BilibiliBroadcastService implements BroadcastService {
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
                 log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败" + resJson);
+                accountInfo.setDisable(true);
             }
         } catch (Throwable e) {
             log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
@@ -86,7 +87,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                 JSONObject data = liveInfoObject.getJSONObject("data");
                 accountInfo.setRoomId(data.getString("roomid"));
                 accountInfo.setNickname(data.getJSONObject("userInfo").getString("uname"));
-                accountInfo.setAccountId(accountInfo.getRoomId());
+                accountInfo.setAccountId(accountInfo.getNickname());
             } else {
                 throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);
             }

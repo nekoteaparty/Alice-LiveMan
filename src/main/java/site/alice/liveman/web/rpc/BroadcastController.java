@@ -42,7 +42,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/broadcast")
+@RequestMapping("/broadcast")
 public class BroadcastController {
 
     @Autowired
@@ -58,16 +58,18 @@ public class BroadcastController {
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-            if (videoInfo != null && videoInfo.getBroadcastTask() != null) {
-                AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
+            if (videoInfo != null) {
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
-                broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
-                broadcastTaskVO.setNickname(broadcastAccount.getNickname());
+                if (videoInfo.getBroadcastTask() != null) {
+                    AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
+                    broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
+                    broadcastTaskVO.setNickname(broadcastAccount.getNickname());
+                    broadcastTaskVO.setRoomId(broadcastAccount.getRoomId());
+                }
                 ChannelInfo channelInfo = videoInfo.getChannelInfo();
                 if (channelInfo != null) {
                     broadcastTaskVO.setChannelName(channelInfo.getChannelName());
                 }
-                broadcastTaskVO.setRoomId(broadcastAccount.getRoomId());
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
                 broadcastTaskVO.setSourceUrl(videoInfo.getMediaUrl().toString());
@@ -84,17 +86,17 @@ public class BroadcastController {
         MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
         if (mediaProxyTask == null) {
             log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
-            return ActionResult.getErrorResult("此转播任务尚未运行，或已停止");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
         BroadcastTask broadcastTask = mediaProxyTask.getVideoInfo().getBroadcastTask();
         if (broadcastTask == null) {
             log.info("此转播任务尚未运行，或已停止[BroadcastTask不存在][videoId=" + videoId + "]");
-            return ActionResult.getErrorResult("此转播任务尚未运行，或已停止");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
         AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
         if (broadcastAccount == null) {
             log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
-            return ActionResult.getErrorResult("此转播任务尚未运行，或已停止");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
         if (!broadcastAccount.getRoomId().equals(account.getRoomId())) {
             log.info("您没有权限停止他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");

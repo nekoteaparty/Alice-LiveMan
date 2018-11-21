@@ -129,7 +129,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         String defaultAccountId = channelInfo.getDefaultAccountId();
         if (defaultAccountId != null) {
             AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
-            if (accountInfo != null && accountInfo.setCurrentVideo(videoInfo)) {
+            if (accountInfo != null && !accountInfo.isDisable() && accountInfo.setCurrentVideo(videoInfo)) {
                 return accountInfo;
             }
         }
@@ -137,7 +137,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             /* 默认直播间不可用或没有设置默认 */
             Set<AccountInfo> accounts = liveManSetting.getAccounts();
             for (AccountInfo accountInfo : accounts) {
-                if (accountInfo.isJoinAutoBalance() && accountInfo.setCurrentVideo(videoInfo)) {
+                if (accountInfo.isJoinAutoBalance() && !accountInfo.isDisable() && accountInfo.setCurrentVideo(videoInfo)) {
                     return accountInfo;
                 }
             }

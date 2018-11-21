@@ -33,6 +33,8 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private String                     description;
     private String                     roomId;
     private boolean                    joinAutoBalance;
+    private boolean                    admin;
+    private boolean                    disable;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo> currentVideo = new AtomicReference<>();
 
@@ -102,6 +104,22 @@ public class AccountInfo implements Comparable<AccountInfo> {
 
     public boolean removeCurrentVideo(VideoInfo currentVideo) {
         return this.currentVideo.compareAndSet(currentVideo, null);
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public boolean isDisable() {
+        return disable;
+    }
+
+    public void setDisable(boolean disable) {
+        this.disable = disable;
     }
 
     @Override
