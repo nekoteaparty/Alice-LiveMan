@@ -25,6 +25,8 @@ public class AccountInfoVO {
     private String  description;
     private String  roomId;
     private boolean joinAutoBalance;
+    private boolean admin;
+    private boolean saved;
 
     public String getAccountId() {
         return accountId;
@@ -72,5 +74,21 @@ public class AccountInfoVO {
 
     public void setJoinAutoBalance(boolean joinAutoBalance) {
         this.joinAutoBalance = joinAutoBalance;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public boolean isSaved() {
+        return saved;
+    }
+
+    public void setSaved(boolean saved) {
+        this.saved = saved;
     }
 }

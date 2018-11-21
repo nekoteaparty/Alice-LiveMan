@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.AccountInfoVO;
 
@@ -37,7 +38,7 @@ import java.util.Set;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/account")
+@RequestMapping("/account")
 public class AccountController {
 
     @Autowired
@@ -86,12 +87,23 @@ public class AccountController {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         AccountInfo byAccountId = liveManSetting.findByAccountId(accountId);
         if (byAccountId != null) {
-            if (byAccountId.getAccountId().equals(account.getAccountId())) {
-                liveManSetting.getAccounts().remove(byAccountId);
+            if (byAccountId.getAccountId().equals(account.getAccountId()) || account.isAdmin()) {
+                if (byAccountId.getCurrentVideo() != null) {
+                    BroadcastServiceManager.BroadcastTask broadcastTask = byAccountId.getCurrentVideo().getBroadcastTask();
+                    if (broadcastTask != null) {
+                        if (!broadcastTask.terminateTask()) {
+                            log.info("删除账户信息失败：无法终止转播任务，CAS操作失败");
+                            return ActionResult.getErrorResult("删除账户信息失败：无法终止转播任务，请稍后重试");
+                        }
+                    }
+                }
             } else {
                 return ActionResult.getErrorResult("您没有权限删除他人账户信息");
             }
+        } else {
+            return ActionResult.getErrorResult("此账户已被删除，请刷新页面后重试");
         }
+        liveManSetting.getAccounts().remove(byAccountId);
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {

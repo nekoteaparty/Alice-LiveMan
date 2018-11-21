@@ -70,6 +70,7 @@ public class SettingConfig {
     }
 
     public synchronized void saveSetting(LiveManSetting liveManSetting) throws Exception {
+        new File("./keys/").mkdirs();
         long keyTimestamp = System.currentTimeMillis();
         String settingJson = JSON.toJSONString(liveManSetting);
         byte[] data = settingJson.getBytes(StandardCharsets.UTF_8);
@@ -80,7 +81,7 @@ public class SettingConfig {
         try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
             IOUtils.write(encodedData, fileOutputStream);
         }
-        if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File(keyTimestamp + ".key").createNewFile()) {
+        if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File("./keys/" + keyTimestamp + ".key").createNewFile()) {
             settingFile.delete();
             tempFile.renameTo(settingFile);
             return;

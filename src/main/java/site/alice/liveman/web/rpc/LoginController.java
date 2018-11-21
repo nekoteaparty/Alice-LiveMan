@@ -34,26 +34,29 @@ import javax.servlet.http.HttpSession;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/login")
+@RequestMapping("/login")
 public class LoginController {
 
+    private static final String                  adminRoomId = System.getProperty("admin.room.id");
     @Autowired
-    private HttpSession             session;
+    private              HttpSession             session;
     @Autowired
-    private BroadcastServiceManager broadcastServiceManager;
+    private              BroadcastServiceManager broadcastServiceManager;
     @Autowired
-    private LiveManSetting          liveManSetting;
+    private              LiveManSetting          liveManSetting;
 
     @RequestMapping("/login.json")
     public ActionResult<AccountInfoVO> loginWithBili(@RequestBody AccountInfo accountInfo) {
         try {
+            AccountInfoVO accountInfoVO = new AccountInfoVO();
             broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
             AccountInfo byAccountId;
             if ((byAccountId = liveManSetting.findByAccountId(accountInfo.getAccountId())) != null) {
                 accountInfo = byAccountId;
+                accountInfoVO.setSaved(true);
             }
+            accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));
             session.setAttribute("account", accountInfo);
-            AccountInfoVO accountInfoVO = new AccountInfoVO();
             BeanUtils.copyProperties(accountInfo, accountInfoVO);
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {

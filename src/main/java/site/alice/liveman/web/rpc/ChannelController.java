@@ -36,19 +36,19 @@ import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/channel")
+@RequestMapping("/channel")
 public class ChannelController {
 
-    private static final String         adminRoomId = System.getProperty("admin.room.id");
     @Autowired
-    private              LiveManSetting liveManSetting;
+    private LiveManSetting liveManSetting;
     @Autowired
-    private              SettingConfig  settingConfig;
+    private SettingConfig  settingConfig;
     @Autowired
-    private              HttpSession    session;
+    private HttpSession    session;
 
     @RequestMapping("/channelList.json")
     public ActionResult<List<ChannelInfoVO>> channelList() {
@@ -66,7 +66,7 @@ public class ChannelController {
     @RequestMapping("/addChannel.json")
     public ActionResult addChannel(@RequestBody ChannelInfo channelInfo) {
         AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
-        if (!accountInfo.getRoomId().equals(adminRoomId)) {
+        if (!accountInfo.isAdmin()) {
             return ActionResult.getErrorResult("只有管理员才能添加频道");
         }
         try {
@@ -87,10 +87,40 @@ public class ChannelController {
         return ActionResult.getSuccessResult(null);
     }
 
+    @RequestMapping("/editChannel.json")
+    public ActionResult editChannel(@RequestBody ChannelInfo channelInfo) {
+        AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
+        if (!accountInfo.isAdmin()) {
+            return ActionResult.getErrorResult("只有管理员才能编辑频道");
+        }
+        try {
+            Assert.hasText(channelInfo.getChannelName(), "频道名称不能为空");
+            Assert.hasText(channelInfo.getChannelUrl(), "频道地址不能为空");
+        } catch (IllegalArgumentException e) {
+            return ActionResult.getErrorResult(e.getMessage());
+        }
+        Set<ChannelInfo> channels = liveManSetting.getChannels();
+        for (ChannelInfo channel : channels) {
+            if (channel.getChannelUrl().equals(channelInfo.getChannelUrl()) && channel.getChannelName().equals(channelInfo.getChannelName())) {
+                channel.setDefaultAccountId(channelInfo.getDefaultAccountId());
+                channel.setDynamicPostAccountId(channelInfo.getDynamicPostAccountId());
+                channel.setAutoBalance(channelInfo.isAutoBalance());
+                try {
+                    settingConfig.saveSetting(liveManSetting);
+                } catch (Exception e) {
+                    log.error("保存系统配置信息失败", e);
+                    return ActionResult.getErrorResult("系统内部错误，请联系管理员");
+                }
+                return ActionResult.getSuccessResult(null);
+            }
+        }
+        return ActionResult.getErrorResult("没有找到尝试修改的频道记录");
+    }
+
     @RequestMapping("/removeChannel.json")
     public ActionResult removeChannel(@RequestBody ChannelInfo channelInfo) {
         AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
-        if (!accountInfo.getRoomId().equals(adminRoomId)) {
+        if (!accountInfo.isAdmin()) {
             return ActionResult.getErrorResult("只有管理员才能删除频道");
         }
         try {
