@@ -34,7 +34,7 @@ import javax.servlet.http.HttpSession;
 
 @Slf4j
 @RestController
-@RequestMapping("/login")
+@RequestMapping("/api/login")
 public class LoginController {
 
     private static final String                  adminRoomId = System.getProperty("admin.room.id");

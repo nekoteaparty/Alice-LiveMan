@@ -38,6 +38,7 @@ import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.web.dataobject.ActionResult;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,26 +100,26 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
     public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) throws Exception {
         if (broadcastAccount.setCurrentVideo(videoInfo)) {
-            BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-            if (!videoInfo.setBroadcastTask(broadcastTask)) {
-                throw new RuntimeException("提供的VideoInfo已包含推流任务，请先终止现有任务[videoId=" + videoInfo.getVideoId() + "]");
-            }
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             // 如果要推流的媒体已存在，则直接创建推流任务
             MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
             if (mediaProxyTask != null) {
-                if (mediaProxyTask.getVideoInfo() != null && mediaProxyTask.getVideoInfo().getBroadcastTask() != null) {
+                videoInfo = mediaProxyTask.getVideoInfo();
+                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                if (!videoInfo.setBroadcastTask(broadcastTask)) {
                     throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
                 }
                 threadPoolExecutor.execute(broadcastTask);
+                return broadcastTask;
             } else {
                 // 创建直播流代理任务
+                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
                 mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
                 if (mediaProxyTask == null) {
                     throw new RuntimeException("MediaProxyTask创建失败");
                 }
+                return broadcastTask;
             }
-            return broadcastTask;
         } else {
             throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
         }
@@ -205,7 +206,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
                         bilibiliApiUtil.postDynamic(broadcastAccount);
                     }
-                    while (broadcastAccount.getCurrentVideo() == videoInfo) {
+                    while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
                         try {
                             VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                             String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);

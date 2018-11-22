@@ -36,11 +36,10 @@ import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 @Slf4j
 @RestController
-@RequestMapping("/channel")
+@RequestMapping("/api/channel")
 public class ChannelController {
 
     @Autowired
@@ -105,6 +104,7 @@ public class ChannelController {
                 channel.setDefaultAccountId(channelInfo.getDefaultAccountId());
                 channel.setDynamicPostAccountId(channelInfo.getDynamicPostAccountId());
                 channel.setAutoBalance(channelInfo.isAutoBalance());
+                channel.setDefaultArea(channelInfo.getDefaultArea());
                 try {
                     settingConfig.saveSetting(liveManSetting);
                 } catch (Exception e) {

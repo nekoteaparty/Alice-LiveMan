@@ -38,7 +38,7 @@ import java.util.Set;
 
 @Slf4j
 @RestController
-@RequestMapping("/account")
+@RequestMapping("/api/account")
 public class AccountController {
 
     @Autowired

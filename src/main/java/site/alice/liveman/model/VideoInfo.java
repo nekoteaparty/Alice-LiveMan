@@ -34,10 +34,11 @@ public class VideoInfo implements Serializable {
     private URI                            mediaUrl;
     private String                         mediaFormat;
     private String                         encodeMethod;
-    private byte[]                         encodeKey;
-    private byte[]                         encodeIV;
+    private int[]                          area;
     private boolean                        isVideoBanned;
     private boolean                        isAudioBanned;
+    private byte[]                         encodeKey;
+    private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
@@ -46,6 +47,7 @@ public class VideoInfo implements Serializable {
         this.title = title;
         this.mediaUrl = mediaUrl;
         this.mediaFormat = mediaFormat;
+        this.broadcastTask = new AtomicReference<>();
     }
 
     public ChannelInfo getChannelInfo() {
@@ -110,6 +112,14 @@ public class VideoInfo implements Serializable {
 
     public void setAudioBanned(boolean audioBanned) {
         isAudioBanned = audioBanned;
+    }
+
+    public int[] getArea() {
+        return area;
+    }
+
+    public void setArea(int[] area) {
+        this.area = area;
     }
 
     public BroadcastTask getBroadcastTask() {
