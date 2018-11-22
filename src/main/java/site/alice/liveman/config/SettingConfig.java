@@ -19,6 +19,7 @@
 package site.alice.liveman.config;
 
 import com.alibaba.fastjson.JSON;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentSkipListSet;
 
+@Slf4j
 @Configuration
 public class SettingConfig {
 
@@ -62,6 +64,7 @@ public class SettingConfig {
         try (InputStream is = new FileInputStream(settingFile)) {
             byte[] data = IOUtils.toByteArray(is);
             long keyTimestamp = settingFile.lastModified();
+            log.info("settingFile lastModified = " + keyTimestamp);
             Cipher cipher = getCipher(keyTimestamp / 1000 + "", Cipher.DECRYPT_MODE);
             byte[] decodedData = cipher.doFinal(data);
             String settingJson = new String(decodedData, StandardCharsets.UTF_8);
@@ -91,7 +94,9 @@ public class SettingConfig {
 
     private Cipher getCipher(String key, int mode) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
         KeyGenerator keygen = KeyGenerator.getInstance("AES");
-        keygen.init(128, new SecureRandom(key.getBytes()));
+        SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+        secureRandom.setSeed(key.getBytes());
+        keygen.init(128, secureRandom);
         SecretKey originalKey = keygen.generateKey();
         byte[] raw = originalKey.getEncoded();
         SecretKey secretKey = new SecretKeySpec(raw, "AES");
