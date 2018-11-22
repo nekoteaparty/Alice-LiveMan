@@ -75,10 +75,12 @@ public class MediaProxyManager implements ApplicationContextAware {
         mediaProxyTask.setVideoInfo(videoInfo);
         videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
-        try (OutputStream os = new FileOutputStream("history.txt")) {
-            IOUtils.write(String.format("%s:%s:%s:%s", videoInfo.getVideoId(), videoInfo.getTitle(), channelInfo.getChannelName(), System.currentTimeMillis()), os, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            LOGGER.error("保存历史记录失败", e);
+        synchronized (MediaProxyManager.class) {
+            try (OutputStream os = new FileOutputStream("history.txt", true)) {
+                IOUtils.write(String.format("%s|%s|%s|%s\n", videoInfo.getVideoId(), videoInfo.getTitle(), channelInfo.getChannelName(), System.currentTimeMillis()), os, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                LOGGER.error("保存历史记录失败", e);
+            }
         }
         return mediaProxyTask;
     }
