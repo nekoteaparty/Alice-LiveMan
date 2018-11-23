@@ -19,8 +19,10 @@
 package site.alice.liveman.web.dataobject.vo;
 
 public class SettingVO {
-    private String  ffmpegPath;
-    private boolean postBiliDynamic;
+    private String   ffmpegPath;
+    private boolean  postBiliDynamic;
+    private String[] bannedYoutubeChannel;
+    private String[] bannedKeywords;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -36,5 +38,29 @@ public class SettingVO {
 
     public void setPostBiliDynamic(boolean postBiliDynamic) {
         this.postBiliDynamic = postBiliDynamic;
+    }
+
+    public String[] getBannedYoutubeChannelArray() {
+        return bannedYoutubeChannel;
+    }
+
+    public String[] getBannedKeywordsArray() {
+        return bannedKeywords;
+    }
+
+    public String getBannedYoutubeChannel() {
+        return String.join(",", bannedYoutubeChannel);
+    }
+
+    public void setBannedYoutubeChannel(String bannedYoutubeChannel) {
+        this.bannedYoutubeChannel = bannedYoutubeChannel.split(",");
+    }
+
+    public String getBannedKeywords() {
+        return String.join(",", bannedKeywords);
+    }
+
+    public void setBannedKeywords(String bannedKeywords) {
+        this.bannedKeywords = bannedKeywords.split(",");
     }
 }

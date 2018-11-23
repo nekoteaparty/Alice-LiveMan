@@ -51,7 +51,10 @@ public class SystemController {
             return ActionResult.getErrorResult("权限不足");
         }
         SettingVO settingVO = new SettingVO();
-        BeanUtils.copyProperties(liveManSetting, settingVO);
+        settingVO.setFfmpegPath(liveManSetting.getFfmpegPath());
+        settingVO.setPostBiliDynamic(liveManSetting.isPostBiliDynamic());
+        settingVO.setBannedKeywords(String.join(",", liveManSetting.getBannedKeywords()));
+        settingVO.setBannedYoutubeChannel(String.join(",", liveManSetting.getBannedYoutubeChannel()));
         return ActionResult.getSuccessResult(settingVO);
     }
 
@@ -61,7 +64,10 @@ public class SystemController {
         if (!account.isAdmin()) {
             return ActionResult.getErrorResult("权限不足");
         }
-        BeanUtils.copyProperties(settingVO, liveManSetting);
+        liveManSetting.setPostBiliDynamic(settingVO.isPostBiliDynamic());
+        liveManSetting.setFfmpegPath(settingVO.getFfmpegPath());
+        liveManSetting.setBannedKeywords(settingVO.getBannedKeywordsArray());
+        liveManSetting.setBannedYoutubeChannel(settingVO.getBannedYoutubeChannelArray());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {
