@@ -150,7 +150,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 }
             }
         }
-        throw new RuntimeException("频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "没有找到可以推流的直播间");
+        log.info("频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "没有找到可以推流的直播间");
+        return null;
     }
 
     @Override
@@ -211,6 +212,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 try {
                     if (!singleTask) {
                         broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
+                        if (broadcastAccount == null) {
+                            continue;
+                        }
                         bilibiliApiUtil.postDynamic(broadcastAccount);
                     }
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
@@ -227,10 +231,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ignore) {
-                            }
+                        }
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignore) {
                         }
                     }
                     broadcastAccount.removeCurrentVideo(videoInfo);
@@ -241,10 +245,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     }
                 } catch (Throwable e) {
                     log.error("startBroadcast failed", e);
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException ignore) {
-                    }
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ignore) {
                 }
             }
             videoInfo.removeBroadcastTask(this);
