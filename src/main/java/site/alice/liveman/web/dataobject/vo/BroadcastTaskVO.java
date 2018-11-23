@@ -19,13 +19,16 @@
 package site.alice.liveman.web.dataobject.vo;
 
 public class BroadcastTaskVO {
-    private String nickname;
-    private String roomId;
-    private String accountSite;
-    private String channelName;
-    private String videoTitle;
-    private String videoId;
-    private String sourceUrl;
+    private String  nickname;
+    private String  roomId;
+    private String  accountSite;
+    private String  channelName;
+    private String  videoTitle;
+    private String  videoId;
+    private String  mediaUrl;
+    private int[]   area;
+    private boolean isVideoBanned;
+    private boolean isAudioBanned;
 
     public String getNickname() {
         return nickname;
@@ -75,11 +78,35 @@ public class BroadcastTaskVO {
         this.videoId = videoId;
     }
 
-    public String getSourceUrl() {
-        return sourceUrl;
+    public String getMediaUrl() {
+        return mediaUrl;
     }
 
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
+    public void setMediaUrl(String mediaUrl) {
+        this.mediaUrl = mediaUrl;
+    }
+
+    public int[] getArea() {
+        return area;
+    }
+
+    public void setArea(int[] area) {
+        this.area = area;
+    }
+
+    public boolean isVideoBanned() {
+        return isVideoBanned;
+    }
+
+    public void setVideoBanned(boolean videoBanned) {
+        isVideoBanned = videoBanned;
+    }
+
+    public boolean isAudioBanned() {
+        return isAudioBanned;
+    }
+
+    public void setAudioBanned(boolean audioBanned) {
+        isAudioBanned = audioBanned;
     }
 }

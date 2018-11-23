@@ -51,23 +51,28 @@ public class BilibiliBroadcastService implements BroadcastService {
     @Override
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         VideoInfo videoInfo = accountInfo.getCurrentVideo();
+        int area = 33;
+        if (videoInfo.getArea() != null) {
+            area = videoInfo.getArea()[1];
+        }
         try {
             Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
             String csrfToken = "";
             if (matcher.find()) {
                 csrfToken = matcher.group(1);
             }
-            String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&title=" + videoInfo.getTitle() + "&csrf_token=" + csrfToken;
+            String title = videoInfo.getTitle().length() > 20 ? videoInfo.getTitle().substring(0, 20) : videoInfo.getTitle();
+            String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&title=" + title + "&area_id=" + area + "&csrf_token=" + csrfToken;
             String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
-                log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败" + resJson);
+                log.error("修改直播间信息为失败[title=" + title + ", area_id=" + area + "]" + resJson);
                 accountInfo.setDisable(true);
             }
         } catch (Throwable e) {
             log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
         }
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=33", StandardCharsets.UTF_8);
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.get("data") instanceof JSONObject) {

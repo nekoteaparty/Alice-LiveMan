@@ -18,8 +18,10 @@
 
 package site.alice.liveman.web.rpc;
 
+import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
@@ -30,19 +32,23 @@ import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.service.live.LiveServiceFactory;
+import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.BroadcastTaskVO;
 
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/broadcast")
+@RequestMapping("/api/broadcast")
 public class BroadcastController {
 
     @Autowired
@@ -62,17 +68,24 @@ public class BroadcastController {
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
                 if (videoInfo.getBroadcastTask() != null) {
                     AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
-                    broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
-                    broadcastTaskVO.setNickname(broadcastAccount.getNickname());
-                    broadcastTaskVO.setRoomId(broadcastAccount.getRoomId());
+                    if (broadcastAccount != null) {
+                        broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
+                        broadcastTaskVO.setNickname(broadcastAccount.getNickname());
+                        broadcastTaskVO.setRoomId(broadcastAccount.getRoomId());
+                    }
                 }
                 ChannelInfo channelInfo = videoInfo.getChannelInfo();
                 if (channelInfo != null) {
                     broadcastTaskVO.setChannelName(channelInfo.getChannelName());
                 }
+                broadcastTaskVO.setArea(videoInfo.getArea());
+                broadcastTaskVO.setAudioBanned(videoInfo.isAudioBanned());
+                broadcastTaskVO.setVideoBanned(videoInfo.isVideoBanned());
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
-                broadcastTaskVO.setSourceUrl(videoInfo.getMediaUrl().toString());
+                String localMediaUrl = mediaProxyTask.getTargetUrl().toString();
+                localMediaUrl = localMediaUrl.replace("http://localhost:8080", "");
+                broadcastTaskVO.setMediaUrl(localMediaUrl);
                 broadcastTaskVOList.add(broadcastTaskVO);
             }
         }
@@ -128,6 +141,45 @@ public class BroadcastController {
                 return ActionResult.getErrorResult("操作失败：" + e.getMessage());
             }
         }
+    }
+
+    @RequestMapping("/editTask.json")
+    public ActionResult editTask(@RequestBody BroadcastTaskVO broadcastTaskVO) {
+        String videoId = broadcastTaskVO.getVideoId();
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        log.info("editTask()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+        if (broadcastTask == null) {
+            log.info("此转播任务尚未运行，或已停止[BroadcastTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+        if (broadcastAccount == null) {
+            log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        if (!broadcastAccount.getRoomId().equals(account.getRoomId())) {
+            log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
+            return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
+        }
+        videoInfo.setArea(broadcastTaskVO.getArea());
+        videoInfo.setVideoBanned(broadcastTaskVO.isVideoBanned());
+        videoInfo.setAudioBanned(broadcastTaskVO.isAudioBanned());
+        ProcessUtil.killProcess(broadcastTask.getPid());
+        return ActionResult.getSuccessResult(null);
+    }
+
+    @RequestMapping("/getAreaList.json")
+
+    public Object getAreaList() throws URISyntaxException, IOException {
+        String areaList = HttpRequestUtil.downloadUrl(new URI("https://api.live.bilibili.com/room/v1/Area/getList"), StandardCharsets.UTF_8);
+        return JSON.parseObject(areaList);
     }
 }
 

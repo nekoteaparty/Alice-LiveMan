@@ -32,6 +32,7 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     private String               dynamicPostAccountId;
     private String               channelUrl;
     private String               channelName;
+    private int[]                defaultArea;
     @JSONField(serialize = false)
     private String               mediaUrl;
     @JSONField(serialize = false)
@@ -99,6 +100,14 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
 
     public void setMediaProxyTasks(List<MediaProxyTask> mediaProxyTasks) {
         this.mediaProxyTasks = mediaProxyTasks;
+    }
+
+    public int[] getDefaultArea() {
+        return defaultArea;
+    }
+
+    public void setDefaultArea(int[] defaultArea) {
+        this.defaultArea = defaultArea;
     }
 
     public void addProxyTask(MediaProxyTask mediaProxyTask) {

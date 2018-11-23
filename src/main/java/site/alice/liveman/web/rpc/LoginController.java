@@ -34,7 +34,7 @@ import javax.servlet.http.HttpSession;
 
 @Slf4j
 @RestController
-@RequestMapping("/login")
+@RequestMapping("/api/login")
 public class LoginController {
 
     private static final String                  adminRoomId = System.getProperty("admin.room.id");
@@ -55,6 +55,7 @@ public class LoginController {
                 accountInfo = byAccountId;
                 accountInfoVO.setSaved(true);
             }
+            log.info("adminRoomId = '" + adminRoomId + "'");
             accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));
             session.setAttribute("account", accountInfo);
             BeanUtils.copyProperties(accountInfo, accountInfoVO);

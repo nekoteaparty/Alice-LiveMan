@@ -17,6 +17,7 @@
  */
 package site.alice.liveman.mediaproxy;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -27,12 +28,16 @@ import org.springframework.context.ApplicationContextAware;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.VideoFilterService;
 
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.net.Proxy;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -63,11 +68,20 @@ public class MediaProxyManager implements ApplicationContextAware {
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
         MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
-        videoInfo.getChannelInfo().setMediaUrl(mediaProxyTask.getTargetUrl().toString());
-        videoInfo.getChannelInfo().addProxyTask(mediaProxyTask);
+        ChannelInfo channelInfo = videoInfo.getChannelInfo();
+        channelInfo.setMediaUrl(mediaProxyTask.getTargetUrl().toString());
+        channelInfo.addProxyTask(mediaProxyTask);
+        videoInfo.setArea(channelInfo.getDefaultArea());
         mediaProxyTask.setVideoInfo(videoInfo);
         videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
+        synchronized (MediaProxyManager.class) {
+            try (OutputStream os = new FileOutputStream("history.txt", true)) {
+                IOUtils.write(String.format("%s|%s|%s|%s\n", videoInfo.getVideoId(), videoInfo.getTitle(), channelInfo.getChannelName(), System.currentTimeMillis()), os, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                LOGGER.error("保存历史记录失败", e);
+            }
+        }
         return mediaProxyTask;
     }
 

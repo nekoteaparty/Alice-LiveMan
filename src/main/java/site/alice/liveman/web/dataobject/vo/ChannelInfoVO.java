@@ -24,6 +24,7 @@ public class ChannelInfoVO {
     private String  dynamicPostAccountId;
     private String  channelUrl;
     private String  channelName;
+    private int[]   defaultArea;
 
     public String getDefaultAccountId() {
         return defaultAccountId;
@@ -63,5 +64,13 @@ public class ChannelInfoVO {
 
     public void setChannelName(String channelName) {
         this.channelName = channelName;
+    }
+
+    public int[] getDefaultArea() {
+        return defaultArea;
+    }
+
+    public void setDefaultArea(int[] defaultArea) {
+        this.defaultArea = defaultArea;
     }
 }
