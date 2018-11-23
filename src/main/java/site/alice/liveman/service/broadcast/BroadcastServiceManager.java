@@ -100,25 +100,30 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
     public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) throws Exception {
         if (broadcastAccount.setCurrentVideo(videoInfo)) {
-            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-            // 如果要推流的媒体已存在，则直接创建推流任务
-            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
-            if (mediaProxyTask != null) {
-                videoInfo = mediaProxyTask.getVideoInfo();
-                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-                if (!videoInfo.setBroadcastTask(broadcastTask)) {
-                    throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+            try {
+                Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+                // 如果要推流的媒体已存在，则直接创建推流任务
+                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
+                if (mediaProxyTask != null) {
+                    videoInfo = mediaProxyTask.getVideoInfo();
+                    BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                    if (!videoInfo.setBroadcastTask(broadcastTask)) {
+                        throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+                    }
+                    threadPoolExecutor.execute(broadcastTask);
+                    return broadcastTask;
+                } else {
+                    // 创建直播流代理任务
+                    BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                    mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
+                    if (mediaProxyTask == null) {
+                        throw new RuntimeException("MediaProxyTask创建失败");
+                    }
+                    return broadcastTask;
                 }
-                threadPoolExecutor.execute(broadcastTask);
-                return broadcastTask;
-            } else {
-                // 创建直播流代理任务
-                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-                mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
-                if (mediaProxyTask == null) {
-                    throw new RuntimeException("MediaProxyTask创建失败");
-                }
-                return broadcastTask;
+            } catch (Exception e) {
+                broadcastAccount.removeCurrentVideo(videoInfo);
+                throw e;
             }
         } else {
             throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
@@ -225,6 +230,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             } catch (InterruptedException ignore) {
                             }
                         }
+                    }
+                    broadcastAccount.removeCurrentVideo(videoInfo);
+                    if (broadcastAccount.isDisable() && singleTask) {
+                        log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已停止推流");
+                        return;
                     }
                 } catch (Throwable e) {
                     log.error("startBroadcast failed", e);
