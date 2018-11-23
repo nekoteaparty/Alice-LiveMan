@@ -18,6 +18,7 @@
 
 package site.alice.liveman.web.rpc;
 
+import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,18 +90,17 @@ public class ChannelController {
     @RequestMapping("/editChannel.json")
     public ActionResult editChannel(@RequestBody ChannelInfo channelInfo) {
         AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
-        if (!accountInfo.isAdmin()) {
-            return ActionResult.getErrorResult("只有管理员才能编辑频道");
-        }
         try {
             Assert.hasText(channelInfo.getChannelName(), "频道名称不能为空");
             Assert.hasText(channelInfo.getChannelUrl(), "频道地址不能为空");
         } catch (IllegalArgumentException e) {
             return ActionResult.getErrorResult(e.getMessage());
         }
+        log.info("accountId=" + accountInfo.getAccountId() + "编辑频道channelInfo=" + JSON.toJSONString(channelInfo));
         Set<ChannelInfo> channels = liveManSetting.getChannels();
         for (ChannelInfo channel : channels) {
-            if (channel.getChannelUrl().equals(channelInfo.getChannelUrl()) && channel.getChannelName().equals(channelInfo.getChannelName())) {
+            if (channel.getChannelUrl().equals(channelInfo.getChannelUrl())) {
+                channel.setChannelName(channelInfo.getChannelName());
                 channel.setDefaultAccountId(channelInfo.getDefaultAccountId());
                 channel.setDynamicPostAccountId(channelInfo.getDynamicPostAccountId());
                 channel.setAutoBalance(channelInfo.isAutoBalance());
