@@ -68,6 +68,7 @@ public class MediaProxyManager implements ApplicationContextAware {
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
         MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
+        mediaProxyTask.setVideoInfo(videoInfo);
         ChannelInfo channelInfo = videoInfo.getChannelInfo();
         if (channelInfo == null) {
             channelInfo = new ChannelInfo();
@@ -76,7 +77,6 @@ public class MediaProxyManager implements ApplicationContextAware {
         channelInfo.setMediaUrl(mediaProxyTask.getTargetUrl().toString());
         channelInfo.addProxyTask(mediaProxyTask);
         videoInfo.setArea(channelInfo.getDefaultArea());
-        mediaProxyTask.setVideoInfo(videoInfo);
         videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
         synchronized (MediaProxyManager.class) {

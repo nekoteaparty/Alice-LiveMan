@@ -92,6 +92,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                     if (broadcastAccount != null) {
                         broadcastAccount.removeCurrentVideo(videoInfo);
+                        videoInfo.removeBroadcastTask(broadcastTask);
                     }
                 }
             }
@@ -234,8 +235,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     }
                     broadcastAccount.removeCurrentVideo(videoInfo);
                     if (broadcastAccount.isDisable() && singleTask) {
-                        log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已停止推流");
-                        return;
+                        log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
+                        terminate = true;
+                        break;
                     }
                 } catch (Throwable e) {
                     log.error("startBroadcast failed", e);
@@ -245,6 +247,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     }
                 }
             }
+            videoInfo.removeBroadcastTask(this);
         }
 
         public boolean terminateTask() {

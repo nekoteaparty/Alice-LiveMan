@@ -27,6 +27,7 @@ public class AccountInfoVO {
     private boolean joinAutoBalance;
     private boolean admin;
     private boolean saved;
+    private boolean disable;
 
     public String getAccountId() {
         return accountId;
@@ -90,5 +91,13 @@ public class AccountInfoVO {
 
     public void setSaved(boolean saved) {
         this.saved = saved;
+    }
+
+    public boolean isDisable() {
+        return disable;
+    }
+
+    public void setDisable(boolean disable) {
+        this.disable = disable;
     }
 }
