@@ -122,6 +122,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     return broadcastTask;
                 }
             } catch (Exception e) {
+                // 操作失败，释放刚才获得的直播间资源
                 broadcastAccount.removeCurrentVideo(videoInfo);
                 throw e;
             }
