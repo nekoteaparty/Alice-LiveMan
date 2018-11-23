@@ -213,6 +213,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     if (!singleTask) {
                         broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
                         if (broadcastAccount == null) {
+                            Thread.sleep(5000);
                             continue;
                         }
                         bilibiliApiUtil.postDynamic(broadcastAccount);
@@ -255,15 +256,16 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
 
         public boolean terminateTask() {
-            log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
-            if (broadcastAccount.removeCurrentVideo(videoInfo)) {
-                terminate = true;
-                videoInfo.removeBroadcastTask(this);
-                ProcessUtil.killProcess(pid);
-                return true;
-            } else {
-                return false;
+            if (broadcastAccount != null) {
+                log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
+                if (!broadcastAccount.removeCurrentVideo(videoInfo)) {
+                    return false;
+                }
             }
+            terminate = true;
+            videoInfo.removeBroadcastTask(this);
+            ProcessUtil.killProcess(pid);
+            return true;
         }
     }
 

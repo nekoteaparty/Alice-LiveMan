@@ -92,6 +92,38 @@ public class BroadcastController {
         return ActionResult.getSuccessResult(broadcastTaskVOList);
     }
 
+    @RequestMapping("/adoptTask.json")
+    public ActionResult adoptTask(String videoId) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        log.info(account.getAccountId() + "认领了转播任务[videoId=" + videoId + ", title=" + videoInfo.getTitle() + "]");
+        BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+        if (broadcastTask != null) {
+            AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+            if (broadcastAccount != null) {
+                log.info("此转播任务已经被认领了，请刷新页面后重试");
+                return ActionResult.getErrorResult("此转播任务已经被认领了，请刷新页面后重试");
+            } else {
+                broadcastTask.terminateTask();
+            }
+        }
+        try {
+            broadcastTask = broadcastServiceManager.createSingleBroadcastTask(videoInfo, account);
+            if (broadcastTask == null) {
+                return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");
+            }
+            return ActionResult.getSuccessResult(null);
+        } catch (Exception e) {
+            log.error("adoptTask() failed, videoId=" + videoId, e);
+            return ActionResult.getErrorResult("操作失败：" + e.getMessage());
+        }
+    }
+
     @RequestMapping("/stopTask.json")
     public ActionResult stopTask(String videoId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
