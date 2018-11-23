@@ -3,16 +3,16 @@
  * Copyright (C) <2018>  <NekoSunflower>
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
@@ -90,6 +90,38 @@ public class BroadcastController {
             }
         }
         return ActionResult.getSuccessResult(broadcastTaskVOList);
+    }
+
+    @RequestMapping("/adoptTask.json")
+    public ActionResult adoptTask(String videoId) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        log.info(account.getAccountId() + "认领了转播任务[videoId=" + videoId + ", title=" + videoInfo.getTitle() + "]");
+        BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+        if (broadcastTask != null) {
+            AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+            if (broadcastAccount != null) {
+                log.info("此转播任务已经被认领了，请刷新页面后重试");
+                return ActionResult.getErrorResult("此转播任务已经被认领了，请刷新页面后重试");
+            } else {
+                broadcastTask.terminateTask();
+            }
+        }
+        try {
+            broadcastTask = broadcastServiceManager.createSingleBroadcastTask(videoInfo, account);
+            if (broadcastTask == null) {
+                return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");
+            }
+            return ActionResult.getSuccessResult(null);
+        } catch (Exception e) {
+            log.error("adoptTask() failed, videoId=" + videoId, e);
+            return ActionResult.getErrorResult("操作失败：" + e.getMessage());
+        }
     }
 
     @RequestMapping("/stopTask.json")

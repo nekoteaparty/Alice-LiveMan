@@ -3,16 +3,16 @@
  * Copyright (C) <2018>  <NekoSunflower>
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package site.alice.liveman.service.broadcast;
@@ -92,6 +92,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                     if (broadcastAccount != null) {
                         broadcastAccount.removeCurrentVideo(videoInfo);
+                        videoInfo.removeBroadcastTask(broadcastTask);
                     }
                 }
             }
@@ -100,25 +101,31 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
     public BroadcastTask createSingleBroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) throws Exception {
         if (broadcastAccount.setCurrentVideo(videoInfo)) {
-            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-            // 如果要推流的媒体已存在，则直接创建推流任务
-            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
-            if (mediaProxyTask != null) {
-                videoInfo = mediaProxyTask.getVideoInfo();
-                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-                if (!videoInfo.setBroadcastTask(broadcastTask)) {
-                    throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+            try {
+                Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+                // 如果要推流的媒体已存在，则直接创建推流任务
+                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
+                if (mediaProxyTask != null) {
+                    videoInfo = mediaProxyTask.getVideoInfo();
+                    BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                    if (!videoInfo.setBroadcastTask(broadcastTask)) {
+                        throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+                    }
+                    threadPoolExecutor.execute(broadcastTask);
+                    return broadcastTask;
+                } else {
+                    // 创建直播流代理任务
+                    BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                    mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
+                    if (mediaProxyTask == null) {
+                        throw new RuntimeException("MediaProxyTask创建失败");
+                    }
+                    return broadcastTask;
                 }
-                threadPoolExecutor.execute(broadcastTask);
-                return broadcastTask;
-            } else {
-                // 创建直播流代理任务
-                BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-                mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
-                if (mediaProxyTask == null) {
-                    throw new RuntimeException("MediaProxyTask创建失败");
-                }
-                return broadcastTask;
+            } catch (Exception e) {
+                // 操作失败，释放刚才获得的直播间资源
+                broadcastAccount.removeCurrentVideo(videoInfo);
+                throw e;
             }
         } else {
             throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
@@ -143,7 +150,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 }
             }
         }
-        throw new RuntimeException("频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "没有找到可以推流的直播间");
+        log.info("频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "没有找到可以推流的直播间");
+        return null;
     }
 
     @Override
@@ -204,6 +212,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 try {
                     if (!singleTask) {
                         broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
+                        if (broadcastAccount == null) {
+                            Thread.sleep(5000);
+                            continue;
+                        }
                         bilibiliApiUtil.postDynamic(broadcastAccount);
                     }
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
@@ -220,32 +232,40 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ignore) {
-                            }
                         }
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignore) {
+                        }
+                    }
+                    broadcastAccount.removeCurrentVideo(videoInfo);
+                    if (broadcastAccount.isDisable() && singleTask) {
+                        log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
+                        terminate = true;
+                        break;
                     }
                 } catch (Throwable e) {
                     log.error("startBroadcast failed", e);
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException ignore) {
-                    }
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ignore) {
                 }
             }
+            videoInfo.removeBroadcastTask(this);
         }
 
         public boolean terminateTask() {
-            log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
-            if (broadcastAccount.removeCurrentVideo(videoInfo)) {
-                terminate = true;
-                videoInfo.removeBroadcastTask(this);
-                ProcessUtil.killProcess(pid);
-                return true;
-            } else {
-                return false;
+            if (broadcastAccount != null) {
+                log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
+                if (!broadcastAccount.removeCurrentVideo(videoInfo)) {
+                    return false;
+                }
             }
+            terminate = true;
+            videoInfo.removeBroadcastTask(this);
+            ProcessUtil.killProcess(pid);
+            return true;
         }
     }
 
