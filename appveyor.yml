@@ -1,0 +1,21 @@
+version: "{build}-{branch}"
+
+init:
+  - git config --global core.autocrlf true
+
+build_script:
+  - mvn clean package --batch-mode
+
+#test_script:
+#  - mvn clean verify --batch-mode
+
+cache:
+  - C:\Users\appveyor\.m2
+
+notifications:
+  - provider: Email
+    to:
+      - orz@myloli.me
+    on_build_success: false
+    on_build_failure: true
+    on_build_status_changed: false
