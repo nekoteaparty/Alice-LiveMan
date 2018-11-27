@@ -30,6 +30,7 @@ public class LiveManSetting {
     private String                             tempPath;
     private String                             ffmpegPath;
     private boolean                            postBiliDynamic;
+    private String                             defaultResolution;
     private ConcurrentSkipListSet<AccountInfo> accounts;
     private ConcurrentSkipListSet<ChannelInfo> channels;
     private Proxy                              proxy;
@@ -72,6 +73,14 @@ public class LiveManSetting {
 
     public void setPostBiliDynamic(boolean postBiliDynamic) {
         this.postBiliDynamic = postBiliDynamic;
+    }
+
+    public String getDefaultResolution() {
+        return defaultResolution;
+    }
+
+    public void setDefaultResolution(String defaultResolution) {
+        this.defaultResolution = defaultResolution;
     }
 
     public ConcurrentSkipListSet<AccountInfo> getAccounts() {

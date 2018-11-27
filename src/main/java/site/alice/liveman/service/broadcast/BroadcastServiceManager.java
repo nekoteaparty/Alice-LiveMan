@@ -87,12 +87,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             @Override
             public void onProxyStop(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
-                BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
-                if (broadcastTask != null) {
-                    AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
-                    if (broadcastAccount != null) {
-                        broadcastAccount.removeCurrentVideo(videoInfo);
-                        videoInfo.removeBroadcastTask(broadcastTask);
+                if (videoInfo != null) {
+                    BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                    if (broadcastTask != null) {
+                        AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+                        if (broadcastAccount != null) {
+                            broadcastAccount.removeCurrentVideo(videoInfo);
+                            videoInfo.removeBroadcastTask(broadcastTask);
+                        }
                     }
                 }
             }
@@ -140,7 +142,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         String defaultAccountId = channelInfo.getDefaultAccountId();
         if (defaultAccountId != null) {
             AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
-            if (accountInfo != null && !accountInfo.isDisable() && accountInfo.setCurrentVideo(videoInfo)) {
+            String logInfo = "频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "的默认直播间[" + defaultAccountId + "]";
+            if (accountInfo == null) {
+                log.info(logInfo + "的账号信息不存在");
+            } else if (accountInfo.isDisable()) {
+                log.info(logInfo + "的账号信息不可用");
+            } else if (!accountInfo.setCurrentVideo(videoInfo)) {
+                log.info(logInfo + "已被占用[currentVideo=" + accountInfo.getCurrentVideo().getVideoId() + "]");
+            } else {
                 return accountInfo;
             }
         }

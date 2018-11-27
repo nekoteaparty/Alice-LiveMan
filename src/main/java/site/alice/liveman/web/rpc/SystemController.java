@@ -55,6 +55,7 @@ public class SystemController {
         settingVO.setPostBiliDynamic(liveManSetting.isPostBiliDynamic());
         settingVO.setBannedKeywords(String.join(",", liveManSetting.getBannedKeywords()));
         settingVO.setBannedYoutubeChannel(String.join(",", liveManSetting.getBannedYoutubeChannel()));
+        settingVO.setDefaultResolution(liveManSetting.getDefaultResolution());
         return ActionResult.getSuccessResult(settingVO);
     }
 
@@ -68,6 +69,7 @@ public class SystemController {
         liveManSetting.setFfmpegPath(settingVO.getFfmpegPath());
         liveManSetting.setBannedKeywords(settingVO.getBannedKeywordsArray());
         liveManSetting.setBannedYoutubeChannel(settingVO.getBannedYoutubeChannelArray());
+        liveManSetting.setDefaultResolution(settingVO.getDefaultResolution());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {

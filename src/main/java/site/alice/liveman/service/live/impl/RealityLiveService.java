@@ -21,8 +21,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -37,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class RealityLiveService extends LiveService {
+    @Autowired
+    private LiveManSetting          liveManSetting;
     private Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
 
     private void refreshStreamUsers() throws IOException, URISyntaxException {
@@ -82,7 +86,7 @@ public class RealityLiveService extends LiveService {
             String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].contains("720x1280")) {
+                if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
                     mediaUrl = m3u8List[i + 1];
                     break;
                 }

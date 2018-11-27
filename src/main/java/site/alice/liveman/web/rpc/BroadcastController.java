@@ -143,7 +143,7 @@ public class BroadcastController {
             log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
             return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
-        if (!broadcastAccount.getRoomId().equals(account.getRoomId())) {
+        if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
             log.info("您没有权限停止他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
             return ActionResult.getErrorResult("你没有权限停止他人直播间的推流任务");
         }
@@ -196,7 +196,7 @@ public class BroadcastController {
             log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
             return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
-        if (!broadcastAccount.getRoomId().equals(account.getRoomId())) {
+        if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
             log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
             return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
         }

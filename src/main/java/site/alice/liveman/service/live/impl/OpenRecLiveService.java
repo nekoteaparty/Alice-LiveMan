@@ -20,8 +20,10 @@ package site.alice.liveman.service.live.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -32,8 +34,10 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class OpenRecLiveService extends LiveService {
 
-    private static final String GET_VIDEO_INFO_URL = "https://www.openrec.tv/live/";
-    private static final String GET_MOVIES_API     = "https://public.openrec.tv/external/api/v5/movies";
+    @Autowired
+    private              LiveManSetting liveManSetting;
+    private static final String         GET_VIDEO_INFO_URL = "https://www.openrec.tv/live/";
+    private static final String         GET_MOVIES_API     = "https://public.openrec.tv/external/api/v5/movies";
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
@@ -65,7 +69,7 @@ public class OpenRecLiveService extends LiveService {
         String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
         String mediaUrl = null;
         for (int i = 0; i < m3u8List.length; i++) {
-            if (m3u8List[i].contains("1280x720")) {
+            if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
                 mediaUrl = m3u8List[i + 1];
                 break;
             }
