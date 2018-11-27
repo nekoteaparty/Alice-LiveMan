@@ -18,11 +18,11 @@ cache:
 
 deploy:
  - provider: GitHub
-    artifact: /.*\.jar/
-    draft: false
-    prerelease: false
-    on:
-      branch: master
+   artifact: /.*\.jar/
+   draft: false
+   prerelease: false
+   on:
+     branch: master
 
 notifications:
   - provider: Email
