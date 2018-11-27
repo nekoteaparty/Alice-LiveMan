@@ -16,6 +16,14 @@ artifacts:
 cache:
   - C:\Users\appveyor\.m2
 
+deploy:
+ - provider: GitHub
+    artifact: /.*\.jar/
+    draft: false
+    prerelease: false
+    on:
+      branch: master
+
 notifications:
   - provider: Email
     to:
