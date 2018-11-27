@@ -116,6 +116,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 } else {
                     // 创建直播流代理任务
                     BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
+                    if (!videoInfo.setBroadcastTask(broadcastTask)) {
+                        throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
+                    }
                     mediaProxyTask = MediaProxyManager.createProxy(videoInfo);
                     if (mediaProxyTask == null) {
                         throw new RuntimeException("MediaProxyTask创建失败");
