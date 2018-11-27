@@ -9,6 +9,9 @@ build_script:
 #test_script:
 #  - mvn clean verify --batch-mode
 
+artifacts:
+  - path: target\liveman-0.0.1-SNAPSHOT.jar
+
 cache:
   - C:\Users\appveyor\.m2
 
