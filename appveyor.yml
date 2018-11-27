@@ -11,6 +11,7 @@ build_script:
 
 artifacts:
   - path: target\liveman-0.0.1-SNAPSHOT.jar
+    name: alice-liveman.jar
 
 cache:
   - C:\Users\appveyor\.m2
