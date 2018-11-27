@@ -19,6 +19,8 @@ cache:
 deploy:
  - provider: GitHub
    artifact: /.*\.jar/
+   auth_token: 
+     secure: eaM8pVfHLCfJ7/zjwnCfbVvtoI8ruozTfWKmAt5mh8NtNUdm33b8d6m5PwBbozDT
    draft: false
    prerelease: false
    on:
