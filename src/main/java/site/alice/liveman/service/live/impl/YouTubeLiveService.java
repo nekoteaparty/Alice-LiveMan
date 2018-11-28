@@ -21,9 +21,12 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -36,12 +39,15 @@ import java.util.regex.Pattern;
 @Service
 public class YouTubeLiveService extends LiveService {
 
-    private static final String  LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
-    private static final String  GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
-    private static final Pattern initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
-    private static final Pattern hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
-    private static final Pattern videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
-    private static final Pattern browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
+    @Autowired
+    private              LiveManSetting liveManSetting;
+    private static final String         LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
+    private static final String         GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
+    private static final Pattern        initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
+    private static final Pattern        hlsvpPattern        = Pattern.compile("\"hlsvp\":\"(.+?)\"");
+    private static final Pattern        videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
+    private static final Pattern        videoIdPattern      = Pattern.compile("\"video_id\":\"(.+?)\"");
+    private static final Pattern        browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
@@ -83,13 +89,20 @@ public class YouTubeLiveService extends LiveService {
         if (videoInfoUrl == null) {
             return null;
         }
-        String videoId = videoInfoUrl.toString().substring(GET_VIDEO_INFO_URL.length());
         String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
+        Matcher videoIdMatcher = videoIdPattern.matcher(videoInfoRes);
         Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
         Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
         Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
         String videoTitle = "";
         String description = "";
+        String videoId = "";
+        if (videoIdMatcher.find()) {
+            videoId = videoIdMatcher.group(1);
+        }
+        if (StringUtils.isEmpty(videoId)) {
+            throw new RuntimeException("获取视频VideoId失败！");
+        }
         if (videoTitleMatcher.find()) {
             videoTitle = videoTitleMatcher.group(1);
         }
@@ -101,7 +114,7 @@ public class YouTubeLiveService extends LiveService {
             String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].contains("1280x720")) {
+                if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
                     mediaUrl = m3u8List[i + 1];
                     // 这里不需要加break，取相同分辨率下码率最高的
                 }

@@ -66,8 +66,7 @@ public class BilibiliBroadcastService implements BroadcastService {
             String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
-                log.error("修改直播间信息为失败[title=" + title + ", area_id=" + area + "]" + resJson);
-                accountInfo.setDisable(true);
+                log.error("修改直播间信息失败[title=" + title + ", area_id=" + area + "]" + resJson);
             }
         } catch (Throwable e) {
             log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
@@ -78,6 +77,7 @@ public class BilibiliBroadcastService implements BroadcastService {
         if (startLiveObject.get("data") instanceof JSONObject) {
             rtmpObject = startLiveObject.getJSONObject("data").getJSONObject("rtmp");
         } else {
+            accountInfo.setDisable(true);
             throw new RuntimeException("开启B站直播间失败" + startLiveJson);
         }
         return rtmpObject.getString("addr") + rtmpObject.getString("code");

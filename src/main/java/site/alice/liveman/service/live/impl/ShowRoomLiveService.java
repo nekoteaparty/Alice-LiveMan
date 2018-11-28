@@ -19,8 +19,10 @@ package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -33,7 +35,9 @@ import java.util.regex.Pattern;
 @Service
 public class ShowRoomLiveService extends LiveService {
 
-    private static final Pattern initDataPattern = Pattern.compile("<script id=\"js-initial-data\" data-json=\"(.+?)\"></script>");
+    @Autowired
+    private              LiveManSetting liveManSetting;
+    private static final Pattern        initDataPattern = Pattern.compile("<script id=\"js-initial-data\" data-json=\"(.+?)\"></script>");
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
@@ -56,7 +60,7 @@ public class ShowRoomLiveService extends LiveService {
                 String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
                 String mediaUrl = null;
                 for (int i = 0; i < m3u8List.length; i++) {
-                    if (m3u8List[i].contains("1280x720")) {
+                    if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
                         mediaUrl = m3u8List[i + 1];
                         break;
                     }

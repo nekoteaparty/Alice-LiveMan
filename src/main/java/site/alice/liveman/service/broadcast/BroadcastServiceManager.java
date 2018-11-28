@@ -87,12 +87,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             @Override
             public void onProxyStop(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
-                BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
-                if (broadcastTask != null) {
-                    AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
-                    if (broadcastAccount != null) {
-                        broadcastAccount.removeCurrentVideo(videoInfo);
-                        videoInfo.removeBroadcastTask(broadcastTask);
+                if (videoInfo != null) {
+                    BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                    if (broadcastTask != null) {
+                        AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+                        if (broadcastAccount != null) {
+                            broadcastAccount.removeCurrentVideo(videoInfo);
+                            videoInfo.removeBroadcastTask(broadcastTask);
+                        }
                     }
                 }
             }
@@ -103,16 +105,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         if (broadcastAccount.setCurrentVideo(videoInfo)) {
             try {
                 Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-                // 如果要推流的媒体已存在，则直接创建推流任务
+                // 如果要推流的媒体已存在，则提示错误信息
                 MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId());
                 if (mediaProxyTask != null) {
-                    videoInfo = mediaProxyTask.getVideoInfo();
-                    BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
-                    if (!videoInfo.setBroadcastTask(broadcastTask)) {
-                        throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
-                    }
-                    threadPoolExecutor.execute(broadcastTask);
-                    return broadcastTask;
+                    throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
                 } else {
                     // 创建直播流代理任务
                     BroadcastTask broadcastTask = new BroadcastTask(videoInfo, broadcastAccount);
@@ -140,7 +136,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         String defaultAccountId = channelInfo.getDefaultAccountId();
         if (defaultAccountId != null) {
             AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
-            if (accountInfo != null && !accountInfo.isDisable() && accountInfo.setCurrentVideo(videoInfo)) {
+            String logInfo = "频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "的默认直播间[" + defaultAccountId + "]";
+            if (accountInfo == null) {
+                log.info(logInfo + "的账号信息不存在");
+            } else if (accountInfo.isDisable()) {
+                log.info(logInfo + "的账号信息不可用");
+            } else if (!accountInfo.setCurrentVideo(videoInfo)) {
+                log.info(logInfo + "已被占用[currentVideo=" + accountInfo.getCurrentVideo().getVideoId() + "]");
+            } else {
                 return accountInfo;
             }
         }
@@ -262,6 +265,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
                 if (!broadcastAccount.removeCurrentVideo(videoInfo)) {
+                    log.error("无法移除账号[" + broadcastAccount.getAccountId() + "]正在转播的节目[" + broadcastAccount.getCurrentVideo().getVideoId() + "]，目标节目与预期节目[" + videoInfo.getVideoId() + "]不符");
                     return false;
                 }
             }

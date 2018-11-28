@@ -23,6 +23,7 @@ public class SettingVO {
     private boolean  postBiliDynamic;
     private String[] bannedYoutubeChannel;
     private String[] bannedKeywords;
+    private String   defaultResolution;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -62,5 +63,13 @@ public class SettingVO {
 
     public void setBannedKeywords(String bannedKeywords) {
         this.bannedKeywords = bannedKeywords.split(",");
+    }
+
+    public String getDefaultResolution() {
+        return defaultResolution;
+    }
+
+    public void setDefaultResolution(String defaultResolution) {
+        this.defaultResolution = defaultResolution;
     }
 }

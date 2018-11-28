@@ -103,7 +103,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     }
 
     public boolean removeCurrentVideo(VideoInfo currentVideo) {
-        return this.currentVideo.compareAndSet(currentVideo, null);
+        return this.currentVideo.compareAndSet(currentVideo, null) || this.currentVideo.compareAndSet(null, null);
     }
 
     public boolean isAdmin() {
