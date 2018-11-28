@@ -1,3 +1,4 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/8e7rkexflv8o359g/branch/master?svg=true)](https://ci.appveyor.com/project/NekoSunflower/alice-liveman/branch/master)
 # Alice-LiveMan
 ## 支持的直播源
 + YouTube `https://www.youtube.com/channel/UCt0clH12Xk1-Ej5PXKGfdPA`
