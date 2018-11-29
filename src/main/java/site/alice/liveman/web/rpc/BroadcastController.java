@@ -160,6 +160,10 @@ public class BroadcastController {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         try {
             VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), null);
+            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+            if (executedProxyTaskMap.containsKey(liveVideoInfo.getVideoId())) {
+                return ActionResult.getErrorResult("此媒体地址已存在于推流列表中，请直接认领");
+            }
             BroadcastTask broadcastTask = broadcastServiceManager.createSingleBroadcastTask(liveVideoInfo, account);
             if (broadcastTask == null) {
                 return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");

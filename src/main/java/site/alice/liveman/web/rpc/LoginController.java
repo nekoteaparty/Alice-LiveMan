@@ -59,6 +59,7 @@ public class LoginController {
             accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));
             session.setAttribute("account", accountInfo);
             BeanUtils.copyProperties(accountInfo, accountInfoVO);
+            accountInfoVO.setDisable(false);
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
