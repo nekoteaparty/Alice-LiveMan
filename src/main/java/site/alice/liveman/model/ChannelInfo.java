@@ -18,7 +18,6 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import org.jetbrains.annotations.NotNull;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
 import java.io.Serializable;
@@ -132,7 +131,7 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     }
 
     @Override
-    public int compareTo(@NotNull ChannelInfo o) {
+    public int compareTo( ChannelInfo o) {
         return this.getChannelName().compareTo(o.getChannelName());
     }
 }

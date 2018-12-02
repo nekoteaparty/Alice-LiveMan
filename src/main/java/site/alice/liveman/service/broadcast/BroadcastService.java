@@ -20,6 +20,9 @@ package site.alice.liveman.service.broadcast;
 
 import site.alice.liveman.model.AccountInfo;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 public interface BroadcastService {
 
     boolean isMatch(String accountSite);
@@ -27,4 +30,8 @@ public interface BroadcastService {
     String getBroadcastAddress(AccountInfo accountInfo) throws Exception;
 
     String getBroadcastRoomId(AccountInfo accountInfo) throws Exception;
+
+    String getBroadcastCookies(String username, String password, String captcha) throws Exception;
+
+    InputStream getBroadcastCaptcha() throws IOException;
 }

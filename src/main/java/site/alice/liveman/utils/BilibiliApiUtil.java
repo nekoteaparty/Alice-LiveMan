@@ -59,7 +59,7 @@ public class BilibiliApiUtil {
                 postAccount = byAccountId;
             }
         }
-        if (!liveManSetting.isPostBiliDynamic()) {
+        if (!postAccount.isPostBiliDynamic()) {
             return;
         }
         Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(postAccount.getCookies());

@@ -52,7 +52,6 @@ public class SystemController {
         }
         SettingVO settingVO = new SettingVO();
         settingVO.setFfmpegPath(liveManSetting.getFfmpegPath());
-        settingVO.setPostBiliDynamic(liveManSetting.isPostBiliDynamic());
         settingVO.setBannedKeywords(String.join(",", liveManSetting.getBannedKeywords()));
         settingVO.setBannedYoutubeChannel(String.join(",", liveManSetting.getBannedYoutubeChannel()));
         settingVO.setDefaultResolution(liveManSetting.getDefaultResolution());
@@ -65,7 +64,6 @@ public class SystemController {
         if (!account.isAdmin()) {
             return ActionResult.getErrorResult("权限不足");
         }
-        liveManSetting.setPostBiliDynamic(settingVO.isPostBiliDynamic());
         liveManSetting.setFfmpegPath(settingVO.getFfmpegPath());
         liveManSetting.setBannedKeywords(settingVO.getBannedKeywordsArray());
         liveManSetting.setBannedYoutubeChannel(settingVO.getBannedYoutubeChannelArray());

@@ -29,7 +29,6 @@ public class LiveManSetting {
     private String[]                           bannedKeywords;
     private String                             tempPath;
     private String                             ffmpegPath;
-    private boolean                            postBiliDynamic;
     private String                             defaultResolution;
     private ConcurrentSkipListSet<AccountInfo> accounts;
     private ConcurrentSkipListSet<ChannelInfo> channels;
@@ -65,14 +64,6 @@ public class LiveManSetting {
 
     public void setFfmpegPath(String ffmpegPath) {
         this.ffmpegPath = ffmpegPath;
-    }
-
-    public boolean isPostBiliDynamic() {
-        return postBiliDynamic;
-    }
-
-    public void setPostBiliDynamic(boolean postBiliDynamic) {
-        this.postBiliDynamic = postBiliDynamic;
     }
 
     public String getDefaultResolution() {

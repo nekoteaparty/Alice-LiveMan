@@ -28,6 +28,8 @@ public class AccountInfoVO {
     private boolean admin;
     private boolean saved;
     private boolean disable;
+    private boolean postBiliDynamic;
+    private boolean autoRoomTitle;
 
     public String getAccountId() {
         return accountId;
@@ -99,5 +101,21 @@ public class AccountInfoVO {
 
     public void setDisable(boolean disable) {
         this.disable = disable;
+    }
+
+    public boolean isPostBiliDynamic() {
+        return postBiliDynamic;
+    }
+
+    public void setPostBiliDynamic(boolean postBiliDynamic) {
+        this.postBiliDynamic = postBiliDynamic;
+    }
+
+    public boolean isAutoRoomTitle() {
+        return autoRoomTitle;
+    }
+
+    public void setAutoRoomTitle(boolean autoRoomTitle) {
+        this.autoRoomTitle = autoRoomTitle;
     }
 }
