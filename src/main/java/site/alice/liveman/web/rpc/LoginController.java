@@ -71,6 +71,9 @@ public class LoginController {
             AccountInfoVO accountInfoVO = new AccountInfoVO();
             AccountInfo byAccountId;
             if ((byAccountId = liveManSetting.findByAccountId(accountInfo.getAccountId())) != null) {
+                // 更新新的Cookies
+                byAccountId.setCookies(accountInfo.getCookies());
+                byAccountId.setDisable(false);
                 accountInfo = byAccountId;
                 accountInfoVO.setSaved(true);
             }
@@ -78,7 +81,6 @@ public class LoginController {
             accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));
             session.setAttribute("account", accountInfo);
             BeanUtils.copyProperties(accountInfo, accountInfoVO);
-            accountInfoVO.setDisable(false);
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
