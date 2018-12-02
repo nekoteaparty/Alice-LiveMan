@@ -40,9 +40,11 @@ public class BiliBannedKeywordFilter implements VideoFilter {
         String bannedKeyword = null;
         for (String bannedChannel : liveManSetting.getBannedYoutubeChannel()) {
             String[] bannedChannelInfo = bannedChannel.split(":");
-            if (bannedChannelInfo[1].equals(videoInfo.getDescription())) {
-                bannedKeyword = bannedChannelInfo[0];
-                break;
+            if (bannedChannelInfo.length > 1) {
+                if (bannedChannelInfo[1].equals(videoInfo.getDescription())) {
+                    bannedKeyword = bannedChannelInfo[0];
+                    break;
+                }
             }
         }
         for (String _bannedKeyword : liveManSetting.getBannedKeywords()) {

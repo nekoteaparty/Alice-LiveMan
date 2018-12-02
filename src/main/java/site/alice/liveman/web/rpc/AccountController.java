@@ -112,4 +112,25 @@ public class AccountController {
         }
         return ActionResult.getSuccessResult(null);
     }
+
+    @RequestMapping("/editAccount.json")
+    public ActionResult editAccount(@RequestBody AccountInfoVO accountInfoVO) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        AccountInfo byAccountId = liveManSetting.findByAccountId(account.getAccountId());
+        if (byAccountId != null) {
+            byAccountId.setDescription(accountInfoVO.getDescription());
+            byAccountId.setJoinAutoBalance(accountInfoVO.isJoinAutoBalance());
+            byAccountId.setPostBiliDynamic(accountInfoVO.isPostBiliDynamic());
+            byAccountId.setAutoRoomTitle(accountInfoVO.isAutoRoomTitle());
+        } else {
+            return ActionResult.getErrorResult("尝试编辑的账户不存在，请刷新页面后重试");
+        }
+        try {
+            settingConfig.saveSetting(liveManSetting);
+        } catch (Exception e) {
+            log.error("保存系统配置信息失败", e);
+            return ActionResult.getErrorResult("系统内部错误，请联系管理员");
+        }
+        return ActionResult.getSuccessResult(null);
+    }
 }

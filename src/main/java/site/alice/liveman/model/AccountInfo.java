@@ -19,7 +19,6 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,6 +34,8 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private boolean                    joinAutoBalance;
     private boolean                    admin;
     private boolean                    disable;
+    private boolean                    postBiliDynamic;
+    private boolean                    autoRoomTitle;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo> currentVideo = new AtomicReference<>();
 
@@ -122,6 +123,22 @@ public class AccountInfo implements Comparable<AccountInfo> {
         this.disable = disable;
     }
 
+    public boolean isPostBiliDynamic() {
+        return postBiliDynamic;
+    }
+
+    public void setPostBiliDynamic(boolean postBiliDynamic) {
+        this.postBiliDynamic = postBiliDynamic;
+    }
+
+    public boolean isAutoRoomTitle() {
+        return autoRoomTitle;
+    }
+
+    public void setAutoRoomTitle(boolean autoRoomTitle) {
+        this.autoRoomTitle = autoRoomTitle;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -137,7 +154,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     }
 
     @Override
-    public int compareTo(@NotNull AccountInfo o) {
+    public int compareTo(AccountInfo o) {
         return this.getAccountId().compareTo(o.getAccountId());
     }
 }

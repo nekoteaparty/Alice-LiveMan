@@ -66,9 +66,14 @@
             <version>2.4</version>
         </dependency>
         <dependency>
-            <groupId>com.github.cqjjjzr</groupId>
-            <artifactId>charlie.bililivelib</artifactId>
-            <version>rv4</version>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hiczp</groupId>
+            <artifactId>bilibili-api</artifactId>
+            <version>0.0.20</version>
         </dependency>
         <dependency>
             <groupId>commons-collections</groupId>

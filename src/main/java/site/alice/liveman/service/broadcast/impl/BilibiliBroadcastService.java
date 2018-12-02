@@ -20,28 +20,43 @@ package site.alice.liveman.service.broadcast.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.hiczp.bilibili.api.BilibiliAPI;
+import com.hiczp.bilibili.api.passport.entity.LoginResponseEntity;
+import com.hiczp.bilibili.api.passport.exception.CaptchaMismatchException;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Cookie;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.web.dataobject.ActionResult;
 
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 public class BilibiliBroadcastService implements BroadcastService {
-    private static final String BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
-    private static final String BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
-    private static final String BILI_LIVE_INFO_URL   = "https://api.live.bilibili.com/live_user/v1/UserInfo/live_info";
+    private static final String      BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
+    private static final String      BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
+    private static final String      BILI_LIVE_INFO_URL   = "https://api.live.bilibili.com/live_user/v1/UserInfo/live_info";
+    private static final BilibiliAPI bilibiliAPI          = new BilibiliAPI();
+
+
+    @Autowired
+    private HttpSession session;
 
     @Override
     public boolean isMatch(String accountSite) {
@@ -55,21 +70,23 @@ public class BilibiliBroadcastService implements BroadcastService {
         if (videoInfo.getArea() != null) {
             area = videoInfo.getArea()[1];
         }
-        try {
-            Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
-            String csrfToken = "";
-            if (matcher.find()) {
-                csrfToken = matcher.group(1);
+        if (accountInfo.isAutoRoomTitle()) {
+            try {
+                Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
+                String csrfToken = "";
+                if (matcher.find()) {
+                    csrfToken = matcher.group(1);
+                }
+                String title = videoInfo.getTitle().length() > 20 ? videoInfo.getTitle().substring(0, 20) : videoInfo.getTitle();
+                String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&title=" + title + "&area_id=" + area + "&csrf_token=" + csrfToken;
+                String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
+                JSONObject resObject = JSON.parseObject(resJson);
+                if (resObject.getInteger("code") != 0) {
+                    log.error("修改直播间信息失败[title=" + title + ", area_id=" + area + "]" + resJson);
+                }
+            } catch (Throwable e) {
+                log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
             }
-            String title = videoInfo.getTitle().length() > 20 ? videoInfo.getTitle().substring(0, 20) : videoInfo.getTitle();
-            String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&title=" + title + "&area_id=" + area + "&csrf_token=" + csrfToken;
-            String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_LIVE_UPDATE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
-            JSONObject resObject = JSON.parseObject(resJson);
-            if (resObject.getInteger("code") != 0) {
-                log.error("修改直播间信息失败[title=" + title + ", area_id=" + area + "]" + resJson);
-            }
-        } catch (Throwable e) {
-            log.error("修改直播间标题为[" + videoInfo.getTitle() + "]失败", e);
         }
         String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
@@ -90,7 +107,11 @@ public class BilibiliBroadcastService implements BroadcastService {
             JSONObject liveInfoObject = JSON.parseObject(liveInfoJson);
             if (liveInfoObject.get("data") instanceof JSONObject) {
                 JSONObject data = liveInfoObject.getJSONObject("data");
-                accountInfo.setRoomId(data.getString("roomid"));
+                String roomid = data.getString("roomid");
+                if ("false".equals(roomid)) {
+                    throw new RuntimeException("该账号尚未开通直播间");
+                }
+                accountInfo.setRoomId(roomid);
                 accountInfo.setNickname(data.getJSONObject("userInfo").getString("uname"));
                 accountInfo.setAccountId(accountInfo.getNickname());
             } else {
@@ -98,5 +119,26 @@ public class BilibiliBroadcastService implements BroadcastService {
             }
         }
         return accountInfo.getRoomId();
+    }
+
+    @Override
+    public String getBroadcastCookies(String username, String password, String captcha) throws Exception {
+        bilibiliAPI.login(username, password, captcha, "sid=" + session.getId());
+        StringBuilder sb = new StringBuilder();
+        Map<String, List<Cookie>> cookieListMap = bilibiliAPI.toCookies();
+        for (Map.Entry<String, List<Cookie>> cookieEntry : cookieListMap.entrySet()) {
+            if (cookieEntry.getKey().contains("bilibili")) {
+                List<Cookie> cookies = cookieEntry.getValue();
+                for (Cookie cookie : cookies) {
+                    sb.append(cookie.name()).append("=").append(cookie.value()).append(";");
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public InputStream getBroadcastCaptcha() throws IOException {
+        return bilibiliAPI.getCaptchaService().getCaptchaAsStream("sid=" + session.getId());
     }
 }

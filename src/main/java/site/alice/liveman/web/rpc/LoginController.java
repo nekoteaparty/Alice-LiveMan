@@ -18,7 +18,11 @@
 
 package site.alice.liveman.web.rpc;
 
+import com.hiczp.bilibili.api.BilibiliAPI;
+import com.hiczp.bilibili.api.passport.exception.CaptchaMismatchException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,11 +30,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.AccountInfoVO;
+import site.alice.liveman.web.dataobject.vo.LoginInfoVO;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
 
 @Slf4j
 @RestController
@@ -41,15 +50,25 @@ public class LoginController {
     @Autowired
     private              HttpSession             session;
     @Autowired
+    private              HttpServletResponse     response;
+    @Autowired
     private              BroadcastServiceManager broadcastServiceManager;
     @Autowired
     private              LiveManSetting          liveManSetting;
 
     @RequestMapping("/login.json")
-    public ActionResult<AccountInfoVO> loginWithBili(@RequestBody AccountInfo accountInfo) {
+    public ActionResult<AccountInfoVO> loginWithBili(String loginMode, @RequestBody LoginInfoVO loginInfoVO) {
         try {
+            AccountInfo accountInfo = new AccountInfo();
+            accountInfo.setAccountSite(loginInfoVO.getAccountSite());
+            accountInfo.setCookies(loginInfoVO.getCookies());
+            BroadcastService broadcastService = broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite());
+            if (loginMode.equals("userpwd")) {
+                String cookies = broadcastService.getBroadcastCookies(loginInfoVO.getUsername(), loginInfoVO.getPassword(), loginInfoVO.getCaptcha());
+                accountInfo.setCookies(cookies);
+            }
+            broadcastService.getBroadcastRoomId(accountInfo);
             AccountInfoVO accountInfoVO = new AccountInfoVO();
-            broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
             AccountInfo byAccountId;
             if ((byAccountId = liveManSetting.findByAccountId(accountInfo.getAccountId())) != null) {
                 accountInfo = byAccountId;
@@ -63,7 +82,15 @@ public class LoginController {
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
-            return ActionResult.getErrorResult("登录失败");
+            return ActionResult.getErrorResult("登录失败[ErrMsg:" + e.getMessage() + "]");
+        }
+    }
+
+    @RequestMapping("/getCaptcha")
+    public void getCaptcha(String accountSite) throws IOException {
+        BroadcastService broadcastService = broadcastServiceManager.getBroadcastService(accountSite);
+        try (ServletOutputStream outputStream = response.getOutputStream()) {
+            IOUtils.copy(broadcastService.getBroadcastCaptcha(), outputStream);
         }
     }
 
