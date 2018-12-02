@@ -212,7 +212,6 @@ public class BroadcastController {
     }
 
     @RequestMapping("/getAreaList.json")
-
     public Object getAreaList() throws URISyntaxException, IOException {
         String areaList = HttpRequestUtil.downloadUrl(new URI("https://api.live.bilibili.com/room/v1/Area/getList"), StandardCharsets.UTF_8);
         return JSON.parseObject(areaList);
