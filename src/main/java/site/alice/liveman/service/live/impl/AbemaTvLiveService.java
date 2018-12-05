@@ -126,13 +126,14 @@ public class AbemaTvLiveService extends LiveService {
         requestProperties.put("Authorization", "bearer " + bearer);
         String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
         String token = JSON.parseObject(tokenJSON).getString("token");
-        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=486";
+        long kg = getKeyGenerator();
+        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=" + kg;
         String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
         Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
         if (keyMatcher.find()) {
             String lt = keyMatcher.group(2);
             byte[] iv = Hex.decodeHex(keyMatcher.group(3));
-            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":486}", StandardCharsets.UTF_8);
+            String licenseJson = HttpRequestUtil.downloadUrl(new URI("https://license.abema.io/abematv-hls?t=" + token), null, "{\"lt\":\"" + lt + "\",\"kv\":\"wd\",\"kg\":" + kg + "}", StandardCharsets.UTF_8);
             String cid = JSON.parseObject(licenseJson).getString("cid");
             String k = JSON.parseObject(licenseJson).getString("k");
             String slotsJson = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/broadcast/slots/" + cid), StandardCharsets.UTF_8);
@@ -144,6 +145,10 @@ public class AbemaTvLiveService extends LiveService {
             return videoInfo;
         }
         return null;
+    }
+
+    private long getKeyGenerator() {
+        return Math.round((System.currentTimeMillis() - 1499299200000L) / 1000.0 / 60 / 60 / 24);
     }
 
     @Override
