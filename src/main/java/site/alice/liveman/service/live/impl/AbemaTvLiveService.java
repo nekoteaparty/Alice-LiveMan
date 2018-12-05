@@ -24,9 +24,11 @@ import com.alibaba.fastjson.JSONObject;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -50,12 +52,14 @@ import java.util.regex.Pattern;
 @Service
 public class AbemaTvLiveService extends LiveService {
 
-    private static final String       bearer         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
-    private static final String       userId         = "8nVcD2vSyDFNnj";
-    private static final Pattern      channelPattern = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
-    private static final Pattern      m3u8KeyPattern = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
-    private static final String       NOW_ON_AIR_URL = "https://abema.tv/now-on-air/";
-    private static final ScriptEngine scriptEngine;
+    @Autowired
+    private              LiveManSetting liveManSetting;
+    private static final String         bearer         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
+    private static final String         userId         = "8nVcD2vSyDFNnj";
+    private static final Pattern        channelPattern = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
+    private static final Pattern        m3u8KeyPattern = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
+    private static final String         NOW_ON_AIR_URL = "https://abema.tv/now-on-air/";
+    private static final ScriptEngine   scriptEngine;
 
     static {
         ScriptEngineManager manager = new ScriptEngineManager();
@@ -127,7 +131,7 @@ public class AbemaTvLiveService extends LiveService {
         String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
         String token = JSON.parseObject(tokenJSON).getString("token");
         long kg = getKeyGenerator();
-        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/720/playlist.m3u8?ccf=0&kg=" + kg;
+        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/" + liveManSetting.getDefaultResolution() + "/playlist.m3u8?ccf=0&kg=" + kg;
         String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
         Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
         if (keyMatcher.find()) {
