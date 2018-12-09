@@ -26,7 +26,10 @@ import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.live.LiveServiceFactory;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 
 @Component
 public class AutoLiveManJob {
@@ -37,7 +40,7 @@ public class AutoLiveManJob {
     private              LiveManSetting     liveManSetting;
 
     @Scheduled(cron = "0/5 * * * * ?")
-    public void youTubeLiveJob() {
+    public void aliceLiveJob() {
         if (liveManSetting.getChannels().isEmpty()) {
             LOGGER.warn("频道列表为空！");
         }

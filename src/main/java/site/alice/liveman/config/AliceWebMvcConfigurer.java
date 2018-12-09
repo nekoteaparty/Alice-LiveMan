@@ -34,7 +34,7 @@ public class AliceWebMvcConfigurer implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor()).excludePathPatterns("/api/login/**", "/mediaProxy/**");
+        registry.addInterceptor(new LoginInterceptor()).excludePathPatterns("/api/login/**", "/mediaProxy/**", "/error");
     }
 }
 

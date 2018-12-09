@@ -66,7 +66,7 @@ public class BilibiliBroadcastService implements BroadcastService {
     @Override
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         VideoInfo videoInfo = accountInfo.getCurrentVideo();
-        int area = 33;
+        int area = 199;
         if (videoInfo.getArea() != null) {
             area = videoInfo.getArea()[1];
         }

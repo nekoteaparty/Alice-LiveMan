@@ -24,6 +24,8 @@ public class SettingVO {
     private String[] bannedYoutubeChannel;
     private String[] bannedKeywords;
     private String   defaultResolution;
+    private String   baseUrl;
+    private boolean  hasOneDriveToken;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -71,5 +73,21 @@ public class SettingVO {
 
     public void setDefaultResolution(String defaultResolution) {
         this.defaultResolution = defaultResolution;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public boolean isHasOneDriveToken() {
+        return hasOneDriveToken;
+    }
+
+    public void setHasOneDriveToken(boolean hasOneDriveToken) {
+        this.hasOneDriveToken = hasOneDriveToken;
     }
 }

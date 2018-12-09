@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
+import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.HttpRequestUtil;
 
@@ -81,7 +82,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                                 IOUtils.write(decodedData, seqFileStream);
                                             } catch (Throwable e) {
                                                 log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
-                                                IOUtils.write(encodedData, seqFileStream);
                                             }
                                         }
                                     }
@@ -112,7 +112,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     @Override
     public void terminateTask() {
         downloadTask.waitForTerminate();
-        createConcatListFile();
     }
 
     @Override
@@ -152,6 +151,14 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 }
             } catch (Throwable e) {
                 log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
+            }
+            ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
+            if (channelInfo != null) {
+                Long endAt = channelInfo.getEndAt();
+                if (endAt != null && endAt < System.currentTimeMillis()) {
+                    log.info("节目[" + channelInfo.getChannelName() + "]已到结束时间，结束媒体流下载");
+                    break;
+                }
             }
             Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
         }
@@ -199,35 +206,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             File m3u8File = new File(m3u8Path + "/index.m3u8");
             FileUtils.write(m3u8File, sb);
             NEXT_M3U8_WRITE_TIME = System.currentTimeMillis() + 250;
-        }
-    }
-
-    private void createConcatListFile() {
-        try {
-            File m3u8Path = new File(MediaProxyManager.getTempPath() + "/m3u8/" + getVideoId() + "/");
-            m3u8Path.mkdirs();
-            File[] seqFiles = m3u8Path.listFiles((dir, name) -> name.endsWith(".ts"));
-            if (seqFiles.length > 0) {
-                List<Integer> seqList = new LinkedList<>();
-                for (File file : seqFiles) {
-                    seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
-                }
-                seqList.sort(Comparator.naturalOrder());
-
-                StringBuilder sb = new StringBuilder();
-                for (Integer seq : seqList) {
-                    sb.append("file ");
-                    sb.append(seq).append(".ts\n");
-                }
-                File m3u8File = new File(m3u8Path + "/list.txt");
-                FileUtils.write(m3u8File, sb);
-                String cmdLine = "ffmpeg -f concat -i list.txt -c copy index.mkv";
-                FileUtils.write(new File(m3u8Path + "/concat.cmd"), cmdLine);
-                FileUtils.write(new File(m3u8Path + "/concat.sh"), cmdLine);
-                FileUtils.write(new File(m3u8Path + "/play.cmd"), "ffplay -f concat -i list.txt");
-            }
-        } catch (Throwable e) {
-            log.error("创建TS文件列表失败", e);
         }
     }
 }

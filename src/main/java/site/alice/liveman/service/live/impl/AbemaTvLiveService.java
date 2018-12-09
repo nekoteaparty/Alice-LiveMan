@@ -112,6 +112,8 @@ public class AbemaTvLiveService extends LiveService {
                     long endAt = channelSlot.getLongValue("endAt") * 1000;
                     // 在节目播出时间内
                     if (currentTimeMillis > startAt && currentTimeMillis < endAt) {
+                        channelInfo.setStartAt(startAt);
+                        channelInfo.setEndAt(endAt);
                         return new URI(NOW_ON_AIR_URL + channelId);
                     }
                 }
