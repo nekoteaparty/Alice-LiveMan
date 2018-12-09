@@ -211,7 +211,6 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             File tempFile = new File(file.toString() + ".tmp");
-            tempFile.deleteOnExit();
             tempFile.getParentFile().mkdirs();
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 byte[] buffer = new byte[1024];

@@ -36,6 +36,7 @@ import site.alice.liveman.utils.ProcessUtil;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -90,27 +91,26 @@ public class RecordAndCleanUpJob {
             LOGGER.info("uploadDir:" + sourceFile.getAbsoluteFile());
             File[] children = sourceFile.listFiles();
             if (children != null) {
-                for (File aChildren : children) {
-                    uploadDir(aChildren, videoId);
-                }
+                Arrays.stream(children).parallel().forEach(file -> uploadDir(file, videoId));
             }
-        }
-        for (int i = 0; i < 3; i++) {
-            try {
-                OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
-                String fileName = String.valueOf(mediaHistory.getChannelName()).equals("null") ? "手动推流" : mediaHistory.getChannelName().trim();
-                fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
-                fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
-                fileName += "\\/" + sourceFile.getName();
-                LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
-                OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
-                oneUploadFile.startUpload();
-                LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
-                break;
-            } catch (Throwable throwable) {
-                LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]，重试(" + (i + 1) + "/3)", throwable);
+        } else {
+            for (int i = 0; i < 3; i++) {
+                try {
+                    OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
+                    String fileName = String.valueOf(mediaHistory.getChannelName()).equals("null") ? "手动推流" : mediaHistory.getChannelName().trim();
+                    fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
+                    fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
+                    fileName += "\\/" + sourceFile.getName();
+                    LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
+                    OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
+                    oneUploadFile.startUpload();
+                    LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
+                    break;
+                } catch (Throwable throwable) {
+                    LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]，重试(" + (i + 1) + "/3)", throwable);
+                }
             }
         }
         sourceFile.delete();
@@ -139,7 +139,8 @@ public class RecordAndCleanUpJob {
         try {
             m3u8Path.mkdirs();
             File[] seqFiles = m3u8Path.listFiles((dir, name) -> name.endsWith(".ts"));
-            if (seqFiles.length > 0) {
+            File m3u8File = new File(m3u8Path + "/list.txt");
+            if (seqFiles.length > 0 && !m3u8File.exists()) {
                 List<Integer> seqList = new LinkedList<>();
                 for (File file : seqFiles) {
                     seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
@@ -151,12 +152,11 @@ public class RecordAndCleanUpJob {
                     sb.append("file ");
                     sb.append(seq).append(".ts\n");
                 }
-                File m3u8File = new File(m3u8Path + "/list.txt");
                 FileUtils.write(m3u8File, sb);
-                String cmdLine = "ffmpeg -f concat -i list.txt -c copy index.mkv";
-                FileUtils.write(new File(m3u8Path + "/concat.cmd"), cmdLine);
-                FileUtils.write(new File(m3u8Path + "/concat.sh"), cmdLine);
-                FileUtils.write(new File(m3u8Path + "/play.cmd"), "ffplay -f concat -i list.txt");
+                FileUtils.write(new File(m3u8Path + "/合并分片[Windows].cmd"), "ffmpeg -f concat -i list.txt -c copy index.mkv");
+                FileUtils.write(new File(m3u8Path + "/合并分片[Linux].sh"), "ffmpeg -f concat -i list.txt -c copy index.mkv");
+                FileUtils.write(new File(m3u8Path + "/播放预览[Windows].cmd"), "ffplay -f concat -i list.txt");
+                FileUtils.write(new File(m3u8Path + "/播放预览[Linux].sh"), "ffplay -f concat -i list.txt");
                 return true;
             }
             return false;
