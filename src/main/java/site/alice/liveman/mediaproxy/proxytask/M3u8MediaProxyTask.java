@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
@@ -34,7 +35,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -46,19 +46,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    private static final int                   MAX_RETRY_COUNT      = 20;
-    private              long                  NEXT_M3U8_WRITE_TIME = 0;
-    private              BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
-    private              AtomicInteger         retry                = new AtomicInteger(0);
-    private              int                   lastSeqIndex         = 0;
-    private final        MediaProxyTask        downloadTask;
+    protected static final int                   MAX_RETRY_COUNT      = 20;
+    private                long                  NEXT_M3U8_WRITE_TIME = 0;
+    private                BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
+    protected              AtomicInteger         retryCount           = new AtomicInteger(0);
+    private                int                   lastSeqIndex         = 0;
+    private final          MediaProxyTask        downloadTask;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
         super(videoId, sourceUrl);
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null) {
             @Override
             protected void runTask() throws InterruptedException {
-                while (retry.get() < MAX_RETRY_COUNT) {
+                while (retryCount.get() < MAX_RETRY_COUNT) {
                     String queueData = downloadQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (queueData != null) {
                         for (int i = 0; i < 3; i++) {
@@ -86,11 +86,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                         }
                                     }
                                     createM3U8File();
-                                    retry.set(0);
+                                    retryCount.set(0);
                                 }
                                 break;
                             } catch (Throwable e) {
-                                log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
+                                log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
                                 if (e instanceof FileNotFoundException) {
                                     break;
                                 }
@@ -119,7 +119,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         MediaProxyManager.runProxy(downloadTask);
         File m3u8File = new File(MediaProxyManager.getTempPath() + "/m3u8/" + getVideoId() + "/index.m3u8");
         m3u8File.delete();
-        while (retry.get() < MAX_RETRY_COUNT && !getTerminated()) {
+        while (retryCount.get() < MAX_RETRY_COUNT && !getTerminated()) {
             long start = System.currentTimeMillis();
             try {
                 log.debug("get m3u8 meta info from " + getSourceUrl());
@@ -128,7 +128,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 int readSeqCount = 0;
                 int startSeq = 0;
                 for (String m3u8Line : m3u8Lines) {
-                    if (!m3u8Line.startsWith("#")) {
+                    if (!m3u8Line.startsWith("#") && StringUtils.isNotEmpty(m3u8Line.trim())) {
                         int currentSeqIndex = (startSeq + seqCount);
                         if (currentSeqIndex > lastSeqIndex) {
                             m3u8Line = getSourceUrl().resolve(m3u8Line).toString();
@@ -147,10 +147,10 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     }
                 }
                 if (readSeqCount == 0) {
-                    log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
+                    log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
                 }
             } catch (Throwable e) {
-                log.error(getVideoId() + "出错重试(" + retry.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
+                log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
             }
             ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
             if (channelInfo != null) {

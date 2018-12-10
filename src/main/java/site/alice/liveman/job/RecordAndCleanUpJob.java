@@ -55,7 +55,7 @@ public class RecordAndCleanUpJob {
     @Autowired
     private              OneDriveUtil        oneDriveUtil;
 
-    @Scheduled(cron = "0 0/5 * * * ?")
+    @Scheduled(cron = "0 0/1 * * * ?")
     public void recordAndCleanUpJob() {
         LOGGER.info("开始查找需要上传录像和清理的媒体文件...");
         String mediaTempPath = liveManSetting.getTempPath();

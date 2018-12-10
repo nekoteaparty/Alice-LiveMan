@@ -33,10 +33,10 @@ public class VideoInfo implements Serializable {
     private String                         description;
     private URI                            mediaUrl;
     private String                         mediaFormat;
-    private String                         encodeMethod;
     private int[]                          area;
     private boolean                        isVideoBanned;
     private boolean                        isAudioBanned;
+    private String                         encodeMethod;
     private byte[]                         encodeKey;
     private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;

@@ -94,8 +94,7 @@ public class MediaProxyManager implements ApplicationContextAware {
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
                 MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl);
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
-                String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
-                String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
+                String targetUrl = String.format(targetUrlFormat, requestFormat, videoId);
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
                 return mediaProxyTask;
             }
@@ -131,9 +130,6 @@ public class MediaProxyManager implements ApplicationContextAware {
                     LOGGER.error("调用" + listener + "失败", e);
                 }
             }
-        } else {
-            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(task.getVideoId());
-            mediaProxyTask.setSourceUrl(task.getSourceUrl());
         }
     }
 
