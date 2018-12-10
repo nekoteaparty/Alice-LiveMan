@@ -76,7 +76,7 @@
             <version>0.0.20</version>
         </dependency>
         <dependency>
-            <groupId>de.tuberlin</groupId>
+            <groupId>com.github.nekosunflower</groupId>
             <artifactId>onedrivesdk</artifactId>
             <version>0.0.4-SNAPSHOT</version>
         </dependency>
