@@ -72,17 +72,17 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                     } else {
                                         seqFile.getParentFile().mkdirs();
                                         byte[] encodedData = HttpRequestUtil.downloadUrl(new URI(queueDatas[0]));
-                                        try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
-                                            try {
-                                                SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
-                                                Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-                                                IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
-                                                cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
-                                                byte[] decodedData = cipher.doFinal(encodedData);
+                                        try {
+                                            SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
+                                            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                                            IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
+                                            cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
+                                            byte[] decodedData = cipher.doFinal(encodedData);
+                                            try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
                                                 IOUtils.write(decodedData, seqFileStream);
-                                            } catch (Throwable e) {
-                                                log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
                                             }
+                                        } catch (Throwable e) {
+                                            log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
                                         }
                                     }
                                     createM3U8File();
@@ -174,7 +174,9 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         if (seqFiles.length > 0) {
             List<Integer> seqList = new LinkedList<>();
             for (File file : seqFiles) {
-                seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
+                if (file.length() > 0) {
+                    seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
+                }
             }
             seqList.sort(Comparator.reverseOrder());
             seqList = seqList.subList(0, Math.min(100, seqList.size()));

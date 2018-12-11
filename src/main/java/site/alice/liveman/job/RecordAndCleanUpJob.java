@@ -89,10 +89,10 @@ public class RecordAndCleanUpJob {
         if (sourceFile.isDirectory()) {
             LOGGER.info("uploadDir:" + sourceFile.getAbsoluteFile());
             File[] children = sourceFile.listFiles();
-            if (children != null) {
+            if (children != null && children.length > 0) {
                 Arrays.stream(children).parallel().forEach(file -> uploadDir(file, videoId));
             }
-        } else if (!String.valueOf(mediaHistory.getChannelName()).equals("null")) {
+        } else if (mediaHistory != null && !String.valueOf(mediaHistory.getChannelName()).equals("null")) {
             for (int i = 0; i < 3; i++) {
                 try {
                     OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
