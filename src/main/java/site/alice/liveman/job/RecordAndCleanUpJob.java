@@ -18,7 +18,6 @@
 
 package site.alice.liveman.job;
 
-import de.tuberlin.onedrivesdk.file.OneFile;
 import de.tuberlin.onedrivesdk.folder.OneFolder;
 import de.tuberlin.onedrivesdk.uploadFile.OneUploadFile;
 import org.apache.commons.io.FileUtils;
@@ -32,7 +31,6 @@ import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.MediaHistory;
 import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.utils.OneDriveUtil;
-import site.alice.liveman.utils.ProcessUtil;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -85,21 +83,22 @@ public class RecordAndCleanUpJob {
         LOGGER.info("上传录像和清理任务已完成！");
     }
 
-    private void uploadDir(File sourceFile, String videoId) {
+    private void uploadDir(File sourceFile, final String videoId) {
         MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+
         if (sourceFile.isDirectory()) {
             LOGGER.info("uploadDir:" + sourceFile.getAbsoluteFile());
             File[] children = sourceFile.listFiles();
             if (children != null) {
                 Arrays.stream(children).parallel().forEach(file -> uploadDir(file, videoId));
             }
-        } else {
+        } else if (!String.valueOf(mediaHistory.getChannelName()).equals("null")) {
             for (int i = 0; i < 3; i++) {
                 try {
                     OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
-                    String fileName = String.valueOf(mediaHistory.getChannelName()).equals("null") ? "手动推流" : mediaHistory.getChannelName().trim();
+                    String fileName = mediaHistory.getChannelName().trim();
                     fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
                     fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
                     fileName += "\\/" + sourceFile.getName();
@@ -118,7 +117,7 @@ public class RecordAndCleanUpJob {
 
 
     private String replaceFileName(String fileName) {
-        Pattern pattern = Pattern.compile("[#\\s\\\\/:\\*\\?\\\"<>\\|]");
+        Pattern pattern = Pattern.compile("[#\\\\/:\\*\\?\\\"<>\\|]");
         Matcher matcher = pattern.matcher(fileName);
         return matcher.replaceAll("");
     }
