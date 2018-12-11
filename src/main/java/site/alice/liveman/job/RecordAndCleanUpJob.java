@@ -118,7 +118,7 @@ public class RecordAndCleanUpJob {
 
 
     private String replaceFileName(String fileName) {
-        Pattern pattern = Pattern.compile("[\\s\\\\/:\\*\\?\\\"<>\\|]");
+        Pattern pattern = Pattern.compile("[#\\s\\\\/:\\*\\?\\\"<>\\|]");
         Matcher matcher = pattern.matcher(fileName);
         return matcher.replaceAll("");
     }
