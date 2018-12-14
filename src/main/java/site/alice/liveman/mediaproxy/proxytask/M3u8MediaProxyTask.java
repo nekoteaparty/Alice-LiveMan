@@ -90,10 +90,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                 }
                                 break;
                             } catch (Throwable e) {
-                                log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
                                 if (e instanceof FileNotFoundException) {
+                                    log.warn(getVideoId() + "出错，媒体文件已过期", e);
                                     break;
                                 }
+                                log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
                             }
                         }
                     } else if (M3u8MediaProxyTask.this.getTerminated()) {

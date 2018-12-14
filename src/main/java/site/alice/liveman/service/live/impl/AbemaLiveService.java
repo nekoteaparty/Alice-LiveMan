@@ -48,7 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class AbemaTvLiveService extends LiveService {
+public class AbemaLiveService extends LiveService {
 
     @Autowired
     private              LiveManSetting liveManSetting;

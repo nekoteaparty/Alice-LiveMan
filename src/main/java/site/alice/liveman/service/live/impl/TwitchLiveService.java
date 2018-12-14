@@ -38,7 +38,7 @@ import java.util.Map;
 
 @Slf4j
 @Service
-public class TwitchTvLiveService extends LiveService {
+public class TwitchLiveService extends LiveService {
 
     private static final String clientId             = "jzkbprff40iqj646a697cyrvl0zt2m6";
     private static final String GET_STREAM_INFO_URL  = "https://api.twitch.tv/kraken/streams/";
