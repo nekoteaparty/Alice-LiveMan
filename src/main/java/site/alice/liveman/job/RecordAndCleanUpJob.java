@@ -22,6 +22,7 @@ import de.tuberlin.onedrivesdk.folder.OneFolder;
 import de.tuberlin.onedrivesdk.uploadFile.OneUploadFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,9 @@ public class RecordAndCleanUpJob {
     @Scheduled(cron = "0 0/1 * * * ?")
     public void recordAndCleanUpJob() {
         LOGGER.info("开始查找需要上传录像和清理的媒体文件...");
+        if (StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
+            LOGGER.warn("尚未配置OneDrive授权，将不会上传录像文件。");
+        }
         String mediaTempPath = liveManSetting.getTempPath();
         File mediaTempDir = new File(mediaTempPath);
         File[] listDir = mediaTempDir.listFiles();
@@ -71,7 +75,7 @@ public class RecordAndCleanUpJob {
                                 uploadDir(sourcePath, sourcePath.getName());
                                 break;
                             }
-                            case "twitcasting": {
+                            case "mp4": {
                                 uploadDir(sourcePath, sourcePath.getName());
                                 break;
                             }
@@ -93,22 +97,26 @@ public class RecordAndCleanUpJob {
                 Arrays.stream(children).parallel().forEach(file -> uploadDir(file, videoId));
             }
         } else if (mediaHistory != null && !String.valueOf(mediaHistory.getChannelName()).equals("null")) {
-            for (int i = 0; i < 3; i++) {
-                try {
-                    OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                    SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
-                    String fileName = mediaHistory.getChannelName().trim();
-                    fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
-                    fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
-                    fileName += "\\/" + sourceFile.getName();
-                    LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
-                    OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
-                    oneUploadFile.startUpload();
-                    LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
-                    break;
-                } catch (Throwable throwable) {
-                    LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]，重试(" + (i + 1) + "/3)", throwable);
+            if (sourceFile.length() == 0) {
+                LOGGER.info("文件[" + sourceFile + "]的长度为0，跳过上传!");
+            } else if (!StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
+                for (int i = 0; i < 3; i++) {
+                    try {
+                        OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
+                        String fileName = mediaHistory.getChannelName().trim();
+                        fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
+                        fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
+                        fileName += "\\/" + sourceFile.getName();
+                        LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
+                        OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
+                        oneUploadFile.startUpload();
+                        LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
+                        break;
+                    } catch (Throwable throwable) {
+                        LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]，重试(" + (i + 1) + "/3)", throwable);
+                    }
                 }
             }
         }

@@ -94,7 +94,8 @@ public class MediaProxyManager implements ApplicationContextAware {
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
                 MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl);
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
-                String targetUrl = String.format(targetUrlFormat, requestFormat, videoId);
+                String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
+                String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
                 return mediaProxyTask;
             }
