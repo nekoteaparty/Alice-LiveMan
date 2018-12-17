@@ -48,10 +48,7 @@ import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.ProxyInfo;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
@@ -204,6 +201,9 @@ public class HttpRequestUtil {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
+                if (httpResponse.getStatusLine().getStatusCode() == 404) {
+                    throw new FileNotFoundException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+                }
                 throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
             }
             InputStream is = responseEntity.getContent();
@@ -211,7 +211,6 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             File tempFile = new File(file.toString() + ".tmp");
-            tempFile.deleteOnExit();
             tempFile.getParentFile().mkdirs();
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 byte[] buffer = new byte[1024];

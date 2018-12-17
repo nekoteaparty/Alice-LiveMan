@@ -21,6 +21,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -32,6 +33,10 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     private String               channelUrl;
     private String               channelName;
     private int[]                defaultArea;
+    @JSONField(serialize = false)
+    private Long                 startAt;
+    @JSONField(serialize = false)
+    private Long                 endAt;
     @JSONField(serialize = false)
     private String               mediaUrl;
     @JSONField(serialize = false)
@@ -109,6 +114,22 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
         this.defaultArea = defaultArea;
     }
 
+    public Long getStartAt() {
+        return startAt;
+    }
+
+    public void setStartAt(Long startAt) {
+        this.startAt = startAt;
+    }
+
+    public Long getEndAt() {
+        return endAt;
+    }
+
+    public void setEndAt(Long endAt) {
+        this.endAt = endAt;
+    }
+
     public void addProxyTask(MediaProxyTask mediaProxyTask) {
         if (mediaProxyTasks == null) {
             mediaProxyTasks = new CopyOnWriteArrayList<>();
@@ -131,7 +152,7 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     }
 
     @Override
-    public int compareTo( ChannelInfo o) {
+    public int compareTo(ChannelInfo o) {
         return this.getChannelName().compareTo(o.getChannelName());
     }
 }

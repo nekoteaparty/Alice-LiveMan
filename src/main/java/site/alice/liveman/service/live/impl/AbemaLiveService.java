@@ -23,9 +23,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
@@ -36,9 +34,9 @@ import site.alice.liveman.utils.HttpRequestUtil;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -50,30 +48,52 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class AbemaTvLiveService extends LiveService {
+public class AbemaLiveService extends LiveService {
 
     @Autowired
     private              LiveManSetting liveManSetting;
-    private static final String         bearer         = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
-    private static final String         userId         = "8nVcD2vSyDFNnj";
-    private static final Pattern        channelPattern = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
-    private static final Pattern        m3u8KeyPattern = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
-    private static final String         NOW_ON_AIR_URL = "https://abema.tv/now-on-air/";
-    private static final ScriptEngine   scriptEngine;
+    private static final String         bearer           = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJiZTJiMzgzMC05NTFjLTQ4MjYtYjcxNi00YmYzZDJlM2RmNjEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG9FUmJMaWZtS0trZWIifQ.bV1i84i9ydm9hS949mjahxzRDQFyXMiUnHILvkEs0fs";
+    private static final String         userId           = "8oERbLifmKKkeb";
+    private static final Pattern        channelPattern   = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
+    private static final Pattern        m3u8KeyPattern   = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
+    private static final String         NOW_ON_AIR_URL   = "https://abema.tv/now-on-air/";
+    private static final Pattern        hotfixSetFun     = Pattern.compile("!function\\(\\)\\{var _0x[\\w]+=function\\(\\)\\{var _0x[\\w]+=!!\\[]");
+    private static final Pattern        hotfixGetFunName = Pattern.compile("_0x[\\w]+\\(_0x[\\w]+\\(_0x[\\w]+\\),_0x[\\w]+\\);}\\((_0x[\\w]+),(_0x[\\w]+),_0x[\\w]+\\)\\);}");
 
-    static {
+    private ScriptEngine getScriptEngine() throws IOException, URISyntaxException, ScriptException {
         ScriptEngineManager manager = new ScriptEngineManager();
-        scriptEngine = manager.getEngineByName("javascript");
-        try {
-            ClassPathResource resource = new ClassPathResource("abematv.js");
-            scriptEngine.eval(String.join("", IOUtils.readLines(resource.getInputStream())));
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        ScriptEngine scriptEngine = manager.getEngineByName("javascript");
+        scriptEngine.eval(getHotfixXhrpJS());
+        return scriptEngine;
     }
 
-    private byte[] getDecodeKey(String cid, String k) throws ScriptException {
-        ScriptObjectMirror eval = (ScriptObjectMirror) scriptEngine.eval("getDecodeKey(\"" + cid + "\",\"" + userId + "\",\"" + k + "\")");
+    private String getHotfixXhrpJS() throws URISyntaxException, IOException {
+        String xhrpJS = HttpRequestUtil.downloadUrl(new URI("https://abema.tv/xhrp.js"), StandardCharsets.UTF_8);
+        xhrpJS = "var window = {Uint8Array: Uint8Array};" + xhrpJS.replace("data;", "return;");
+        Matcher setFunMatcher = hotfixSetFun.matcher(xhrpJS);
+        if (setFunMatcher.find()) {
+            String group = setFunMatcher.group();
+            String hotfixGroup = group.replace("!function()", "var getDecodeKey=function(cid,userId,k)");
+            xhrpJS = xhrpJS.replace(group, hotfixGroup);
+            Matcher findFunNameMatcher = hotfixGetFunName.matcher(xhrpJS);
+            if (findFunNameMatcher.find()) {
+                String cidParam = findFunNameMatcher.group(1);
+                String userIdParam = findFunNameMatcher.group(2);
+                Pattern funNamePattern = Pattern.compile("function (_0x[\\w]+?)\\(" + cidParam + "," + userIdParam);
+                Matcher getFunNameMatcher = funNamePattern.matcher(xhrpJS);
+                if (getFunNameMatcher.find()) {
+                    String funName = getFunNameMatcher.group(1);
+                    xhrpJS = xhrpJS.substring(0, findFunNameMatcher.end()) + "return " + funName + "(cid,userId,k);" + xhrpJS.substring(findFunNameMatcher.end());
+                    xhrpJS = xhrpJS.substring(0, xhrpJS.length() - 3);
+                    return xhrpJS;
+                }
+            }
+        }
+        throw new RuntimeException("对[xhrp.js]进行动态补丁失败！");
+    }
+
+    private byte[] getDecodeKey(String cid, String k) throws ScriptException, IOException, URISyntaxException {
+        ScriptObjectMirror eval = (ScriptObjectMirror) getScriptEngine().eval("getDecodeKey(\"" + cid + "\",\"" + userId + "\",\"" + k + "\")");
         Integer[] toArray = eval.values().toArray(new Integer[0]);
         byte[] key = new byte[toArray.length];
         for (int i = 0; i < toArray.length; i++) {
@@ -112,6 +132,8 @@ public class AbemaTvLiveService extends LiveService {
                     long endAt = channelSlot.getLongValue("endAt") * 1000;
                     // 在节目播出时间内
                     if (currentTimeMillis > startAt && currentTimeMillis < endAt) {
+                        channelInfo.setStartAt(startAt);
+                        channelInfo.setEndAt(endAt);
                         return new URI(NOW_ON_AIR_URL + channelId);
                     }
                 }
@@ -128,10 +150,10 @@ public class AbemaTvLiveService extends LiveService {
         String channelId = videoInfoUrl.toString().substring(NOW_ON_AIR_URL.length());
         Map<String, String> requestProperties = new HashMap<>();
         requestProperties.put("Authorization", "bearer " + bearer);
-        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1025.2"), null, requestProperties, StandardCharsets.UTF_8);
+        String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1204.3"), null, requestProperties, StandardCharsets.UTF_8);
         String token = JSON.parseObject(tokenJSON).getString("token");
         long kg = getKeyGenerator();
-        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/" + liveManSetting.getDefaultResolution() + "/playlist.m3u8?ccf=0&kg=" + kg;
+        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/" + liveManSetting.getDefaultResolution() + "/playlist.m3u8?ccf=26&kg=" + kg;
         String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
         Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
         if (keyMatcher.find()) {
@@ -141,7 +163,7 @@ public class AbemaTvLiveService extends LiveService {
             String cid = JSON.parseObject(licenseJson).getString("cid");
             String k = JSON.parseObject(licenseJson).getString("k");
             String slotsJson = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/broadcast/slots/" + cid), StandardCharsets.UTF_8);
-            JSONObject slotsObj = JSON.parseObject(slotsJson);
+            JSONObject slotsObj = JSON.parseObject(slotsJson).getJSONObject("slot");
             VideoInfo videoInfo = new VideoInfo(channelInfo, cid, slotsObj.getString("title"), new URI(mediaUrl), "m3u8");
             videoInfo.setEncodeMethod(keyMatcher.group(1));
             videoInfo.setEncodeKey(getDecodeKey(cid, k));

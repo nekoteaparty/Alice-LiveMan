@@ -160,6 +160,9 @@ public class BroadcastController {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         try {
             VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), null);
+            if (liveVideoInfo == null) {
+                return ActionResult.getErrorResult("当前节目尚未开播");
+            }
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             if (executedProxyTaskMap.containsKey(liveVideoInfo.getVideoId())) {
                 return ActionResult.getErrorResult("此媒体地址已存在于推流列表中，请直接认领");

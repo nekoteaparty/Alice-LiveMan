@@ -56,7 +56,7 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
     @Override
     protected void runTask() {
 
-        File m4sPath = new File(MediaProxyManager.getTempPath() + "/twitcasting/" + getVideoId() + "/");
+        File m4sPath = new File(MediaProxyManager.getTempPath() + "/mp4/" + getVideoId() + "/");
         m4sPath.mkdirs();
         File mp4File = new File(m4sPath + "/index.mp4");
         try (FileOutputStream fos = new FileOutputStream(mp4File, true)) {

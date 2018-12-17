@@ -30,6 +30,10 @@ public class LiveManSetting {
     private String                             tempPath;
     private String                             ffmpegPath;
     private String                             defaultResolution;
+    private String                             baseUrl;
+    private String                             oneDriveClientId;
+    private String                             oneDriveClientSecret;
+    private String                             oneDriveToken;
     private ConcurrentSkipListSet<AccountInfo> accounts;
     private ConcurrentSkipListSet<ChannelInfo> channels;
     private Proxy                              proxy;
@@ -88,6 +92,38 @@ public class LiveManSetting {
 
     public void setChannels(ConcurrentSkipListSet<ChannelInfo> channels) {
         this.channels = channels;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public String getOneDriveClientId() {
+        return oneDriveClientId;
+    }
+
+    public void setOneDriveClientId(String oneDriveClientId) {
+        this.oneDriveClientId = oneDriveClientId;
+    }
+
+    public String getOneDriveClientSecret() {
+        return oneDriveClientSecret;
+    }
+
+    public void setOneDriveClientSecret(String oneDriveClientSecret) {
+        this.oneDriveClientSecret = oneDriveClientSecret;
+    }
+
+    public String getOneDriveToken() {
+        return oneDriveToken;
+    }
+
+    public void setOneDriveToken(String oneDriveToken) {
+        this.oneDriveToken = oneDriveToken;
     }
 
     @JSONField(serialize = false)

@@ -89,13 +89,13 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
             log.error(getVideoId() + "代理任务异常退出", e);
         } finally {
             isTerminated = true;
-            log.info(getVideoId() + "代理任务终止@" + runThread.getName());
+            terminateTask();
             MediaProxyManager.removeProxy(this);
             // 将自身从代理列表中移除
             if (parentProxyTasks != null) {
                 parentProxyTasks.remove(this);
             }
-            terminateTask();
+            log.info(getVideoId() + "代理任务终止@" + runThread.getName());
         }
     }
 

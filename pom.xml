@@ -76,6 +76,11 @@
             <version>0.0.20</version>
         </dependency>
         <dependency>
+            <groupId>com.github.nekosunflower</groupId>
+            <artifactId>onedrivesdk</artifactId>
+            <version>0.0.4</version>
+        </dependency>
+        <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
             <version>3.2.1</version>

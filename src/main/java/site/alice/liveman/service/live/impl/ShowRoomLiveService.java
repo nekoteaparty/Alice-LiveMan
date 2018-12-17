@@ -19,6 +19,7 @@ package site.alice.liveman.service.live.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
@@ -52,7 +53,7 @@ public class ShowRoomLiveService extends LiveService {
         String channelHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
         Matcher matcher = initDataPattern.matcher(channelHtml);
         if (matcher.find()) {
-            JSONObject liveDataObj = JSON.parseObject(matcher.group(1));
+            JSONObject liveDataObj = JSON.parseObject(StringEscapeUtils.unescapeHtml(matcher.group(1)));
             if (liveDataObj.getBoolean("isLive")) {
                 String videoId = liveDataObj.getString("liveId");
                 String videoTitle = liveDataObj.getString("roomName");

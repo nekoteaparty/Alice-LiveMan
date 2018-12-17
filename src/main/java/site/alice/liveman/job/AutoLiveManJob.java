@@ -23,10 +23,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.live.LiveServiceFactory;
 
-import java.net.URI;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 @Component
 public class AutoLiveManJob {
@@ -37,12 +38,13 @@ public class AutoLiveManJob {
     private              LiveManSetting     liveManSetting;
 
     @Scheduled(cron = "0/5 * * * * ?")
-    public void youTubeLiveJob() {
+    public void aliceLiveJob() {
         if (liveManSetting.getChannels().isEmpty()) {
             LOGGER.warn("频道列表为空！");
         }
         /* 获取频道状态信息 */
-        liveManSetting.getChannels().parallelStream().forEach((channelInfo -> {
+        ConcurrentSkipListSet<ChannelInfo> channels = liveManSetting.getChannels();
+        for (ChannelInfo channelInfo : channels) {
             MediaProxyTask mediaProxyTask;
             try {
                 mediaProxyTask = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).createMediaProxyTask(channelInfo);
@@ -51,11 +53,11 @@ public class AutoLiveManJob {
                 } else {
                     LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]没有正在直播的节目");
                 }
-                Thread.sleep(1000);
+                Thread.sleep(200);
             } catch (Throwable e) {
                 LOGGER.error("获取 " + channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "] 频道信息失败", e);
             }
-        }));
+        }
     }
 }
 

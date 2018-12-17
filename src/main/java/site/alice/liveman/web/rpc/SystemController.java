@@ -19,6 +19,7 @@
 package site.alice.liveman.web.rpc;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +56,8 @@ public class SystemController {
         settingVO.setBannedKeywords(String.join(",", liveManSetting.getBannedKeywords()));
         settingVO.setBannedYoutubeChannel(String.join(",", liveManSetting.getBannedYoutubeChannel()));
         settingVO.setDefaultResolution(liveManSetting.getDefaultResolution());
+        settingVO.setBaseUrl(liveManSetting.getBaseUrl());
+        settingVO.setHasOneDriveToken(StringUtils.isNotEmpty(liveManSetting.getOneDriveToken()));
         return ActionResult.getSuccessResult(settingVO);
     }
 
@@ -68,6 +71,7 @@ public class SystemController {
         liveManSetting.setBannedKeywords(settingVO.getBannedKeywordsArray());
         liveManSetting.setBannedYoutubeChannel(settingVO.getBannedYoutubeChannelArray());
         liveManSetting.setDefaultResolution(settingVO.getDefaultResolution());
+        liveManSetting.setBaseUrl(settingVO.getBaseUrl());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {
