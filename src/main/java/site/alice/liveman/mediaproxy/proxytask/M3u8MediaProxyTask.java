@@ -176,7 +176,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             List<Integer> seqList = new LinkedList<>();
             for (File file : seqFiles) {
                 if (file.length() > 0) {
-                    seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
+                    try {
+                        seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
+                    } catch (NumberFormatException ignored) {
+                        log.info(file.getName() + " is not a seq file skipped.");
+                    }
                 }
             }
             seqList.sort(Comparator.reverseOrder());

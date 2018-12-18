@@ -114,10 +114,11 @@ public class RecordAndCleanUpJob {
                         OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
                         SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
-                        String fileName = mediaHistory.getChannelName().trim();
+                        String fileName = mediaHistory.getChannelName();
                         if (StringUtils.isEmpty(fileName)) {
                             fileName = "手动推流";
                         }
+                        fileName = fileName.trim();
                         fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
                         fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
                         fileName += "\\/" + sourceFile.getName();
