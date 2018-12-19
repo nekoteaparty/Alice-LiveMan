@@ -58,7 +58,7 @@ public class AbemaLiveService extends LiveService {
     private static final Pattern        m3u8KeyPattern   = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
     private static final String         NOW_ON_AIR_URL   = "https://abema.tv/now-on-air/";
     private static final Pattern        hotfixSetFun     = Pattern.compile("!function\\(\\)\\{var _0x[\\w]+=function\\(\\)\\{var _0x[\\w]+=!!\\[]");
-    private static final Pattern        hotfixGetFunName = Pattern.compile("_0x[\\w]+\\(_0x[\\w]+\\(_0x[\\w]+\\),_0x[\\w]+\\);}\\((_0x[\\w]+),(_0x[\\w]+),_0x[\\w]+\\)\\);}");
+    private static final Pattern        hotfixGetFunName = Pattern.compile("\\);}\\((_0x[\\w]+),(_0x[\\w]+),_0x[\\w]+\\)\\);}");
 
     private ScriptEngine getScriptEngine() throws IOException, URISyntaxException, ScriptException {
         ScriptEngineManager manager = new ScriptEngineManager();

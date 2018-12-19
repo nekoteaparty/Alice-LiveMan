@@ -94,6 +94,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         if (broadcastAccount != null) {
                             broadcastAccount.removeCurrentVideo(videoInfo);
                             videoInfo.removeBroadcastTask(broadcastTask);
+                            broadcastTask.terminateTask();
                         }
                     }
                 }

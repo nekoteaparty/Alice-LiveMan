@@ -57,7 +57,7 @@ public class RecordAndCleanUpJob {
     @Autowired
     private              OneDriveUtil        oneDriveUtil;
 
-    @Scheduled(cron = "0 0/1 * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ?")
     public void recordAndCleanUpJob() {
         LOGGER.info("开始查找需要上传录像和清理的媒体文件...");
         if (StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
@@ -109,28 +109,25 @@ public class RecordAndCleanUpJob {
                 LOGGER.info("文件[" + sourceFile + "]的长度为0，跳过上传!");
                 success = true;
             } else if (!StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
-                for (int i = 0; i < 3; i++) {
-                    try {
-                        OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                        SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
-                        String fileName = mediaHistory.getChannelName();
-                        if (StringUtils.isEmpty(fileName)) {
-                            fileName = "手动推流";
-                        }
-                        fileName = fileName.trim();
-                        fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
-                        fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
-                        fileName += "\\/" + sourceFile.getName();
-                        LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
-                        OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
-                        oneUploadFile.startUpload();
-                        LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
-                        success = true;
-                        break;
-                    } catch (Throwable throwable) {
-                        LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]，重试(" + (i + 1) + "/3)", throwable);
+                try {
+                    OneFolder recordFolder = oneDriveUtil.getOneFolder("Record");
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("HH_mm_ss");
+                    String fileName = mediaHistory.getChannelName();
+                    if (StringUtils.isEmpty(fileName) || fileName.equals("null")) {
+                        fileName = "手动推流";
                     }
+                    fileName = fileName.trim();
+                    fileName += "\\/" + dateFormat.format(mediaHistory.getDatetime());
+                    fileName += "\\/" + timeFormat.format(mediaHistory.getDatetime()) + "_" + mediaHistory.getVideoId() + "_" + replaceFileName(String.valueOf(mediaHistory.getVideoTitle()).trim());
+                    fileName += "\\/" + sourceFile.getName();
+                    LOGGER.info("开始上传录像[" + sourceFile.getAbsoluteFile() + "]到[" + fileName + "]...");
+                    OneUploadFile oneUploadFile = recordFolder.uploadFile(sourceFile, fileName);
+                    oneUploadFile.startUpload();
+                    LOGGER.info("录像文件[" + sourceFile.getAbsoluteFile() + "]上传已完成！");
+                    success = true;
+                } catch (Throwable throwable) {
+                    LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]", throwable);
                 }
             }
         }
@@ -159,14 +156,16 @@ public class RecordAndCleanUpJob {
                         LOGGER.info(fileName + " is not a seq file skipped.");
                     }
                 }
-                seqList.sort(Comparator.naturalOrder());
-                try (OutputStream os = new FileOutputStream(m3u8Path + "/index.ts", true)) {
-                    for (Integer integer : seqList) {
-                        File tsFile = new File(m3u8Path + "/" + integer + ".ts");
-                        FileInputStream is = new FileInputStream(tsFile);
-                        IOUtils.copy(is, os);
-                        is.close();
-                        tsFile.delete();
+                if (!seqList.isEmpty()) {
+                    seqList.sort(Comparator.naturalOrder());
+                    try (OutputStream os = new FileOutputStream(m3u8Path + "/index.ts", true)) {
+                        for (Integer integer : seqList) {
+                            File tsFile = new File(m3u8Path + "/" + integer + ".ts");
+                            FileInputStream is = new FileInputStream(tsFile);
+                            IOUtils.copy(is, os);
+                            is.close();
+                            tsFile.delete();
+                        }
                     }
                 }
                 return true;
