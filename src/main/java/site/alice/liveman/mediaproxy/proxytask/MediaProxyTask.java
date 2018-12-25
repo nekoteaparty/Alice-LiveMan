@@ -18,17 +18,29 @@
 package site.alice.liveman.mediaproxy.proxytask;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.task.TaskTimeoutException;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.utils.FfmpegUtil;
+import site.alice.liveman.utils.ProcessUtil;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.Serializable;
 import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
+    @Autowired
+    private           LiveManSetting       liveManSetting;
     private           String               videoId;
     private           URI                  sourceUrl;
     private           URI                  targetUrl;
@@ -71,6 +83,23 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
 
     public Boolean getTerminated() {
         return isTerminated;
+    }
+
+    public Image getKeyFrame() {
+        String fileName = UUID.randomUUID() + ".jpg";
+        String keyFrameCmdLine = FfmpegUtil.buildKeyFrameCmdLine(targetUrl.toString(), fileName);
+        long process = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), keyFrameCmdLine, false);
+        if (ProcessUtil.waitProcess(process, 10000)) {
+            try {
+                return ImageIO.read(new File(fileName));
+            } catch (Throwable t) {
+                log.error("获取[" + targetUrl + "]关键帧失败", t);
+            }
+        } else {
+            ProcessUtil.killProcess(process);
+            log.error("获取[" + targetUrl + "]关键帧超时");
+        }
+        return null;
     }
 
     public MediaProxyTask(String videoId, URI sourceUrl) {

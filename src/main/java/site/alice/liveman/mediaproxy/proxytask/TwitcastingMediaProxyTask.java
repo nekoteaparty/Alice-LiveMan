@@ -66,6 +66,7 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
                 if (dt > 1000) {
                     log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
                 } else {
+                    m4sPath.setLastModified(System.currentTimeMillis());
                     retryCount.set(0);
                 }
                 Thread.sleep(1000);

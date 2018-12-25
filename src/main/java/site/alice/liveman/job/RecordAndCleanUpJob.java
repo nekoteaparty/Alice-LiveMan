@@ -20,6 +20,7 @@ package site.alice.liveman.job;
 
 import de.tuberlin.onedrivesdk.folder.OneFolder;
 import de.tuberlin.onedrivesdk.uploadFile.OneUploadFile;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -38,7 +39,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,7 +70,7 @@ public class RecordAndCleanUpJob {
             for (File mediaDir : listDir) {
                 File[] pathList = mediaDir.listFiles(file -> System.currentTimeMillis() - file.lastModified() >= LAST_MODIFIED_TIME_MILLIS);
                 if (pathList != null) {
-                    Arrays.stream(pathList).parallel().forEach(sourcePath -> {
+                    for (File sourcePath : pathList) {
                         LOGGER.info("开始上传[videoId=" + sourcePath.getName() + "]的录像数据...");
                         switch (mediaDir.getName()) {
                             case "m3u8": {
@@ -83,8 +83,12 @@ public class RecordAndCleanUpJob {
                                 uploadDir(sourcePath, sourcePath.getName());
                                 break;
                             }
+                            case "broadcast": {
+                                FileUtils.deleteQuietly(sourcePath);
+                                break;
+                            }
                         }
-                    });
+                    }
                 }
             }
         }
@@ -129,9 +133,14 @@ public class RecordAndCleanUpJob {
                 } catch (Throwable throwable) {
                     LOGGER.error("录像保存失败[" + sourceFile.getAbsoluteFile() + "]", throwable);
                 }
+            } else {
+                success = true;
             }
         }
         if (success) {
+            sourceFile.delete();
+        } else if (sourceFile.getFreeSpace() < 5 * 1024 * 1024 * 1024L) {
+            LOGGER.warn("磁盘可用空间不足5GB，强制删除上传失败的录像文件[" + sourceFile + "]");
             sourceFile.delete();
         }
     }

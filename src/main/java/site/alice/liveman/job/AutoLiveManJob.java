@@ -44,7 +44,7 @@ public class AutoLiveManJob {
         }
         /* 获取频道状态信息 */
         ConcurrentSkipListSet<ChannelInfo> channels = liveManSetting.getChannels();
-        for (ChannelInfo channelInfo : channels) {
+        channels.parallelStream().forEach(channelInfo -> {
             MediaProxyTask mediaProxyTask;
             try {
                 mediaProxyTask = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).createMediaProxyTask(channelInfo);
@@ -53,11 +53,11 @@ public class AutoLiveManJob {
                 } else {
                     LOGGER.info(channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "]没有正在直播的节目");
                 }
-                Thread.sleep(200);
+                Thread.sleep(1000);
             } catch (Throwable e) {
                 LOGGER.error("获取 " + channelInfo.getChannelName() + "[" + channelInfo.getChannelUrl() + "] 频道信息失败", e);
             }
-        }
+        });
     }
 }
 
