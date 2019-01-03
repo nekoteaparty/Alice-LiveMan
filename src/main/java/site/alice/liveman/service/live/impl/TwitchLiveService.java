@@ -50,6 +50,9 @@ public class TwitchLiveService extends LiveService {
 
     @Override
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+        if (videoInfoUrl == null) {
+            return null;
+        }
         String channelUrl = videoInfoUrl.toString();
         String channelName = channelUrl.substring(22);
         Map<String, String> headerMap = new HashMap<>();
@@ -71,8 +74,10 @@ public class TwitchLiveService extends LiveService {
             boolean isFindResolution = false;
             for (String m3u8Line : m3u8Lines) {
                 if (StringUtils.isNotEmpty(m3u8Line)) {
-                    if (m3u8Line.startsWith("#") && m3u8Line.contains(liveManSetting.getDefaultResolution())) {
-                        isFindResolution = true;
+                    if (m3u8Line.startsWith("#")) {
+                        if (m3u8Line.contains(liveManSetting.getDefaultResolution())) {
+                            isFindResolution = true;
+                        }
                     } else {
                         // 默认优先第一个最高码流的
                         if (m3u8FileUrl == null) {
@@ -101,7 +106,7 @@ public class TwitchLiveService extends LiveService {
         headerMap.put("client-id", clientId);
         String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), null, headerMap, StandardCharsets.UTF_8);
         JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
-        if ("live".equals(streamObj.getString("stream_type"))) {
+        if (streamObj != null && "live".equals(streamObj.getString("stream_type"))) {
             return new URI(channelUrl);
         }
         return null;

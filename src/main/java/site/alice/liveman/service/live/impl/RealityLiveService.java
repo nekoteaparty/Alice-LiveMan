@@ -29,9 +29,10 @@ import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.net.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,6 +67,7 @@ public class RealityLiveService extends LiveService {
             return null;
         }
         String nickname = videoInfoUrl.toString().replace("reality://", "");
+        nickname = URLDecoder.decode(nickname, "utf-8");
         JSONObject streamUser = streamerUsersMap.get(nickname);
         if (streamUser == null) {
             refreshStreamUsers();

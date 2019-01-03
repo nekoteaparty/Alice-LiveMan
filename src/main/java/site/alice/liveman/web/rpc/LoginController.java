@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastService;
@@ -55,6 +56,8 @@ public class LoginController {
     private              BroadcastServiceManager broadcastServiceManager;
     @Autowired
     private              LiveManSetting          liveManSetting;
+    @Autowired
+    private              SettingConfig           settingConfig;
 
     @RequestMapping("/login.json")
     public ActionResult<AccountInfoVO> loginWithBili(String loginMode, @RequestBody LoginInfoVO loginInfoVO) {
@@ -76,6 +79,7 @@ public class LoginController {
                 byAccountId.setDisable(false);
                 accountInfo = byAccountId;
                 accountInfoVO.setSaved(true);
+                settingConfig.saveSetting(liveManSetting);
             }
             log.info("adminRoomId = '" + adminRoomId + "'");
             accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));

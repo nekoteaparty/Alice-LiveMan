@@ -20,17 +20,11 @@ package site.alice.liveman.utils;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
-import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 
-import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 public class FfmpegUtil {
 
@@ -54,6 +48,10 @@ public class FfmpegUtil {
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
+    }
+
+    public static String buildKeyFrameCmdLine(String mediaUrl, String fileName) {
+        return " \t-i\t" + mediaUrl + "\t-vframes\t1\t-y\t" + fileName;
     }
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
