@@ -28,10 +28,8 @@ import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
-import site.alice.liveman.model.AccountInfo;
-import site.alice.liveman.model.ChannelInfo;
-import site.alice.liveman.model.LiveManSetting;
-import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.model.*;
+import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
@@ -55,6 +53,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     private              LiveManSetting                liveManSetting;
     @Autowired
     private              BilibiliApiUtil               bilibiliApiUtil;
+    @Autowired
+    private              MediaHistoryService           mediaHistoryService;
 
     @PostConstruct
     public void init() {
@@ -229,7 +229,13 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             Thread.sleep(5000);
                             continue;
                         }
-                        bilibiliApiUtil.postDynamic(broadcastAccount);
+                        MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoInfo.getVideoId());
+                        if (mediaHistory == null || !mediaHistory.isPostDynamic()) {
+                            bilibiliApiUtil.postDynamic(broadcastAccount);
+                            if (mediaHistory != null) {
+                                mediaHistory.setPostDynamic(true);
+                            }
+                        }
                     }
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
                         try {

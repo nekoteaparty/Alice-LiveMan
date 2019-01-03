@@ -50,6 +50,7 @@ public class RecordAndCleanUpJob {
 
     private static final Logger              LOGGER                    = LoggerFactory.getLogger(RecordAndCleanUpJob.class);
     private static final long                LAST_MODIFIED_TIME_MILLIS = 15 * 60 * 1000;
+    private static final long                MAX_RECORD_FILE_SIZE      = 4 * 1024 * 1024 * 1024L;
     @Autowired
     private              MediaHistoryService mediaHistoryService;
     @Autowired
@@ -95,6 +96,16 @@ public class RecordAndCleanUpJob {
         LOGGER.info("上传录像和清理任务已完成！");
     }
 
+    @Scheduled(cron = "0 0/1 * * * ?")
+    public void freeSpaceMasterJob() {
+        String mediaTempPath = liveManSetting.getTempPath();
+        File mediaTempDir = new File(mediaTempPath);
+        if (mediaTempDir.getFreeSpace() < 1073741824) {
+            LOGGER.warn("磁盘可用空间严重不足，强制清除所有录像缓存数据！当前可用空间:" + mediaTempDir.getFreeSpace() + "字节");
+            FileUtils.deleteQuietly(mediaTempDir);
+        }
+    }
+
     private void uploadDir(File sourceFile, final String videoId) {
         MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
         boolean success = false;
@@ -137,14 +148,15 @@ public class RecordAndCleanUpJob {
                 success = true;
             }
         }
-        if (success) {
-            sourceFile.delete();
-        } else if (sourceFile.getFreeSpace() < 5 * 1024 * 1024 * 1024L) {
-            LOGGER.warn("磁盘可用空间不足5GB，强制删除上传失败的录像文件[" + sourceFile + "]");
-            sourceFile.delete();
+        if (sourceFile.exists()) {
+            if (success) {
+                sourceFile.delete();
+            } else if (sourceFile.getFreeSpace() < MAX_RECORD_FILE_SIZE) {
+                LOGGER.warn("磁盘可用空间不足4GB，当前可用空间[" + sourceFile.getFreeSpace() + "]，强制删除上传失败的录像文件[" + sourceFile + "]");
+                sourceFile.delete();
+            }
         }
     }
-
 
     private String replaceFileName(String fileName) {
         Pattern pattern = Pattern.compile("[#\\\\/:\\*\\?\\\"<>\\|]");
@@ -167,14 +179,26 @@ public class RecordAndCleanUpJob {
                 }
                 if (!seqList.isEmpty()) {
                     seqList.sort(Comparator.naturalOrder());
-                    try (OutputStream os = new FileOutputStream(m3u8Path + "/index.ts", true)) {
-                        for (Integer integer : seqList) {
-                            File tsFile = new File(m3u8Path + "/" + integer + ".ts");
-                            FileInputStream is = new FileInputStream(tsFile);
-                            IOUtils.copy(is, os);
-                            is.close();
-                            tsFile.delete();
+                    int i = 0;
+                    long totalSize = 0;
+                    OutputStream os = null;
+                    for (Integer integer : seqList) {
+                        File tsFile = new File(m3u8Path + "/" + integer + ".ts");
+                        FileInputStream is = new FileInputStream(tsFile);
+                        if (os == null || totalSize >= MAX_RECORD_FILE_SIZE) {
+                            File outputFile = null;
+                            while (outputFile == null || (outputFile.exists() && outputFile.length() >= MAX_RECORD_FILE_SIZE)) {
+                                outputFile = new File(m3u8Path + "/index_" + i++ + ".ts");
+                            }
+                            if (os != null) {
+                                os.close();
+                            }
+                            os = new FileOutputStream(outputFile, true);
+                            totalSize = outputFile.length();
                         }
+                        totalSize += IOUtils.copyLarge(is, os);
+                        is.close();
+                        tsFile.delete();
                     }
                 }
                 return true;

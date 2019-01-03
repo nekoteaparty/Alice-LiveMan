@@ -52,8 +52,8 @@ public class AbemaLiveService extends LiveService {
 
     @Autowired
     private              LiveManSetting liveManSetting;
-    private static final String         bearer           = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJiZTJiMzgzMC05NTFjLTQ4MjYtYjcxNi00YmYzZDJlM2RmNjEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG9FUmJMaWZtS0trZWIifQ.bV1i84i9ydm9hS949mjahxzRDQFyXMiUnHILvkEs0fs";
-    private static final String         userId           = "8oERbLifmKKkeb";
+    private static final String         bearer           = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJhN2EyZjZiOS0zM2QyLTQ2OWEtODUwMS1lNTkyZjUzNDk3NDEiLCJleHAiOjIxNDc0ODM2NDcsImlzcyI6ImFiZW1hLmlvL3YxIiwic3ViIjoiOG5WY0QydlN5REZObmoifQ.CP3TDvTqKDWt-r8bJfsPevSZeax24xZksoLmg6hJOYE";
+    private static final String         userId           = "8nVcD2vSyDFNnj";
     private static final Pattern        channelPattern   = Pattern.compile("https://abema.tv/channels/(.+?)/slots/(.+)");
     private static final Pattern        m3u8KeyPattern   = Pattern.compile("#EXT-X-KEY:METHOD=(.+?),URI=\"abematv-license://(.+?)\",IV=0x(.+)");
     private static final String         NOW_ON_AIR_URL   = "https://abema.tv/now-on-air/";
@@ -153,7 +153,7 @@ public class AbemaLiveService extends LiveService {
         String tokenJSON = HttpRequestUtil.downloadUrl(new URI("https://api.abema.io/v1/media/token?osName=pc&osVersion=1.0.0&osLang=&osTimezone=&appVersion=v18.1204.3"), null, requestProperties, StandardCharsets.UTF_8);
         String token = JSON.parseObject(tokenJSON).getString("token");
         long kg = getKeyGenerator();
-        String mediaUrl = "https://linear-abematv.akamaized.net/channel/" + channelId + "/" + liveManSetting.getDefaultResolution() + "/playlist.m3u8?ccf=26&kg=" + kg;
+        String mediaUrl = "https://ds-linear-abematv.akamaized.net/channel/" + channelId + "/" + liveManSetting.getDefaultResolution() + "/playlist.m3u8?ccf=26&kg=" + kg;
         String m3u8File = HttpRequestUtil.downloadUrl(new URI(mediaUrl), StandardCharsets.UTF_8);
         Matcher keyMatcher = m3u8KeyPattern.matcher(m3u8File);
         if (keyMatcher.find()) {
@@ -174,7 +174,7 @@ public class AbemaLiveService extends LiveService {
     }
 
     private long getKeyGenerator() {
-        return Math.round((System.currentTimeMillis() - 1499299200000L) / 1000.0 / 60 / 60 / 24);
+        return (System.currentTimeMillis() - 1499299200000L) / 1000 / 60 / 60 / 24 + 1;
     }
 
     @Override

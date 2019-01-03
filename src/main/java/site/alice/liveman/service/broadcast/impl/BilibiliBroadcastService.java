@@ -119,6 +119,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                 }
                 accountInfo.setRoomId(roomid);
                 accountInfo.setNickname(data.getJSONObject("userInfo").getString("uname"));
+                accountInfo.setUid(data.getJSONObject("userInfo").getString("uid"));
                 accountInfo.setAccountId(accountInfo.getNickname());
             } else {
                 throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);

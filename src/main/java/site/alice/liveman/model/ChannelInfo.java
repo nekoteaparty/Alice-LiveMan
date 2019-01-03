@@ -87,7 +87,11 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
     }
 
     public void setChannelUrl(String channelUrl) {
-        this.channelUrl = channelUrl;
+        if (channelUrl != null) {
+            this.channelUrl = channelUrl.trim();
+        } else {
+            this.channelUrl = null;
+        }
     }
 
     public String getMediaUrl() {

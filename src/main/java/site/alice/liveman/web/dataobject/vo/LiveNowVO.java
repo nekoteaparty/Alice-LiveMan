@@ -16,24 +16,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.model;
+package site.alice.liveman.web.dataobject.vo;
 
-import java.util.Date;
+public class LiveNowVO {
+    /**
+     * uid
+     */
+    private String uid;
+    private String roomId;
+    private String videoTitle;
+    private String channelName;
 
-public class MediaHistory {
-
-    private String  videoId;
-    private String  videoTitle;
-    private String  channelName;
-    private Date    datetime;
-    private boolean postDynamic;
-
-    public String getVideoId() {
-        return videoId;
+    public String getUid() {
+        return uid;
     }
 
-    public void setVideoId(String videoId) {
-        this.videoId = videoId;
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(String roomId) {
+        this.roomId = roomId;
     }
 
     public String getVideoTitle() {
@@ -50,21 +57,5 @@ public class MediaHistory {
 
     public void setChannelName(String channelName) {
         this.channelName = channelName;
-    }
-
-    public Date getDatetime() {
-        return datetime;
-    }
-
-    public void setDatetime(Date datetime) {
-        this.datetime = datetime;
-    }
-
-    public boolean isPostDynamic() {
-        return postDynamic;
-    }
-
-    public void setPostDynamic(boolean postDynamic) {
-        this.postDynamic = postDynamic;
     }
 }
