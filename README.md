@@ -8,6 +8,7 @@
 + OpenRec `https://www.openrec.tv/user/alice-liveman`
 + Mirrativ `https://www.mirrativ.com/user/alice-liveman`
 + AbemaTV `https://abema.tv/channels/ultra-games-2/slots/Dufru6t7zsEuXV`
++ Twitch `https://www.twitch.tv/alicemana_v`
 
 ## 支持的转播目标
 + Bilibili
