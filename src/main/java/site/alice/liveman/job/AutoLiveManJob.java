@@ -27,7 +27,7 @@ import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.live.LiveServiceFactory;
 
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 @Component
 public class AutoLiveManJob {
@@ -43,7 +43,7 @@ public class AutoLiveManJob {
             LOGGER.warn("频道列表为空！");
         }
         /* 获取频道状态信息 */
-        ConcurrentSkipListSet<ChannelInfo> channels = liveManSetting.getChannels();
+        CopyOnWriteArraySet<ChannelInfo> channels = liveManSetting.getChannels();
         channels.parallelStream().forEach(channelInfo -> {
             MediaProxyTask mediaProxyTask;
             try {

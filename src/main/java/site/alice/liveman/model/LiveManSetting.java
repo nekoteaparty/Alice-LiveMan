@@ -22,21 +22,21 @@ import com.alibaba.fastjson.annotation.JSONField;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class LiveManSetting {
-    private String[]                           bannedYoutubeChannel;
-    private String[]                           bannedKeywords;
-    private String                             tempPath;
-    private String                             ffmpegPath;
-    private String                             defaultResolution;
-    private String                             baseUrl;
-    private String                             oneDriveClientId;
-    private String                             oneDriveClientSecret;
-    private String                             oneDriveToken;
-    private ConcurrentSkipListSet<AccountInfo> accounts;
-    private ConcurrentSkipListSet<ChannelInfo> channels;
-    private Proxy                              proxy;
+    private String[]                         bannedYoutubeChannel;
+    private String[]                         bannedKeywords;
+    private String                           tempPath;
+    private String                           ffmpegPath;
+    private String                           defaultResolution;
+    private String                           baseUrl;
+    private String                           oneDriveClientId;
+    private String                           oneDriveClientSecret;
+    private String                           oneDriveToken;
+    private CopyOnWriteArraySet<AccountInfo> accounts;
+    private CopyOnWriteArraySet<ChannelInfo> channels;
+    private Proxy                            proxy;
 
     public String[] getBannedYoutubeChannel() {
         return bannedYoutubeChannel;
@@ -78,19 +78,19 @@ public class LiveManSetting {
         this.defaultResolution = defaultResolution;
     }
 
-    public ConcurrentSkipListSet<AccountInfo> getAccounts() {
+    public CopyOnWriteArraySet<AccountInfo> getAccounts() {
         return accounts;
     }
 
-    public void setAccounts(ConcurrentSkipListSet<AccountInfo> accounts) {
+    public void setAccounts(CopyOnWriteArraySet<AccountInfo> accounts) {
         this.accounts = accounts;
     }
 
-    public ConcurrentSkipListSet<ChannelInfo> getChannels() {
+    public CopyOnWriteArraySet<ChannelInfo> getChannels() {
         return channels;
     }
 
-    public void setChannels(ConcurrentSkipListSet<ChannelInfo> channels) {
+    public void setChannels(CopyOnWriteArraySet<ChannelInfo> channels) {
         this.channels = channels;
     }
 

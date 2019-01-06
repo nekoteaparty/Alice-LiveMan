@@ -33,21 +33,17 @@ import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
-import site.alice.liveman.web.dataobject.ActionResult;
 
 import javax.annotation.PostConstruct;
-import java.net.URI;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
 public class BroadcastServiceManager implements ApplicationContextAware {
-    private static final ThreadPoolExecutor            threadPoolExecutor = new ThreadPoolExecutor(50, 50, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
+    private static final ScheduledThreadPoolExecutor   threadPoolExecutor = new ScheduledThreadPoolExecutor(50);
     private              Map<String, BroadcastService> broadcastServiceMap;
     @Autowired
     private              LiveManSetting                liveManSetting;
@@ -277,6 +273,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         public boolean terminateTask() {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
+                threadPoolExecutor.schedule(() -> {
+                    if (broadcastAccount.getCurrentVideo() == null) {
+                        getBroadcastService(broadcastAccount.getAccountSite()).stopBroadcast(broadcastAccount, true);
+                    }
+                }, 5, TimeUnit.MINUTES);
                 if (!broadcastAccount.removeCurrentVideo(videoInfo)) {
                     log.error("无法移除账号[" + broadcastAccount.getAccountId() + "]正在转播的节目[" + broadcastAccount.getCurrentVideo().getVideoId() + "]，目标节目与预期节目[" + videoInfo.getVideoId() + "]不符");
                     return false;

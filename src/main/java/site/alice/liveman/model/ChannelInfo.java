@@ -21,12 +21,11 @@ import com.alibaba.fastjson.annotation.JSONField;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
+public class ChannelInfo implements Serializable {
     private String               defaultAccountId;
     private boolean              autoBalance;
     private String               dynamicPostAccountId;
@@ -155,8 +154,4 @@ public class ChannelInfo implements Serializable, Comparable<ChannelInfo> {
         return Objects.hash(channelUrl);
     }
 
-    @Override
-    public int compareTo(ChannelInfo o) {
-        return this.getChannelName().compareTo(o.getChannelName());
-    }
 }

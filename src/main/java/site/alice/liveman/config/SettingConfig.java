@@ -30,12 +30,15 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 @Slf4j
 @Configuration
@@ -50,8 +53,8 @@ public class SettingConfig {
             liveManSetting = readSetting();
         } else {
             liveManSetting = new LiveManSetting();
-            liveManSetting.setAccounts(new ConcurrentSkipListSet<>());
-            liveManSetting.setChannels(new ConcurrentSkipListSet<>());
+            liveManSetting.setAccounts(new CopyOnWriteArraySet<>());
+            liveManSetting.setChannels(new CopyOnWriteArraySet<>());
             liveManSetting.setBannedKeywords(new String[0]);
             liveManSetting.setBannedYoutubeChannel(new String[0]);
             liveManSetting.setTempPath("liveManTemp");
