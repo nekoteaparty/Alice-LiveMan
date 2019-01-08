@@ -31,6 +31,8 @@ public interface BroadcastService {
 
     String getBroadcastRoomId(AccountInfo accountInfo) throws Exception;
 
+    void stopBroadcast(AccountInfo accountInfo, boolean stopOnPadding);
+
     String getBroadcastCookies(String username, String password, String captcha) throws Exception;
 
     InputStream getBroadcastCaptcha() throws IOException;

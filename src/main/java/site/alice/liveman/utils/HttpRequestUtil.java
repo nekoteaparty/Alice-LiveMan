@@ -20,6 +20,7 @@ package site.alice.liveman.utils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -45,7 +46,6 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.model.LiveManSetting;
-import site.alice.liveman.model.ProxyInfo;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -182,6 +182,23 @@ public class HttpRequestUtil {
                 throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
             }
             return EntityUtils.toByteArray(responseEntity);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
+        }
+    }
+
+    public static HttpResponse getHttpResponse(URI url) throws IOException {
+        HttpGet httpGet = new HttpGet(url);
+        HttpClientContext context = HttpClientContext.create();
+        RequestConfig.Builder builder = RequestConfig.custom();
+        builder.setConnectTimeout(60000).setConnectionRequestTimeout(60000).setSocketTimeout(60000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
+        httpGet.setConfig(builder.build());
+        httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        httpGet.addHeader("Accept-Encoding", "gzip, deflate");
+        httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
+        try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
+            return httpResponse;
         } catch (IllegalStateException e) {
             initClient();
             throw e;

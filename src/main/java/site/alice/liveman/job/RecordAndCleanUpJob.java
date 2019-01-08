@@ -100,7 +100,7 @@ public class RecordAndCleanUpJob {
     public void freeSpaceMasterJob() {
         String mediaTempPath = liveManSetting.getTempPath();
         File mediaTempDir = new File(mediaTempPath);
-        if (mediaTempDir.getFreeSpace() < 1073741824) {
+        if (mediaTempDir.exists() && mediaTempDir.getFreeSpace() < 1073741824) {
             LOGGER.warn("磁盘可用空间严重不足，强制清除所有录像缓存数据！当前可用空间:" + mediaTempDir.getFreeSpace() + "字节");
             FileUtils.deleteQuietly(mediaTempDir);
         }

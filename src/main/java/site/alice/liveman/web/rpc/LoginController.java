@@ -88,7 +88,11 @@ public class LoginController {
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
-            return ActionResult.getErrorResult("登录失败[ErrMsg:" + e.getMessage() + "]");
+            ActionResult<AccountInfoVO> errorResult = ActionResult.getErrorResult("登录失败[ErrMsg:" + e.getMessage() + "]");
+            if (e instanceof CaptchaMismatchException) {
+                errorResult.setCode(-101);
+            }
+            return errorResult;
         }
     }
 

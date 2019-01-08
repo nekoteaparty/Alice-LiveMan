@@ -19,26 +19,27 @@
 package site.alice.liveman.service.broadcast.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hiczp.bilibili.api.BilibiliAPI;
-import com.hiczp.bilibili.api.passport.entity.LoginResponseEntity;
-import com.hiczp.bilibili.api.passport.exception.CaptchaMismatchException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Cookie;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.utils.HttpRequestUtil;
-import site.alice.liveman.web.dataobject.ActionResult;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -51,6 +52,7 @@ import java.util.regex.Pattern;
 public class BilibiliBroadcastService implements BroadcastService {
     private static final String      BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
     private static final String      BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
+    private static final String      BILI_STOP_LIVE_URL   = "https://api.live.bilibili.com/room/v1/Room/stopLive";
     private static final String      BILI_LIVE_INFO_URL   = "https://api.live.bilibili.com/live_user/v1/UserInfo/live_info";
     private static final BilibiliAPI bilibiliAPI          = new BilibiliAPI();
 
@@ -126,6 +128,59 @@ public class BilibiliBroadcastService implements BroadcastService {
             }
         }
         return accountInfo.getRoomId();
+    }
+
+    @Override
+    public void stopBroadcast(AccountInfo accountInfo, boolean stopOnPadding) {
+        try {
+            if (stopOnPadding) {
+                // 仅当直播间没有视频数据时才关闭
+                String roomId = getBroadcastRoomId(accountInfo);
+                log.info("检查直播间[roomId=" + roomId + "]视频流状态...");
+                try {
+                    URI playUrlApi = new URI("https://api.live.bilibili.com/room/v1/Room/playUrl?cid=" + roomId);
+                    String playUrl = HttpRequestUtil.downloadUrl(playUrlApi, StandardCharsets.UTF_8);
+                    JSONObject playUrlObj = JSONObject.parseObject(playUrl);
+                    if (playUrlObj.getInteger("code") != 0) {
+                        log.error("获取直播视频流地址失败" + playUrl);
+                        return;
+                    }
+                    JSONArray urls = playUrlObj.getJSONObject("data").getJSONArray("durl");
+                    if (!CollectionUtils.isEmpty(urls)) {
+                        JSONObject urlObj = (JSONObject) urls.iterator().next();
+                        String url = urlObj.getString("url");
+                        HttpResponse httpResponse = HttpRequestUtil.getHttpResponse(new URI(url));
+                        EntityUtils.consume(httpResponse.getEntity());
+                        StatusLine statusLine = httpResponse.getStatusLine();
+                        if (statusLine.getStatusCode() < 400) {
+                            // 状态码 < 400，请求成功不需要关闭直播间
+                            log.info("[roomId=" + roomId + "]直播视频流HTTP响应[" + statusLine + "]将不会关闭直播间");
+                            return;
+                        } else {
+                            log.info("[roomId=" + roomId + "]直播视频流HTTP响应[" + statusLine + "]尝试关闭直播间...");
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("检查直播间推流状态发生错误", e);
+                    return;
+                }
+            }
+            Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
+            String csrfToken = "";
+            if (matcher.find()) {
+                csrfToken = matcher.group(1);
+            }
+            String postData = "room_id=" + getBroadcastRoomId(accountInfo) + "&platform=pc&csrf_token=" + csrfToken;
+            String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_STOP_LIVE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
+            JSONObject resObject = JSON.parseObject(resJson);
+            if (resObject.getInteger("code") != 0) {
+                log.error("自动关闭直播间失败" + resJson);
+            } else {
+                log.info("直播间[roomId=" + accountInfo.getRoomId() + "]已关闭！");
+            }
+        } catch (Throwable e) {
+            log.error("自动关闭直播间失败", e);
+        }
     }
 
     @Override
