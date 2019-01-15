@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    protected static final int                   MAX_RETRY_COUNT      = 20;
+    protected static final int                   MAX_RETRY_COUNT      = 60;
     private                long                  NEXT_M3U8_WRITE_TIME = 0;
     private                BlockingQueue<String> downloadQueue        = new LinkedBlockingQueue<>();
     protected              AtomicInteger         retryCount           = new AtomicInteger(0);
@@ -121,9 +121,9 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         File m3u8File = new File(MediaProxyManager.getTempPath() + "/m3u8/" + getVideoId() + "/index.m3u8");
         m3u8File.delete();
         while (retryCount.get() < MAX_RETRY_COUNT && !getTerminated()) {
+            ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
             long start = System.currentTimeMillis();
             try {
-                log.debug("get m3u8 meta info from " + getSourceUrl());
                 String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset()).split("\n");
                 int seqCount = 0;
                 int readSeqCount = 0;
@@ -148,12 +148,13 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     }
                 }
                 if (readSeqCount == 0) {
-                    log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次");
+                    if ((retryCount.incrementAndGet() + 2) % 3 == 0) {
+                        log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.get() + "/" + MAX_RETRY_COUNT + ")次");
+                    }
                 }
             } catch (Throwable e) {
                 log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
             }
-            ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
             if (channelInfo != null) {
                 Long endAt = channelInfo.getEndAt();
                 if (endAt != null && endAt < System.currentTimeMillis()) {
@@ -161,7 +162,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     break;
                 }
             }
-            Thread.sleep(Math.max(2000 - (System.currentTimeMillis() - start), 0));
+            Thread.sleep(Math.max(500 - (System.currentTimeMillis() - start), 0));
         }
     }
 

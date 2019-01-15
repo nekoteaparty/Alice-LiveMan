@@ -238,7 +238,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                             String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);
                             String ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
-                            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), ffmpegCmdLine, false);
+                            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), ffmpegCmdLine, currentVideo.getVideoId(), false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
@@ -277,7 +277,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     if (broadcastAccount.getCurrentVideo() == null) {
                         getBroadcastService(broadcastAccount.getAccountSite()).stopBroadcast(broadcastAccount, true);
                     }
-                }, 5, TimeUnit.MINUTES);
+                }, 2, TimeUnit.MINUTES);
                 if (!broadcastAccount.removeCurrentVideo(videoInfo)) {
                     log.error("无法移除账号[" + broadcastAccount.getAccountId() + "]正在转播的节目[" + broadcastAccount.getCurrentVideo().getVideoId() + "]，目标节目与预期节目[" + videoInfo.getVideoId() + "]不符");
                     return false;

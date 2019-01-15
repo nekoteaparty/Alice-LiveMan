@@ -30,6 +30,7 @@ import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 @Service
 public class OpenRecLiveService extends LiveService {
@@ -43,7 +44,7 @@ public class OpenRecLiveService extends LiveService {
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelName = channelInfo.getChannelUrl().replace("https://www.openrec.tv/user/", "");
         URI moviesUrl = new URI(GET_MOVIES_API + "?channel_id=" + channelName + "&sort=onair_status");
-        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, StandardCharsets.UTF_8);
+        String moviesJson = HttpRequestUtil.downloadUrl(moviesUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         JSONArray movies = JSON.parseArray(moviesJson);
         if (!movies.isEmpty()) {
             JSONObject movieObj = (JSONObject) movies.get(0);
@@ -62,7 +63,7 @@ public class OpenRecLiveService extends LiveService {
             return null;
         }
         String videoId = videoInfoUrl.toString().substring(GET_VIDEO_INFO_URL.length());
-        String movieObjJson = HttpRequestUtil.downloadUrl(new URI(GET_MOVIES_API + "/" + videoId), StandardCharsets.UTF_8);
+        String movieObjJson = HttpRequestUtil.downloadUrl(new URI(GET_MOVIES_API + "/" + videoId), channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         JSONObject movieObj = JSON.parseObject(movieObjJson);
         String videoTitle = movieObj.getString("title");
         URI m3u8ListUrl = new URI(movieObj.getJSONObject("media").getString("url"));

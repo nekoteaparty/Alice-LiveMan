@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -81,7 +82,8 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
         ClientEndpointConfig clientEndpointConfig = ClientEndpointConfig.Builder.create().configurator(new ClientEndpointConfig.Configurator() {
             @Override
             public void beforeRequest(Map<String, List<String>> headers) {
-                headers.put("Origin", Arrays.asList("https://twitcasting.tv"));
+                headers.put("Origin", Collections.singletonList("https://twitcasting.tv"));
+                headers.put("User-Agent", Collections.singletonList("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"));
             }
         }).build();
         try {

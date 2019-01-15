@@ -31,6 +31,7 @@ public class ChannelInfo implements Serializable {
     private String               dynamicPostAccountId;
     private String               channelUrl;
     private String               channelName;
+    private String               cookies;
     private int[]                defaultArea;
     @JSONField(serialize = false)
     private Long                 startAt;
@@ -91,6 +92,14 @@ public class ChannelInfo implements Serializable {
         } else {
             this.channelUrl = null;
         }
+    }
+
+    public String getCookies() {
+        return cookies;
+    }
+
+    public void setCookies(String cookies) {
+        this.cookies = cookies;
     }
 
     public String getMediaUrl() {

@@ -55,7 +55,7 @@ public class FfmpegUtil {
     }
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String loopCmdLine = "\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
+        String loopCmdLine = "\t-re\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
         if (videoInfo.isAudioBanned()) {
             loopCmdLine += "\t-ac\t1";
         }

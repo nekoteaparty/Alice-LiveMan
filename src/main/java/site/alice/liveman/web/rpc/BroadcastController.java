@@ -156,10 +156,13 @@ public class BroadcastController {
     }
 
     @RequestMapping("/createTask.json")
-    public ActionResult createTask(String videoUrl) {
+    public ActionResult createTask(String videoUrl, String cookies) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         try {
-            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), null);
+            ChannelInfo channelInfo = new ChannelInfo();
+            channelInfo.setChannelName("手动推流");
+            channelInfo.setCookies(cookies);
+            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), channelInfo);
             if (liveVideoInfo == null) {
                 return ActionResult.getErrorResult("当前节目尚未开播");
             }
