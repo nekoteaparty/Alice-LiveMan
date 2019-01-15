@@ -57,13 +57,13 @@ public class TwitchLiveService extends LiveService {
         String channelName = channelUrl.substring(22);
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put("client-id", clientId);
-        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), null, headerMap, StandardCharsets.UTF_8);
+        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), channelInfo.getCookies(), headerMap, StandardCharsets.UTF_8);
         JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
         if (streamObj != null) {
             String videoId = streamObj.getString("_id");
             JSONObject channelObj = streamObj.getJSONObject("channel");
             String videoTitle = channelObj.getString("status");
-            String streamTokenJSON = HttpRequestUtil.downloadUrl(new URI(String.format(GET_STREAM_TOKEN_URL, channelName)), null, headerMap, StandardCharsets.UTF_8);
+            String streamTokenJSON = HttpRequestUtil.downloadUrl(new URI(String.format(GET_STREAM_TOKEN_URL, channelName)), channelInfo.getCookies(), headerMap, StandardCharsets.UTF_8);
             JSONObject streamTokenObj = JSON.parseObject(streamTokenJSON);
             String token = streamTokenObj.getString("token");
             String sig = streamTokenObj.getString("sig");
@@ -104,7 +104,7 @@ public class TwitchLiveService extends LiveService {
         String channelName = channelUrl.substring(22);
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put("client-id", clientId);
-        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), null, headerMap, StandardCharsets.UTF_8);
+        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), channelInfo.getCookies(), headerMap, StandardCharsets.UTF_8);
         JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
         if (streamObj != null && "live".equals(streamObj.getString("stream_type"))) {
             return new URI(channelUrl);

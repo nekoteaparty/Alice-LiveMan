@@ -43,8 +43,10 @@ public class RealityLiveService extends LiveService {
     @Autowired
     private LiveManSetting          liveManSetting;
     private Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
+    private long                    lastRefreshTime  = 0;
 
     private void refreshStreamUsers() throws IOException, URISyntaxException {
+        log.info("刷新Reality用户列表...");
         URI officialUsersUrl = new URI("https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official");
         JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
         JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
@@ -54,6 +56,7 @@ public class RealityLiveService extends LiveService {
             JSONObject streamerUser = streamerUsers.getJSONObject(i);
             streamerUsersMap.put(streamerUser.getString("nickname"), streamerUser);
         }
+        lastRefreshTime = System.currentTimeMillis();
     }
 
     @Override
@@ -69,7 +72,7 @@ public class RealityLiveService extends LiveService {
         String nickname = videoInfoUrl.toString().replace("reality://", "");
         nickname = URLDecoder.decode(nickname, "utf-8");
         JSONObject streamUser = streamerUsersMap.get(nickname);
-        if (streamUser == null) {
+        if (streamUser == null || lastRefreshTime + 60 * 60 * 1000 < System.currentTimeMillis()) {
             refreshStreamUsers();
             streamUser = streamerUsersMap.get(nickname);
         }
@@ -77,7 +80,7 @@ public class RealityLiveService extends LiveService {
             log.warn(nickname + "的用户信息不存在，请核对！");
             return null;
         }
-        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
+        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), channelInfo.getCookies(), "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
         JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
         JSONArray lives = liveDetailObj.getJSONArray("payload");
         if (!lives.isEmpty()) {

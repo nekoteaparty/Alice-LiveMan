@@ -26,6 +26,7 @@ import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +45,7 @@ public class NicoLiveService extends LiveService {
         if (!channelUrl.endsWith("/live")) {
             channelUrl += "/live";
         }
-        String html = HttpRequestUtil.downloadUrl(new URI(channelUrl), StandardCharsets.UTF_8);
+        String html = HttpRequestUtil.downloadUrl(new URI(channelUrl), channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = LIVE_VIDEO_URL_PATTERN.matcher(html);
         if (matcher.find()) {
             return new URI(matcher.group(1));
@@ -57,7 +58,7 @@ public class NicoLiveService extends LiveService {
         if (videoInfoUrl == null) {
             return null;
         }
-        String html = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
+        String html = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = EMBEDDED_DATA_PATTERN.matcher(html);
         if (matcher.find()) {
             String embeddedData = matcher.group(1);

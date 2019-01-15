@@ -30,6 +30,7 @@ import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,7 +51,7 @@ public class ShowRoomLiveService extends LiveService {
         if (videoInfoUrl == null) {
             return null;
         }
-        String channelHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
+        String channelHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = initDataPattern.matcher(channelHtml);
         if (matcher.find()) {
             JSONObject liveDataObj = JSON.parseObject(StringEscapeUtils.unescapeHtml(matcher.group(1)));

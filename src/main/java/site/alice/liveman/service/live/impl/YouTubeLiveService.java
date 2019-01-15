@@ -33,6 +33,7 @@ import site.alice.liveman.utils.HttpRequestUtil;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,14 +47,14 @@ public class YouTubeLiveService extends LiveService {
     private static final Pattern        initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
     private static final Pattern        hlsvpPattern        = Pattern.compile("\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\"");
     private static final Pattern        videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
-    private static final Pattern        videoIdPattern      = Pattern.compile("\"video_id\":\"(.+?)\"");
+    private static final Pattern        videoIdPattern      = Pattern.compile("/id/(.+?)/");
     private static final Pattern        browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
-        String resHtml = HttpRequestUtil.downloadUrl(url, StandardCharsets.UTF_8);
+        String resHtml = HttpRequestUtil.downloadUrl(url, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = initDataJsonPattern.matcher(resHtml);
         if (matcher.find()) {
             String initDataJson = matcher.group(1);
@@ -89,28 +90,28 @@ public class YouTubeLiveService extends LiveService {
         if (videoInfoUrl == null) {
             return null;
         }
-        String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
-        Matcher videoIdMatcher = videoIdPattern.matcher(videoInfoRes);
+        String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
         Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
         Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
         String videoTitle = "";
         String description = "";
         String videoId = "";
-        if (videoIdMatcher.find()) {
-            videoId = videoIdMatcher.group(1);
-        }
-        if (StringUtils.isEmpty(videoId)) {
-            throw new RuntimeException("获取视频VideoId失败！");
-        }
-        if (videoTitleMatcher.find()) {
-            videoTitle = videoTitleMatcher.group(1);
-        }
-        if (browseIdMatcher.find()) {
-            description = browseIdMatcher.group(1);
-        }
         if (hlsvpMatcher.find()) {
             String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
+            Matcher videoIdMatcher = videoIdPattern.matcher(hlsvpUrl);
+            if (videoIdMatcher.find()) {
+                videoId = videoIdMatcher.group(1);
+            }
+            if (StringUtils.isEmpty(videoId)) {
+                throw new RuntimeException("获取视频VideoId失败！");
+            }
+            if (videoTitleMatcher.find()) {
+                videoTitle = videoTitleMatcher.group(1);
+            }
+            if (browseIdMatcher.find()) {
+                description = browseIdMatcher.group(1);
+            }
             String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {

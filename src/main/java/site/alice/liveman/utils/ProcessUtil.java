@@ -38,7 +38,7 @@ public class ProcessUtil {
 
     private static final Map<Long, Object> processTargetMap = new ConcurrentHashMap<>();
 
-    public static long createProcess(String execPath, String cmdLine, boolean isVisible) {
+    public static long createProcess(String execPath, String cmdLine, String videoId, boolean isVisible) {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
@@ -59,8 +59,12 @@ public class ProcessUtil {
                 }
                 log.info(JSON.toJSONString(args));
                 processBuilder.command(args);
-                processBuilder.redirectOutput(new File("ffmpeg.out"));
-                processBuilder.redirectError(new File("ffmpeg.err"));
+                if (videoId != null) {
+                    File logFile = new File("logs/ffmpeg/" + videoId + ".log");
+                    logFile.getParentFile().mkdirs();
+                    processBuilder.redirectOutput(logFile);
+                    processBuilder.redirectError(logFile);
+                }
                 Process process = processBuilder.start();
                 long processHandle = getProcessHandle(process);
                 processTargetMap.put(processHandle, process);
@@ -113,7 +117,7 @@ public class ProcessUtil {
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             HANDLE pHandle = getProcessHandle(pid);
-            createProcess(System.getenv("SystemRoot") + "/system32/taskkill.exe", " /F /PID " + pid, false);
+            createProcess(System.getenv("SystemRoot") + "/system32/taskkill.exe", " /F /PID " + pid, null, false);
             kernel.WaitForSingleObject(pHandle, -1);
         } else {
             Process process = (Process) processTargetMap.get(pid);
@@ -151,6 +155,9 @@ public class ProcessUtil {
      * @return 如果在等待期间进程退出返回true，否则返回false
      */
     public static boolean waitProcess(long pid, int dwMilliseconds) {
+        if (pid == 0) {
+            return true;
+        }
         if (Platform.isWindows()) {
             Kernel32 kernel = Kernel32.INSTANCE;
             HANDLE pHandle = getProcessHandle(pid);

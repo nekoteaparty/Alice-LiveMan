@@ -30,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,24 +52,24 @@ public class TwitcastingLiveService extends LiveService {
         }
         String roomName = videoInfoUrl.toString().replace("https://twitcasting.tv/", "").replace("/", "");
         URI streamCheckerUrl = new URI("https://twitcasting.tv/streamchecker.php?u=" + roomName + "&v=999&myself=&islive=1&lastitemid=-1&__c=" + System.currentTimeMillis());
-        String streamChecker = HttpRequestUtil.downloadUrl(streamCheckerUrl, StandardCharsets.UTF_8);
+        String streamChecker = HttpRequestUtil.downloadUrl(streamCheckerUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
         String[] checkes = streamChecker.split("\t");
         Video video = parseVideo(checkes[0], Integer.parseInt(checkes[1]), checkes[7], Integer.parseInt(checkes[19].trim()));
         if (!video.getOnline()) {
             return null;
         }
         if (video.getPrivate()) {
-            log.warn("频道[" + channelInfo.getChannelName() + "]正在直播的内容已加密，无法转播！");
+            log.warn("频道[" + channelInfo.getChannelName() + "]正在直播的内容已加密！");
         }
         if (video.getWatchable()) {
             URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
-            String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, StandardCharsets.UTF_8);
+            String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
 
             JSONObject streamServer = JSONObject.parseObject(serverInfo);
             JSONObject movie = streamServer.getJSONObject("movie");
             if (movie.getBoolean("live")) {
                 String videoTitle = "";
-                String roomHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, StandardCharsets.UTF_8);
+                String roomHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
                 Matcher matcher = ROOM_TITLE_PATTERN.matcher(roomHtml);
                 if (matcher.find()) {
                     videoTitle = matcher.group(1);

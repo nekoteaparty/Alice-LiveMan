@@ -48,9 +48,11 @@ public class BiliBannedKeywordFilter implements VideoFilter {
             }
         }
         for (String _bannedKeyword : liveManSetting.getBannedKeywords()) {
-            if (StringUtils.containsIgnoreCase(videoInfo.getTitle(), _bannedKeyword) || _bannedKeyword.equals(bannedKeyword)) {
-                bannedKeyword = _bannedKeyword;
-                break;
+            if (StringUtils.isNotEmpty(_bannedKeyword)) {
+                if (StringUtils.containsIgnoreCase(videoInfo.getTitle(), _bannedKeyword) || _bannedKeyword.equals(bannedKeyword)) {
+                    bannedKeyword = _bannedKeyword;
+                    break;
+                }
             }
         }
         if (bannedKeyword == null) {
