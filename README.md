@@ -12,3 +12,5 @@
 
 ## 支持的转播目标
 + Bilibili
+
+依赖项目：https://github.com/NekoSunflower/OneDriveJavaSDK
