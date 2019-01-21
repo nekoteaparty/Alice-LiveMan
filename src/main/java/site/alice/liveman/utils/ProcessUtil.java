@@ -39,55 +39,39 @@ public class ProcessUtil {
     private static final Map<Long, Object> processTargetMap = new ConcurrentHashMap<>();
 
     public static long createProcess(String execPath, String cmdLine, String videoId, boolean isVisible) {
-        if (Platform.isWindows()) {
-            Kernel32 kernel = Kernel32.INSTANCE;
-            PROCESS_INFORMATION process_information = new PROCESS_INFORMATION();
-            DWORD dwCreationFlags = new DWORD(isVisible ? CREATE_NEW_CONSOLE : CREATE_NO_WINDOW);
-            kernel.CreateProcess(execPath, cmdLine.replace("\t", " "), null, null, false, dwCreationFlags, null, null, new WinBase.STARTUPINFO(), process_information);
-            return process_information.dwProcessId.longValue();
-        } else {
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                String[] args = (execPath + cmdLine).split("\t");
-                for (int i = 0; i < args.length; i++) {
-                    if (args[i].startsWith("\"")) {
-                        args[i] = args[i].substring(1);
-                    }
-                    if (args[i].endsWith("\"")) {
-                        args[i] = args[i].substring(0, args[i].length() - 1);
-                    }
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            String[] args = (execPath + cmdLine).split("\t");
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].startsWith("\"")) {
+                    args[i] = args[i].substring(1);
                 }
-                log.info(JSON.toJSONString(args));
-                processBuilder.command(args);
-                if (videoId != null) {
-                    File logFile = new File("logs/ffmpeg/" + videoId + ".log");
-                    logFile.getParentFile().mkdirs();
-                    processBuilder.redirectOutput(logFile);
-                    processBuilder.redirectError(logFile);
+                if (args[i].endsWith("\"")) {
+                    args[i] = args[i].substring(0, args[i].length() - 1);
                 }
-                Process process = processBuilder.start();
-                long processHandle = getProcessHandle(process);
-                processTargetMap.put(processHandle, process);
-                return processHandle;
-            } catch (IOException e) {
-                log.error("createProcess failed", e);
-                return 0;
             }
+            log.info(JSON.toJSONString(args));
+            processBuilder.command(args);
+            if (videoId != null) {
+                File logFile = new File("logs/ffmpeg/" + videoId + ".log");
+                logFile.getParentFile().mkdirs();
+                processBuilder.redirectOutput(logFile);
+                processBuilder.redirectError(logFile);
+            }
+            Process process = processBuilder.start();
+            long processHandle = getProcessHandle(process);
+            processTargetMap.put(processHandle, process);
+            return processHandle;
+        } catch (IOException e) {
+            log.error("createProcess failed", e);
+            return 0;
         }
     }
 
     public static boolean isProcessExist(long pid) {
-        if (Platform.isWindows()) {
-            Kernel32 kernel = Kernel32.INSTANCE;
-            IntByReference intByReference = new IntByReference();
-            if (kernel.GetExitCodeProcess(getProcessHandle(pid), intByReference)) {
-                return intByReference.getValue() == 259;
-            }
-        } else {
-            Process process = (Process) processTargetMap.get(pid);
-            if (process != null) {
-                return process.isAlive();
-            }
+        Process process = (Process) processTargetMap.get(pid);
+        if (process != null) {
+            return process.isAlive();
         }
         return false;
     }
@@ -114,37 +98,24 @@ public class ProcessUtil {
     }
 
     public static void killProcess(long pid) {
-        if (Platform.isWindows()) {
-            Kernel32 kernel = Kernel32.INSTANCE;
-            HANDLE pHandle = getProcessHandle(pid);
-            createProcess(System.getenv("SystemRoot") + "/system32/taskkill.exe", " /F /PID " + pid, null, false);
-            kernel.WaitForSingleObject(pHandle, -1);
-        } else {
-            Process process = (Process) processTargetMap.get(pid);
-            if (process != null) {
-                process.destroy();
-                try {
-                    process.waitFor();
-                } catch (InterruptedException ignore) {
+        Process process = (Process) processTargetMap.get(pid);
+        if (process != null) {
+            process.destroy();
+            try {
+                process.waitFor();
+            } catch (InterruptedException ignore) {
 
-                }
             }
         }
     }
 
     public static void waitProcess(long pid) {
-        if (Platform.isWindows()) {
-            Kernel32 kernel = Kernel32.INSTANCE;
-            HANDLE pHandle = getProcessHandle(pid);
-            kernel.WaitForSingleObject(pHandle, -1);
-        } else {
-            Process process = (Process) processTargetMap.get(pid);
-            if (process != null) {
-                try {
-                    process.waitFor();
-                } catch (InterruptedException ignore) {
+        Process process = (Process) processTargetMap.get(pid);
+        if (process != null) {
+            try {
+                process.waitFor();
+            } catch (InterruptedException ignore) {
 
-                }
             }
         }
     }
@@ -158,21 +129,15 @@ public class ProcessUtil {
         if (pid == 0) {
             return true;
         }
-        if (Platform.isWindows()) {
-            Kernel32 kernel = Kernel32.INSTANCE;
-            HANDLE pHandle = getProcessHandle(pid);
-            return kernel.WaitForSingleObject(pHandle, dwMilliseconds) == 0;
-        } else {
-            Process process = (Process) processTargetMap.get(pid);
-            if (process != null) {
-                try {
-                    return process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException ignore) {
-                    return false;
-                }
-            } else {
-                return true;
+        Process process = (Process) processTargetMap.get(pid);
+        if (process != null) {
+            try {
+                return process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ignore) {
+                return false;
             }
+        } else {
+            return true;
         }
     }
 }

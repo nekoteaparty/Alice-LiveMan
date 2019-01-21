@@ -107,9 +107,14 @@ public class RecordAndCleanUpJob {
     }
 
     private void uploadDir(File sourceFile, final String videoId) {
-        MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+        String[] videoIdSplits = videoId.split("\\.");
+        MediaHistory mediaHistory;
+        if (videoIdSplits.length > 1) {
+            mediaHistory = mediaHistoryService.getMediaHistory(videoIdSplits[0]);
+        } else {
+            mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+        }
         boolean success = false;
-
         if (sourceFile.isDirectory()) {
             LOGGER.info("uploadDir:" + sourceFile.getAbsoluteFile());
             File[] children = sourceFile.listFiles();
