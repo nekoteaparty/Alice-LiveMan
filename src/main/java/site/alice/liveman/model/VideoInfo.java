@@ -17,7 +17,6 @@
  */
 package site.alice.liveman.model;
 
-import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 
 import java.io.Serializable;
@@ -29,6 +28,7 @@ public class VideoInfo implements Serializable {
 
     private ChannelInfo                    channelInfo;
     private String                         videoId;
+    private String                         part;
     private String                         title;
     private String                         description;
     private URI                            mediaUrl;
@@ -48,6 +48,10 @@ public class VideoInfo implements Serializable {
         this.mediaUrl = mediaUrl;
         this.mediaFormat = mediaFormat;
         this.broadcastTask = new AtomicReference<>();
+    }
+
+    public String getVideoUnionId() {
+        return videoId + (part == null ? "" : "." + part);
     }
 
     public ChannelInfo getChannelInfo() {
@@ -158,14 +162,27 @@ public class VideoInfo implements Serializable {
         this.encodeIV = encodeIV;
     }
 
+    public String getPart() {
+        return part;
+    }
+
+    public void setPart(String part) {
+        this.part = part;
+    }
+
+
     @Override
     public String toString() {
         return "VideoInfo{" +
                 "videoId='" + videoId + '\'' +
+                ", part='" + part + '\'' +
                 ", title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", mediaUrl=" + mediaUrl +
                 ", mediaFormat='" + mediaFormat + '\'' +
+                ", area=" + Arrays.toString(area) +
+                ", isVideoBanned=" + isVideoBanned +
+                ", isAudioBanned=" + isAudioBanned +
                 ", encodeMethod='" + encodeMethod + '\'' +
                 ", encodeKey=" + Arrays.toString(encodeKey) +
                 ", encodeIV=" + Arrays.toString(encodeIV) +

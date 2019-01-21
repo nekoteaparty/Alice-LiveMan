@@ -123,7 +123,11 @@ public class YouTubeLiveService extends LiveService {
             if (mediaUrl == null) {
                 mediaUrl = m3u8List[m3u8List.length - 1];
             }
-            VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
+            String[] videoParts = videoId.split("\\.");
+            VideoInfo videoInfo = new VideoInfo(channelInfo, videoParts[0], videoTitle, new URI(mediaUrl), "m3u8");
+            if (videoParts.length > 1) {
+                videoInfo.setPart(videoParts[1]);
+            }
             videoInfo.setDescription(description);
             return videoInfo;
         } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
