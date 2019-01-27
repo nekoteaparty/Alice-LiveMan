@@ -58,6 +58,8 @@ public class MediaHistoryService {
                         mediaHistory.setVideoTitle(split[1]);
                         mediaHistory.setChannelName(split[2]);
                         mediaHistory.setDatetime(new Date(Long.parseLong(split[3])));
+                        mediaHistory.setNeedRecord(true);
+                        mediaHistory.setPostDynamic(true);
                         mediaHistoryMap.put(mediaHistory.getVideoId(), mediaHistory);
                     } catch (Exception e) {
                         log.error("读取转播历史信息出错[" + historyLine + "]", e);
@@ -75,6 +77,7 @@ public class MediaHistoryService {
                 if (videoInfo != null && !mediaHistoryMap.containsKey(videoInfo.getVideoId())) {
                     ChannelInfo channelInfo = videoInfo.getChannelInfo();
                     MediaHistory mediaHistory = new MediaHistory();
+                    mediaHistory.setNeedRecord(videoInfo.isNeedRecord());
                     mediaHistory.setVideoId(videoInfo.getVideoId());
                     mediaHistory.setVideoTitle(videoInfo.getTitle());
                     mediaHistory.setChannelName(channelInfo.getChannelName());
@@ -93,7 +96,11 @@ public class MediaHistoryService {
     }
 
     public MediaHistory getMediaHistory(String videoId) {
-        return mediaHistoryMap.get(videoId);
+        MediaHistory mediaHistory = mediaHistoryMap.get(videoId);
+        if (mediaHistory == null) {
+            log.warn("没有找到[videoId=" + videoId + "]的历史媒体信息");
+        }
+        return mediaHistory;
     }
 
 }

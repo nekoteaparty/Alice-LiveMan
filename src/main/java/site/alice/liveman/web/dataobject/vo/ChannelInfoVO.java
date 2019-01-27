@@ -25,6 +25,7 @@ public class ChannelInfoVO {
     private String  channelUrl;
     private String  channelName;
     private int[]   defaultArea;
+    private boolean needRecord;
 
     public String getDefaultAccountId() {
         return defaultAccountId;
@@ -72,5 +73,13 @@ public class ChannelInfoVO {
 
     public void setDefaultArea(int[] defaultArea) {
         this.defaultArea = defaultArea;
+    }
+
+    public boolean isNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(boolean needRecord) {
+        this.needRecord = needRecord;
     }
 }

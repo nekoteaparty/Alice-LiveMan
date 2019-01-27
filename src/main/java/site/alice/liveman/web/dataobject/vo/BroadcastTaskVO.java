@@ -29,6 +29,8 @@ public class BroadcastTaskVO {
     private int[]   area;
     private boolean isVideoBanned;
     private boolean isAudioBanned;
+    private boolean needRecord;
+    private String  roomTitle;
 
     public String getNickname() {
         return nickname;
@@ -108,5 +110,21 @@ public class BroadcastTaskVO {
 
     public void setAudioBanned(boolean audioBanned) {
         isAudioBanned = audioBanned;
+    }
+
+    public boolean isNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(boolean needRecord) {
+        this.needRecord = needRecord;
+    }
+
+    public String getRoomTitle() {
+        return roomTitle;
+    }
+
+    public void setRoomTitle(String roomTitle) {
+        this.roomTitle = roomTitle;
     }
 }

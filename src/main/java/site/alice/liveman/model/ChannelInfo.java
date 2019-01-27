@@ -33,6 +33,7 @@ public class ChannelInfo implements Serializable {
     private String               channelName;
     private String               cookies;
     private int[]                defaultArea;
+    private boolean              needRecord;
     @JSONField(serialize = false)
     private Long                 startAt;
     @JSONField(serialize = false)
@@ -140,6 +141,14 @@ public class ChannelInfo implements Serializable {
 
     public void setEndAt(Long endAt) {
         this.endAt = endAt;
+    }
+
+    public boolean isNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(boolean needRecord) {
+        this.needRecord = needRecord;
     }
 
     public void addProxyTask(MediaProxyTask mediaProxyTask) {

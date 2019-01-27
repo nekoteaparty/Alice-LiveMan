@@ -36,6 +36,7 @@ public class VideoInfo implements Serializable {
     private int[]                          area;
     private boolean                        isVideoBanned;
     private boolean                        isAudioBanned;
+    private boolean                        needRecord;
     private String                         encodeMethod;
     private byte[]                         encodeKey;
     private byte[]                         encodeIV;
@@ -116,6 +117,14 @@ public class VideoInfo implements Serializable {
 
     public void setAudioBanned(boolean audioBanned) {
         isAudioBanned = audioBanned;
+    }
+
+    public boolean isNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(boolean needRecord) {
+        this.needRecord = needRecord;
     }
 
     public int[] getArea() {
