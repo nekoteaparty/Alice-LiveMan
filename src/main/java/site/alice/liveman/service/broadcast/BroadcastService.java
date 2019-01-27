@@ -29,6 +29,8 @@ public interface BroadcastService {
 
     String getBroadcastAddress(AccountInfo accountInfo) throws Exception;
 
+    void setBroadcastSetting(AccountInfo accountInfo, String title, Integer areaId);
+
     String getBroadcastRoomId(AccountInfo accountInfo) throws Exception;
 
     void stopBroadcast(AccountInfo accountInfo, boolean stopOnPadding);

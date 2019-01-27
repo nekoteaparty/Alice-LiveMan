@@ -40,7 +40,7 @@ import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
-    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(50, 50, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
+    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(100, 100, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
     private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
@@ -64,7 +64,7 @@ public class MediaProxyManager implements ApplicationContextAware {
     }
 
     public static MediaProxyTask createProxy(VideoInfo videoInfo) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo.getVideoId(), videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
+        MediaProxyTask mediaProxyTask = createProxyTask(videoInfo, videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
         mediaProxyTask.setVideoInfo(videoInfo);
         ChannelInfo channelInfo = videoInfo.getChannelInfo();
         if (channelInfo == null) {
@@ -79,20 +79,14 @@ public class MediaProxyManager implements ApplicationContextAware {
         return mediaProxyTask;
     }
 
-    public static MediaProxyTask createProxy(String videoId, URI sourceUrl, String requestFormat) throws Exception {
-        MediaProxyTask mediaProxyTask = createProxyTask(videoId, sourceUrl, requestFormat);
-        runProxy(mediaProxyTask);
-        return mediaProxyTask;
-    }
-
-    private static MediaProxyTask createProxyTask(String videoId, URI sourceUrl, String requestFormat) throws Exception {
+    private static MediaProxyTask createProxyTask(VideoInfo videoInfo, URI sourceUrl, String requestFormat) throws Exception {
         for (Map.Entry<String, MediaProxy> metaProxyEntry : proxyMap.entrySet()) {
             MediaProxy metaProxy = metaProxyEntry.getValue();
             if (metaProxy.isMatch(sourceUrl, requestFormat)) {
-                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoId, sourceUrl);
+                MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoInfo.getVideoId(), sourceUrl);
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
-                String targetUrl = String.format(targetUrlFormat, proxyName, videoId);
+                String targetUrl = String.format(targetUrlFormat, proxyName, videoInfo.getVideoUnionId());
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
                 return mediaProxyTask;
             }

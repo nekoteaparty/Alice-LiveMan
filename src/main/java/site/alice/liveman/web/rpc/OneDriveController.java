@@ -19,37 +19,36 @@
 package site.alice.liveman.web.rpc;
 
 import de.tuberlin.onedrivesdk.OneDriveException;
-import de.tuberlin.onedrivesdk.OneDriveFactory;
 import de.tuberlin.onedrivesdk.OneDriveSDK;
-import de.tuberlin.onedrivesdk.common.ConflictBehavior;
-import de.tuberlin.onedrivesdk.common.OneDriveScope;
-import de.tuberlin.onedrivesdk.drive.OneDrive;
-import de.tuberlin.onedrivesdk.folder.OneFolder;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import site.alice.liveman.config.SettingConfig;
+import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.utils.OneDriveUtil;
+import site.alice.liveman.web.dataobject.ActionResult;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Controller
 @RequestMapping("/api/onedrive")
 public class OneDriveController {
 
     @Autowired
-    private HttpServletRequest request;
+    private HttpServletResponse response;
     @Autowired
-    private LiveManSetting     liveManSetting;
+    private HttpSession         session;
     @Autowired
-    private SettingConfig      settingConfig;
+    private LiveManSetting      liveManSetting;
     @Autowired
-    private OneDriveUtil       oneDriveUtil;
+    private SettingConfig       settingConfig;
+    @Autowired
+    private OneDriveUtil        oneDriveUtil;
 
     @RequestMapping("/oauth/callback")
     public String callback(String code) throws Exception {
@@ -61,8 +60,27 @@ public class OneDriveController {
         return "redirect:" + liveManSetting.getBaseUrl() + "/main/system";
     }
 
+    @RequestMapping("/oauth/clean")
+    @ResponseBody
+    public ActionResult clean() throws Exception {
+        AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
+        if (!accountInfo.isAdmin()) {
+            return ActionResult.getErrorResult("只有管理员才能执行此操作");
+        }
+        liveManSetting.setOneDriveClientSecret(null);
+        liveManSetting.setOneDriveClientId(null);
+        liveManSetting.setOneDriveToken(null);
+        settingConfig.saveSetting(liveManSetting);
+        return ActionResult.getSuccessResult(null);
+    }
+
     @RequestMapping("/oauth/config")
     public String config(String clientId, String clientSecret) throws Exception {
+        AccountInfo accountInfo = (AccountInfo) session.getAttribute("account");
+        if (!accountInfo.isAdmin()) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "只有管理员才能执行此操作");
+            return null;
+        }
         liveManSetting.setOneDriveClientId(clientId);
         liveManSetting.setOneDriveClientSecret(clientSecret);
         settingConfig.saveSetting(liveManSetting);

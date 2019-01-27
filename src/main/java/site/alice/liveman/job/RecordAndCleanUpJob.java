@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,9 +108,14 @@ public class RecordAndCleanUpJob {
     }
 
     private void uploadDir(File sourceFile, final String videoId) {
-        MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+        String[] videoIdSplits = videoId.split("\\.");
+        MediaHistory mediaHistory;
+        if (videoIdSplits.length > 1) {
+            mediaHistory = mediaHistoryService.getMediaHistory(videoIdSplits[0]);
+        } else {
+            mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+        }
         boolean success = false;
-
         if (sourceFile.isDirectory()) {
             LOGGER.info("uploadDir:" + sourceFile.getAbsoluteFile());
             File[] children = sourceFile.listFiles();
@@ -122,6 +128,9 @@ public class RecordAndCleanUpJob {
         } else if (mediaHistory != null) {
             if (sourceFile.length() == 0) {
                 LOGGER.info("文件[" + sourceFile + "]的长度为0，跳过上传!");
+                success = true;
+            } else if (!mediaHistory.isNeedRecord()) {
+                LOGGER.info(ToStringBuilder.reflectionToString(mediaHistory) + "没有设置需要上传录像，跳过上传!");
                 success = true;
             } else if (!StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
                 try {

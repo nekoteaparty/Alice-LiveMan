@@ -107,7 +107,7 @@ public class YouTubeLiveService extends LiveService {
                 throw new RuntimeException("获取视频VideoId失败！");
             }
             if (videoTitleMatcher.find()) {
-                videoTitle = videoTitleMatcher.group(1);
+                videoTitle = videoTitleMatcher.group(1).replace("\\/", "/");
             }
             if (browseIdMatcher.find()) {
                 description = browseIdMatcher.group(1);
@@ -115,7 +115,7 @@ public class YouTubeLiveService extends LiveService {
             String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
+                if (m3u8List[i].startsWith("#") && m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
                     mediaUrl = m3u8List[i + 1];
                     // 这里不需要加break，取相同分辨率下码率最高的
                 }
@@ -123,7 +123,11 @@ public class YouTubeLiveService extends LiveService {
             if (mediaUrl == null) {
                 mediaUrl = m3u8List[m3u8List.length - 1];
             }
-            VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, new URI(mediaUrl), "m3u8");
+            String[] videoParts = videoId.split("\\.");
+            VideoInfo videoInfo = new VideoInfo(channelInfo, videoParts[0], videoTitle, new URI(mediaUrl), "m3u8");
+            if (videoParts.length > 1) {
+                videoInfo.setPart(videoParts[1]);
+            }
             videoInfo.setDescription(description);
             return videoInfo;
         } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {

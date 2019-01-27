@@ -192,7 +192,7 @@ public class HttpRequestUtil {
         HttpGet httpGet = new HttpGet(url);
         HttpClientContext context = HttpClientContext.create();
         RequestConfig.Builder builder = RequestConfig.custom();
-        builder.setConnectTimeout(60000).setConnectionRequestTimeout(60000).setSocketTimeout(60000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
+        builder.setConnectTimeout(30000).setConnectionRequestTimeout(30000).setSocketTimeout(30000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
         httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");

@@ -28,7 +28,9 @@ import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.MediaHistory;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.service.live.LiveServiceFactory;
@@ -57,6 +59,8 @@ public class BroadcastController {
     private LiveServiceFactory      liveServiceFactory;
     @Autowired
     private BroadcastServiceManager broadcastServiceManager;
+    @Autowired
+    private MediaHistoryService     mediaHistoryService;
 
     @RequestMapping("/taskList.json")
     public ActionResult<List<BroadcastTaskVO>> taskList() {
@@ -83,6 +87,7 @@ public class BroadcastController {
                 broadcastTaskVO.setVideoBanned(videoInfo.isVideoBanned());
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
+                broadcastTaskVO.setNeedRecord(videoInfo.isNeedRecord());
                 String localMediaUrl = mediaProxyTask.getTargetUrl().toString();
                 localMediaUrl = localMediaUrl.replace("http://localhost:8080", "");
                 broadcastTaskVO.setMediaUrl(localMediaUrl);
@@ -211,9 +216,28 @@ public class BroadcastController {
             return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
         }
         videoInfo.setArea(broadcastTaskVO.getArea());
-        videoInfo.setVideoBanned(broadcastTaskVO.isVideoBanned());
-        videoInfo.setAudioBanned(broadcastTaskVO.isAudioBanned());
-        ProcessUtil.killProcess(broadcastTask.getPid());
+        videoInfo.setNeedRecord(broadcastTaskVO.isNeedRecord());
+        MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
+        if (mediaHistory != null) {
+            mediaHistory.setNeedRecord(broadcastTaskVO.isNeedRecord());
+        }
+        boolean needReStream = false;
+        if (videoInfo.isVideoBanned() != broadcastTaskVO.isVideoBanned()) {
+            videoInfo.setVideoBanned(broadcastTaskVO.isVideoBanned());
+            needReStream = true;
+        }
+        if (videoInfo.isAudioBanned() != broadcastTaskVO.isAudioBanned()) {
+            videoInfo.setAudioBanned(broadcastTaskVO.isAudioBanned());
+            needReStream = true;
+        }
+        if (needReStream) {
+            ProcessUtil.killProcess(broadcastTask.getPid());
+        }
+        Integer areaId = null;
+        if (broadcastTaskVO.getArea() != null && broadcastTaskVO.getArea().length > 1) {
+            areaId = broadcastTaskVO.getArea()[1];
+        }
+        broadcastServiceManager.getBroadcastService(account.getAccountSite()).setBroadcastSetting(broadcastAccount, broadcastTaskVO.getRoomTitle(), areaId);
         return ActionResult.getSuccessResult(null);
     }
 

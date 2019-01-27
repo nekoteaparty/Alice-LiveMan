@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
 @Component
 public class BilibiliApiUtil {
 
-    private static final String DYNAMIC_POST_API   = "https://api.vc.bilibili.com/dynamic_repost/v1/dynamic_repost/repost";
+    private static final String DYNAMIC_POST_API   = "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/create";
     private static final String DYNAMIC_POST_PARAM = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/%s&at_uids=&ctrl=[]&csrf_token=";
 
     @Autowired
@@ -75,6 +75,9 @@ public class BilibiliApiUtil {
             JSONObject jsonObject = JSONObject.parseObject(res);
             if (!jsonObject.getString("msg").equals("succ")) {
                 log.error("发送B站动态失败[postData=" + postData + "]" + res);
+                if (jsonObject.getInteger("code") == -6) {
+                    accountInfo.setDisable(true);
+                }
             }
         } catch (Exception ex) {
             log.error("发送B站动态失败[postData=" + postData + "]", ex);

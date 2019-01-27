@@ -217,6 +217,19 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
         @Override
         public void run() {
+            // 任务第一次启动时尝试用默认的转播账号进行一次转播
+            if (!singleTask) {
+                ChannelInfo channelInfo = videoInfo.getChannelInfo();
+                if (channelInfo != null) {
+                    String defaultAccountId = channelInfo.getDefaultAccountId();
+                    if (defaultAccountId != null) {
+                        AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
+                        if (accountInfo != null) {
+                            accountInfo.setDisable(false);
+                        }
+                    }
+                }
+            }
             while (MediaProxyManager.getExecutedProxyTaskMap().containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
                     if (!singleTask) {
@@ -236,12 +249,16 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
                         try {
                             VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
-                            String broadcastAddress = getBroadcastService(broadcastAccount.getAccountSite()).getBroadcastAddress(broadcastAccount);
+                            BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
+                            String broadcastAddress = broadcastService.getBroadcastAddress(broadcastAccount);
+                            if (broadcastAccount.isAutoRoomTitle()) {
+                                broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
+                            }
                             String ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), ffmpegCmdLine, currentVideo.getVideoId(), false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
-                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
+                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 5000)) ;
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);

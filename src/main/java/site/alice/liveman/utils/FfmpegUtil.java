@@ -65,7 +65,7 @@ public class FfmpegUtil {
         } else {
             loopCmdLine += "\t-vcodec\tcopy";
         }
-        loopCmdLine += "\t-acodec\taac\t-b:a\t128K\t-f\tflv\t\"" + broadcastAddress + "\"";
+        loopCmdLine += "\t-acodec\taac\t-b:a\t132K\t-f\tflv\t\"" + broadcastAddress + "\"";
         return loopCmdLine;
     }
 }

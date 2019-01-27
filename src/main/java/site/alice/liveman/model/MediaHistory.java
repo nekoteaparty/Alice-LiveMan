@@ -27,6 +27,7 @@ public class MediaHistory {
     private String  channelName;
     private Date    datetime;
     private boolean postDynamic;
+    private boolean needRecord;
 
     public String getVideoId() {
         return videoId;
@@ -66,5 +67,13 @@ public class MediaHistory {
 
     public void setPostDynamic(boolean postDynamic) {
         this.postDynamic = postDynamic;
+    }
+
+    public boolean isNeedRecord() {
+        return needRecord;
+    }
+
+    public void setNeedRecord(boolean needRecord) {
+        this.needRecord = needRecord;
     }
 }

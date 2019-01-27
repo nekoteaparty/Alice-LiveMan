@@ -29,6 +29,7 @@ public abstract class LiveService {
     public MediaProxyTask createMediaProxyTask(ChannelInfo channelInfo) throws Exception {
         VideoInfo videoInfo = getLiveVideoInfo(getLiveVideoInfoUrl(channelInfo), channelInfo);
         if (videoInfo != null) {
+            videoInfo.setNeedRecord(channelInfo.isNeedRecord());
             return MediaProxyManager.createProxy(videoInfo);
         } else {
             return null;
