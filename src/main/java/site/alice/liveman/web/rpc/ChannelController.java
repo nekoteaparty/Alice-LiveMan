@@ -106,6 +106,7 @@ public class ChannelController {
                 channel.setDynamicPostAccountId(channelInfo.getDynamicPostAccountId());
                 channel.setAutoBalance(channelInfo.isAutoBalance());
                 channel.setDefaultArea(channelInfo.getDefaultArea());
+                channel.setNeedRecord(channelInfo.isNeedRecord());
                 if (!StringUtils.isEmpty(channelInfo.getCookies())) {
                     channel.setCookies(channelInfo.getCookies());
                 }
