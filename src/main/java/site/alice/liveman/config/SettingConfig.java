@@ -51,10 +51,14 @@ public class SettingConfig {
         LiveManSetting liveManSetting;
         if (settingFile.exists()) {
             liveManSetting = readSetting();
+            if (liveManSetting.getServers() == null) {
+                liveManSetting.setServers(new CopyOnWriteArraySet<>());
+            }
         } else {
             liveManSetting = new LiveManSetting();
             liveManSetting.setAccounts(new CopyOnWriteArraySet<>());
             liveManSetting.setChannels(new CopyOnWriteArraySet<>());
+            liveManSetting.setServers(new CopyOnWriteArraySet<>());
             liveManSetting.setBannedKeywords(new String[0]);
             liveManSetting.setBannedYoutubeChannel(new String[0]);
             liveManSetting.setTempPath("liveManTemp");

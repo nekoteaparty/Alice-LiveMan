@@ -34,6 +34,7 @@ public class ChannelInfo implements Serializable {
     private String               cookies;
     private int[]                defaultArea;
     private boolean              needRecord;
+    private VideoCropConf        defaultCropConf;
     @JSONField(serialize = false)
     private Long                 startAt;
     @JSONField(serialize = false)
@@ -44,11 +45,13 @@ public class ChannelInfo implements Serializable {
     private List<MediaProxyTask> mediaProxyTasks;
 
     public ChannelInfo() {
+        this.defaultCropConf = new VideoCropConf();
     }
 
     public ChannelInfo(String channelName, String channelUrl) {
         this.channelName = channelName;
         this.channelUrl = channelUrl;
+        this.defaultCropConf = new VideoCropConf();
     }
 
     public String getDefaultAccountId() {
@@ -157,6 +160,14 @@ public class ChannelInfo implements Serializable {
         }
         mediaProxyTask.setParentProxyTasks(mediaProxyTasks);
         mediaProxyTasks.add(mediaProxyTask);
+    }
+
+    public VideoCropConf getDefaultCropConf() {
+        return defaultCropConf;
+    }
+
+    public void setDefaultCropConf(VideoCropConf defaultCropConf) {
+        this.defaultCropConf = defaultCropConf;
     }
 
     @Override

@@ -38,16 +38,13 @@ public class ProcessUtil {
 
     private static final Map<Long, Object> processTargetMap = new ConcurrentHashMap<>();
 
-    public static long createProcess(String execPath, String cmdLine, String videoId, boolean isVisible) {
+    public static long createProcess(String cmdLine, String videoId, boolean isVisible) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder();
-            String[] args = (execPath + cmdLine).split("\t");
+            String[] args = cmdLine.split("\t");
             for (int i = 0; i < args.length; i++) {
-                if (args[i].startsWith("\"")) {
-                    args[i] = args[i].substring(1);
-                }
-                if (args[i].endsWith("\"")) {
-                    args[i] = args[i].substring(0, args[i].length() - 1);
+                if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
+                    args[i] = args[i].substring(1, args[i].length() - 1);
                 }
             }
             log.info(JSON.toJSONString(args));

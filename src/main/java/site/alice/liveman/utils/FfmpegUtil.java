@@ -18,54 +18,66 @@
 
 package site.alice.liveman.utils;
 
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.springframework.core.io.ClassPathResource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.model.ServerInfo;
+import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.BroadcastServerService;
 
-import java.io.File;
-import java.io.FileOutputStream;
-
+@Component
+@Slf4j
 public class FfmpegUtil {
 
-    private static String moviePlaceHolder = "placeholder.png";
-    private static String audioPlaceHolder = "placeholder.mp3";
+    private static BroadcastServerService broadcastServerService;
+    private static LiveManSetting         liveManSetting;
 
-    static {
-        try {
-            File moviePlaceFile = new File("./" + moviePlaceHolder);
-            if (!moviePlaceFile.exists()) {
-                ClassPathResource resource = new ClassPathResource(moviePlaceHolder);
-                IOUtils.copy(resource.getInputStream(), new FileOutputStream(moviePlaceFile));
-            }
-            moviePlaceHolder = FilenameUtils.separatorsToUnix(moviePlaceFile.getAbsolutePath());
-            File audioPlaceFile = new File("./" + audioPlaceHolder);
-            if (!audioPlaceFile.exists()) {
-                ClassPathResource resource = new ClassPathResource(audioPlaceHolder);
-                IOUtils.copy(resource.getInputStream(), new FileOutputStream(audioPlaceFile));
-            }
-            audioPlaceHolder = FilenameUtils.separatorsToUnix(audioPlaceFile.getAbsolutePath());
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
+    @Autowired
+    public void setBroadcastServerService(BroadcastServerService broadcastServerService) {
+        FfmpegUtil.broadcastServerService = broadcastServerService;
+    }
+
+    @Autowired
+    public void setLiveManSetting(LiveManSetting liveManSetting) {
+        FfmpegUtil.liveManSetting = liveManSetting;
     }
 
     public static String buildKeyFrameCmdLine(String mediaUrl, String fileName) {
-        return " \t-i\t" + mediaUrl + "\t-vframes\t1\t-y\t" + fileName;
+        return liveManSetting.getFfmpegPath() + "\t-i\t" + mediaUrl + "\t-vframes\t1\t-y\t" + fileName;
     }
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String loopCmdLine = "\t-re\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
-        if (videoInfo.isAudioBanned()) {
-            loopCmdLine += "\t-ac\t1";
-        }
-        if (videoInfo.isVideoBanned()) {
-            loopCmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
-            loopCmdLine += "\t-vcodec\th264";
+        String ffmpegCmdLine = buildLocalFfmpegCmdLine(videoInfo, broadcastAddress);
+        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+            ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
+            return String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-tt\t-p\t%s\t%s@%s\t", availableServer.getPassword(),
+                    availableServer.getPort(), availableServer.getUsername(), availableServer.getAddress()) +
+                    ffmpegCmdLine.replaceAll("\t", " ");
         } else {
-            loopCmdLine += "\t-vcodec\tcopy";
+            return ffmpegCmdLine;
         }
-        loopCmdLine += "\t-acodec\taac\t-b:a\t132K\t-f\tflv\t\"" + broadcastAddress + "\"";
-        return loopCmdLine;
+    }
+
+    public static String buildLocalFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
+        String cmdLine = liveManSetting.getFfmpegPath() + "\t-re\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
+        if (videoInfo.isAudioBanned()) {
+            cmdLine += "\t-ac\t1";
+        }
+        VideoCropConf cropConf = videoInfo.getCropConf();
+        if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.FULL_SCREEN) {
+            cmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
+            cmdLine += "\t-vcodec\th264";
+        } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+            String areaCmd = "\t-vf\t\"[ina]fps=30,scale=-1:476[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=2:1[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
+            cmdLine += String.format(areaCmd, cropConf.getCtrlWidth(), cropConf.getCtrlHeight(), cropConf.getCtrlLeft(), cropConf.getCtrlTop(), cropConf.getCtrlLeft(), cropConf.getCtrlTop());
+            cmdLine += "\t-vcodec\th264\t-preset\tultrafast";
+        } else {
+            cmdLine += "\t-vcodec\tcopy";
+        }
+        cmdLine += "\t-acodec\taac\t-b:a\t132K\t-f\tflv\t\"" + broadcastAddress + "\"";
+        return cmdLine;
     }
 }
