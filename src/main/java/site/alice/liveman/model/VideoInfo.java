@@ -41,6 +41,7 @@ public class VideoInfo implements Serializable {
     private byte[]                         encodeKey;
     private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;
+    private VideoCropConf                  cropConf;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
@@ -49,6 +50,7 @@ public class VideoInfo implements Serializable {
         this.mediaUrl = mediaUrl;
         this.mediaFormat = mediaFormat;
         this.broadcastTask = new AtomicReference<>();
+        this.cropConf = new VideoCropConf();
     }
 
     public String getVideoUnionId() {
@@ -179,6 +181,13 @@ public class VideoInfo implements Serializable {
         this.part = part;
     }
 
+    public VideoCropConf getCropConf() {
+        return cropConf;
+    }
+
+    public void setCropConf(VideoCropConf cropConf) {
+        this.cropConf = cropConf;
+    }
 
     @Override
     public String toString() {

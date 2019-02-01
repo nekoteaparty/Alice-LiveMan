@@ -18,6 +18,7 @@
 package site.alice.liveman.service.broadcast;
 
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.*;
+import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
@@ -51,6 +53,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     private              BilibiliApiUtil               bilibiliApiUtil;
     @Autowired
     private              MediaHistoryService           mediaHistoryService;
+    @Autowired
+    private              BroadcastServerService        broadcastServerService;
 
     @PostConstruct
     public void init() {
@@ -255,12 +259,13 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
                             }
                             String ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
-                            pid = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), ffmpegCmdLine, currentVideo.getVideoId(), false);
+                            pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId(), false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 5000)) ;
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
+                            broadcastServerService.releaseServer(videoInfo);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);

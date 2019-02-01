@@ -36,6 +36,7 @@ public class LiveManSetting {
     private String                           oneDriveToken;
     private CopyOnWriteArraySet<AccountInfo> accounts;
     private CopyOnWriteArraySet<ChannelInfo> channels;
+    private CopyOnWriteArraySet<ServerInfo>  servers;
     private Proxy                            proxy;
 
     public String[] getBannedYoutubeChannel() {
@@ -157,5 +158,13 @@ public class LiveManSetting {
             }
         }
         return null;
+    }
+
+    public CopyOnWriteArraySet<ServerInfo> getServers() {
+        return servers;
+    }
+
+    public void setServers(CopyOnWriteArraySet<ServerInfo> servers) {
+        this.servers = servers;
     }
 }
