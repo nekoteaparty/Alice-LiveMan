@@ -18,19 +18,22 @@
 
 package site.alice.liveman.web.dataobject.vo;
 
+import site.alice.liveman.model.VideoCropConf;
+
 public class BroadcastTaskVO {
-    private String  nickname;
-    private String  roomId;
-    private String  accountSite;
-    private String  channelName;
-    private String  videoTitle;
-    private String  videoId;
-    private String  mediaUrl;
-    private int[]   area;
-    private boolean isVideoBanned;
-    private boolean isAudioBanned;
-    private boolean needRecord;
-    private String  roomTitle;
+    private String        nickname;
+    private String        roomId;
+    private String        accountSite;
+    private String        channelName;
+    private String        videoTitle;
+    private String        videoId;
+    private String        mediaUrl;
+    private int[]         area;
+    private boolean       isVideoBanned;
+    private boolean       isAudioBanned;
+    private boolean       needRecord;
+    private String        roomTitle;
+    private VideoCropConf cropConf;
 
     public String getNickname() {
         return nickname;
@@ -126,5 +129,13 @@ public class BroadcastTaskVO {
 
     public void setRoomTitle(String roomTitle) {
         this.roomTitle = roomTitle;
+    }
+
+    public VideoCropConf getCropConf() {
+        return cropConf;
+    }
+
+    public void setCropConf(VideoCropConf cropConf) {
+        this.cropConf = cropConf;
     }
 }

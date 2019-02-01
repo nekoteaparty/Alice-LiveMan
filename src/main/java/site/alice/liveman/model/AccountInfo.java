@@ -34,6 +34,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private String                     uid;
     private boolean                    joinAutoBalance;
     private boolean                    admin;
+    private boolean                    vip;
     private boolean                    disable;
     private boolean                    postBiliDynamic;
     private boolean                    autoRoomTitle;
@@ -114,6 +115,14 @@ public class AccountInfo implements Comparable<AccountInfo> {
 
     public void setAdmin(boolean admin) {
         this.admin = admin;
+    }
+
+    public boolean isVip() {
+        return vip;
+    }
+
+    public void setVip(boolean vip) {
+        this.vip = vip;
     }
 
     public boolean isDisable() {

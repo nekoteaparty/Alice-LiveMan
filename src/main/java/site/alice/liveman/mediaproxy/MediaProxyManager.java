@@ -31,11 +31,11 @@ import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.VideoFilterService;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
@@ -45,7 +45,7 @@ public class MediaProxyManager implements ApplicationContextAware {
     private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
     private static       String                        tempPath;
-    private static final String                        targetUrlFormat      = "http://localhost:8080/mediaProxy/%s/%s";
+    private static final String                        targetUrlFormat      = "http://" + getIpAddress() + ":8080/mediaProxy/%s/%s";
     private static       ApplicationContext            applicationContext;
     private static       VideoFilterService            videoFilterService;
 
@@ -152,6 +152,29 @@ public class MediaProxyManager implements ApplicationContextAware {
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         proxyMap = applicationContext.getBeansOfType(MediaProxy.class);
         MediaProxyManager.applicationContext = applicationContext;
+    }
+
+    public static String getIpAddress() {
+        try {
+            Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip;
+            while (allNetInterfaces.hasMoreElements()) {
+                NetworkInterface netInterface = allNetInterfaces.nextElement();
+                if (!netInterface.isLoopback() && !netInterface.isVirtual() && netInterface.isUp()) {
+                    Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
+                    while (addresses.hasMoreElements()) {
+                        ip = addresses.nextElement();
+                        if (ip instanceof Inet4Address) {
+                            LOGGER.info("MediaProxy Server IPAddress:" + ip.getHostAddress());
+                            return ip.getHostAddress();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("IP地址获取失败", e);
+        }
+        return "127.0.0.1";
     }
 
 }

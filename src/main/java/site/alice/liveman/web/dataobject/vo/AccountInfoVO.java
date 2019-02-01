@@ -24,6 +24,7 @@ public class AccountInfoVO {
     private String  nickname;
     private String  description;
     private String  roomId;
+    private boolean vip;
     private boolean joinAutoBalance;
     private boolean admin;
     private boolean saved;
@@ -117,5 +118,13 @@ public class AccountInfoVO {
 
     public void setAutoRoomTitle(boolean autoRoomTitle) {
         this.autoRoomTitle = autoRoomTitle;
+    }
+
+    public boolean isVip() {
+        return vip;
+    }
+
+    public void setVip(boolean vip) {
+        this.vip = vip;
     }
 }

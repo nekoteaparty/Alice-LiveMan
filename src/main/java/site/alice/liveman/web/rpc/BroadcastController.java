@@ -20,16 +20,15 @@ package site.alice.liveman.web.rpc;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
-import site.alice.liveman.model.AccountInfo;
-import site.alice.liveman.model.ChannelInfo;
-import site.alice.liveman.model.MediaHistory;
-import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.model.*;
 import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
@@ -61,6 +60,10 @@ public class BroadcastController {
     private BroadcastServiceManager broadcastServiceManager;
     @Autowired
     private MediaHistoryService     mediaHistoryService;
+    @Autowired
+    private SettingConfig           settingConfig;
+    @Autowired
+    private LiveManSetting          liveManSetting;
 
     @RequestMapping("/taskList.json")
     public ActionResult<List<BroadcastTaskVO>> taskList() {
@@ -88,6 +91,7 @@ public class BroadcastController {
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
                 broadcastTaskVO.setNeedRecord(videoInfo.isNeedRecord());
+                broadcastTaskVO.setCropConf(videoInfo.getCropConf());
                 String localMediaUrl = mediaProxyTask.getTargetUrl().toString();
                 localMediaUrl = localMediaUrl.replace("http://localhost:8080", "");
                 broadcastTaskVO.setMediaUrl(localMediaUrl);
@@ -127,6 +131,44 @@ public class BroadcastController {
             log.error("adoptTask() failed, videoId=" + videoId, e);
             return ActionResult.getErrorResult("操作失败：" + e.getMessage());
         }
+    }
+
+    @RequestMapping("/cropConfSave.json")
+    public ActionResult cropConfSave(String videoId, @RequestBody VideoCropConf cropConf) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        log.info("cropConfSave()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+        if (broadcastTask == null) {
+            log.info("此转播任务尚未运行，或已停止[BroadcastTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+        if (broadcastAccount == null) {
+            log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
+            log.info("您没有权限修改他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
+            return ActionResult.getErrorResult("你没有权限修改他人直播间的推流任务");
+        }
+        if (cropConf != null && account.isVip()) {
+            videoInfo.setCropConf(cropConf);
+            videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
+            ProcessUtil.killProcess(broadcastTask.getPid());
+            try {
+                settingConfig.saveSetting(liveManSetting);
+            } catch (Exception e) {
+                log.error("保存系统配置信息失败", e);
+                return ActionResult.getErrorResult("系统内部错误，请联系管理员");
+            }
+        }
+        return ActionResult.getSuccessResult(null);
     }
 
     @RequestMapping("/stopTask.json")

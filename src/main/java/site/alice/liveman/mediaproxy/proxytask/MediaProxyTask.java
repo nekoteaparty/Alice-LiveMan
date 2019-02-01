@@ -29,6 +29,7 @@ import site.alice.liveman.utils.ProcessUtil;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.Serializable;
 import java.net.Proxy;
@@ -85,19 +86,21 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return isTerminated;
     }
 
-    public Image getKeyFrame() {
+    public BufferedImage getKeyFrame() {
         String fileName = UUID.randomUUID() + ".jpg";
         String keyFrameCmdLine = FfmpegUtil.buildKeyFrameCmdLine(targetUrl.toString(), fileName);
-        long process = ProcessUtil.createProcess(liveManSetting.getFfmpegPath(), keyFrameCmdLine, getVideoId() + "_KeyFrame", false);
-        if (ProcessUtil.waitProcess(process, 10000)) {
-            try {
+        long process = ProcessUtil.createProcess(keyFrameCmdLine, getVideoId() + "_KeyFrame", false);
+        try {
+            if (ProcessUtil.waitProcess(process, 10000)) {
                 return ImageIO.read(new File(fileName));
-            } catch (Throwable t) {
-                log.error("获取[" + targetUrl + "]关键帧失败", t);
+            } else {
+                ProcessUtil.killProcess(process);
+                log.error("获取[" + targetUrl + "]关键帧超时");
             }
-        } else {
-            ProcessUtil.killProcess(process);
-            log.error("获取[" + targetUrl + "]关键帧超时");
+        } catch (Throwable t) {
+            log.error("获取[" + targetUrl + "]关键帧失败", t);
+        } finally {
+            new File(fileName).delete();
         }
         return null;
     }
