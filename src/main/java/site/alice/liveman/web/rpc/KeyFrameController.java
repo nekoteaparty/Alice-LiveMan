@@ -52,7 +52,7 @@ public class KeyFrameController {
             if (mediaProxyTask != null) {
                 BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
                 if (keyFrame != null) {
-                    BufferedImage scaledKeyFrame = new BufferedImage((int) (keyFrame.getWidth() * (476.0 / keyFrame.getHeight())), 476, BufferedImage.TYPE_INT_RGB);
+                    BufferedImage scaledKeyFrame = new BufferedImage((int) (keyFrame.getWidth() * (480.0 / keyFrame.getHeight())), 480, BufferedImage.TYPE_INT_RGB);
                     scaledKeyFrame.createGraphics().drawImage(keyFrame, 0, 0, scaledKeyFrame.getWidth(), scaledKeyFrame.getHeight(), null);
                     ImageIO.write(scaledKeyFrame, "jpg", response.getOutputStream());
                 }
