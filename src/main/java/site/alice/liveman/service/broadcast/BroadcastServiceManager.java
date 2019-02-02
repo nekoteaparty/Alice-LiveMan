@@ -271,22 +271,21 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             }
                             String ffmpegCmdLine;
                             // 如果是区域打码的，创建低分辨率媒体代理服务
+                            VideoInfo lowVideoInfo = null;
                             if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-                                VideoInfo liveVideoInfo;
                                 MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
                                 if (mediaProxyTask != null) {
-                                    liveVideoInfo = mediaProxyTask.getVideoInfo();
+                                    lowVideoInfo = mediaProxyTask.getVideoInfo();
                                 } else {
-                                    ChannelInfo channelInfo = currentVideo.getChannelInfo();
-                                    liveVideoInfo = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "480");
-                                    if (liveVideoInfo == null) {
+                                    lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "480");
+                                    if (lowVideoInfo == null) {
                                         throw new RuntimeException("获取低清晰度视频源信息失败");
                                     }
-                                    liveVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
-                                    MediaProxyManager.createProxy(liveVideoInfo);
+                                    lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
+                                    MediaProxyManager.createProxy(lowVideoInfo);
                                 }
-                                liveVideoInfo.setCropConf(currentVideo.getCropConf());
-                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(liveVideoInfo, broadcastAddress);
+                                lowVideoInfo.setCropConf(currentVideo.getCropConf());
+                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                             } else {
                                 // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
                                 MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
@@ -295,14 +294,15 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 }
                                 ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             }
-
                             pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId(), false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 5000)) ;
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
-                            broadcastServerService.releaseServer(videoInfo);
+                            if (lowVideoInfo != null) {
+                                broadcastServerService.releaseServer(lowVideoInfo);
+                            }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);

@@ -71,7 +71,7 @@ public class FfmpegUtil {
             cmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
             cmdLine += "\t-vcodec\th264";
         } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-            String areaCmd = "\t-vf\t\"[ina]fps=30,scale=-1:476[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=2:1[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
+            String areaCmd = "\t-vf\t\"[ina]fps=30,scale=854:480[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=3:1[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
             cmdLine += String.format(areaCmd, cropConf.getCtrlWidth(), cropConf.getCtrlHeight(), cropConf.getCtrlLeft(), cropConf.getCtrlTop(), cropConf.getCtrlLeft(), cropConf.getCtrlTop());
             cmdLine += "\t-vcodec\th264\t-preset\tultrafast";
         } else {
