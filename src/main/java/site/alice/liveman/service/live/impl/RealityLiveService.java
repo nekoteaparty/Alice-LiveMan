@@ -65,7 +65,7 @@ public class RealityLiveService extends LiveService {
     }
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         if (videoInfoUrl == null) {
             return null;
         }
@@ -80,7 +80,7 @@ public class RealityLiveService extends LiveService {
             log.warn(nickname + "的用户信息不存在，请核对！");
             return null;
         }
-        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), channelInfo.getCookies(), "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
+        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), channelInfo != null ? channelInfo.getCookies() : null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
         JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
         JSONArray lives = liveDetailObj.getJSONArray("payload");
         if (!lives.isEmpty()) {
@@ -91,7 +91,7 @@ public class RealityLiveService extends LiveService {
             String[] m3u8List = HttpRequestUtil.downloadUrl(m3u8ListUrl, StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
+                if (m3u8List[i].contains(resolution)) {
                     mediaUrl = m3u8List[i + 1];
                     break;
                 }
@@ -99,7 +99,7 @@ public class RealityLiveService extends LiveService {
             if (mediaUrl == null) {
                 mediaUrl = m3u8List[3];
             }
-            return new VideoInfo(channelInfo, videoId, videoTitle, m3u8ListUrl.resolve(mediaUrl), "m3u8");
+            return new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, m3u8ListUrl.resolve(mediaUrl), "m3u8");
         }
         return null;
     }

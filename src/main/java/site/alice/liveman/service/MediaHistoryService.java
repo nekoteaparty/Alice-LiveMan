@@ -76,6 +76,9 @@ public class MediaHistoryService {
                 VideoInfo videoInfo = task.getVideoInfo();
                 if (videoInfo != null && !mediaHistoryMap.containsKey(videoInfo.getVideoId())) {
                     ChannelInfo channelInfo = videoInfo.getChannelInfo();
+                    if (channelInfo == null) {
+                        return;
+                    }
                     MediaHistory mediaHistory = new MediaHistory();
                     mediaHistory.setNeedRecord(videoInfo.isNeedRecord());
                     mediaHistory.setVideoId(videoInfo.getVideoId());

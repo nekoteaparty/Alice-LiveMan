@@ -62,7 +62,7 @@ public class FfmpegUtil {
     }
 
     public static String buildLocalFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String cmdLine = liveManSetting.getFfmpegPath() + "\t-re\t-i\t\"" + videoInfo.getChannelInfo().getMediaUrl() + "\"";
+        String cmdLine = liveManSetting.getFfmpegPath() + "\t-re\t-i\t\"" + videoInfo.getMediaProxyUrl() + "\"";
         if (videoInfo.isAudioBanned()) {
             cmdLine += "\t-ac\t1";
         }

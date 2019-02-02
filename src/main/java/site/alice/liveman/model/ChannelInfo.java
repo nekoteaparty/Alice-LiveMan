@@ -39,10 +39,6 @@ public class ChannelInfo implements Serializable {
     private Long                 startAt;
     @JSONField(serialize = false)
     private Long                 endAt;
-    @JSONField(serialize = false)
-    private String               mediaUrl;
-    @JSONField(serialize = false)
-    private List<MediaProxyTask> mediaProxyTasks;
 
     public ChannelInfo() {
         this.defaultCropConf = new VideoCropConf();
@@ -106,22 +102,6 @@ public class ChannelInfo implements Serializable {
         this.cookies = cookies;
     }
 
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public List<MediaProxyTask> getMediaProxyTasks() {
-        return mediaProxyTasks;
-    }
-
-    public void setMediaProxyTasks(List<MediaProxyTask> mediaProxyTasks) {
-        this.mediaProxyTasks = mediaProxyTasks;
-    }
-
     public int[] getDefaultArea() {
         return defaultArea;
     }
@@ -152,14 +132,6 @@ public class ChannelInfo implements Serializable {
 
     public void setNeedRecord(boolean needRecord) {
         this.needRecord = needRecord;
-    }
-
-    public void addProxyTask(MediaProxyTask mediaProxyTask) {
-        if (mediaProxyTasks == null) {
-            mediaProxyTasks = new CopyOnWriteArrayList<>();
-        }
-        mediaProxyTask.setParentProxyTasks(mediaProxyTasks);
-        mediaProxyTasks.add(mediaProxyTask);
     }
 
     public VideoCropConf getDefaultCropConf() {

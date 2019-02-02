@@ -27,11 +27,13 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.*;
 import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.MediaHistoryService;
+import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
@@ -54,6 +56,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     @Autowired
     private              MediaHistoryService           mediaHistoryService;
     @Autowired
+    private              LiveServiceFactory            liveServiceFactory;
+    @Autowired
     private              BroadcastServerService        broadcastServerService;
 
     @PostConstruct
@@ -63,6 +67,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             public void onProxyStart(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
                 if (videoInfo != null) {
+                    if (videoInfo.getChannelInfo() == null) {
+                        return;
+                    }
                     BroadcastTask broadcastTask;
                     if (videoInfo.getBroadcastTask() == null) {
                         broadcastTask = new BroadcastTask(videoInfo);
@@ -88,6 +95,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             public void onProxyStop(MediaProxyEvent e) {
                 VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
                 if (videoInfo != null) {
+                    if (videoInfo.getChannelInfo() == null) {
+                        return;
+                    }
                     BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
                     if (broadcastTask != null) {
                         AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
@@ -234,7 +244,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     }
                 }
             }
-            while (MediaProxyManager.getExecutedProxyTaskMap().containsKey(videoInfo.getVideoId()) && !terminate) {
+            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+            while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
                     if (!singleTask) {
                         broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
@@ -258,7 +269,33 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             if (broadcastAccount.isAutoRoomTitle()) {
                                 broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
                             }
-                            String ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                            String ffmpegCmdLine;
+                            // 如果是区域打码的，创建低分辨率媒体代理服务
+                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+                                VideoInfo liveVideoInfo;
+                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
+                                if (mediaProxyTask != null) {
+                                    liveVideoInfo = mediaProxyTask.getVideoInfo();
+                                } else {
+                                    ChannelInfo channelInfo = currentVideo.getChannelInfo();
+                                    liveVideoInfo = liveServiceFactory.getLiveService(channelInfo.getChannelUrl()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "480");
+                                    if (liveVideoInfo == null) {
+                                        throw new RuntimeException("获取低清晰度视频源信息失败");
+                                    }
+                                    liveVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
+                                    MediaProxyManager.createProxy(liveVideoInfo);
+                                }
+                                liveVideoInfo.setCropConf(currentVideo.getCropConf());
+                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(liveVideoInfo, broadcastAddress);
+                            } else {
+                                // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
+                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                                if (mediaProxyTask != null) {
+                                    mediaProxyTask.terminate();
+                                }
+                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                            }
+
                             pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId(), false);
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
                             // 等待进程退出或者任务结束
@@ -274,6 +311,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             Thread.sleep(1000);
                         } catch (InterruptedException ignore) {
                         }
+                    }
+                    // 终止推流时自动终止创建的低清晰度媒体代理任务
+                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                    if (mediaProxyTask != null) {
+                        mediaProxyTask.terminate();
                     }
                     broadcastAccount.removeCurrentVideo(videoInfo);
                     if (broadcastAccount.isDisable() && singleTask) {

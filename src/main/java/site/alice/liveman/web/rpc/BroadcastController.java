@@ -72,7 +72,7 @@ public class BroadcastController {
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-            if (videoInfo != null) {
+            if (videoInfo != null && videoInfo.getChannelInfo() != null) {
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
                 if (videoInfo.getBroadcastTask() != null) {
                     AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
@@ -93,9 +93,7 @@ public class BroadcastController {
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
                 broadcastTaskVO.setNeedRecord(videoInfo.isNeedRecord());
                 broadcastTaskVO.setCropConf(videoInfo.getCropConf());
-                String localMediaUrl = mediaProxyTask.getTargetUrl().toString();
-                localMediaUrl = localMediaUrl.replace("http://localhost:8080", "");
-                broadcastTaskVO.setMediaUrl(localMediaUrl);
+                broadcastTaskVO.setMediaUrl(mediaProxyTask.getTargetUrl().getPath());
                 broadcastTaskVOList.add(broadcastTaskVO);
             }
         }
@@ -213,7 +211,7 @@ public class BroadcastController {
             ChannelInfo channelInfo = new ChannelInfo();
             channelInfo.setChannelName("手动推流");
             channelInfo.setCookies(cookies);
-            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), channelInfo);
+            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoUrl).getLiveVideoInfo(new URI(videoUrl), channelInfo, liveManSetting.getDefaultResolution());
             if (liveVideoInfo == null) {
                 return ActionResult.getErrorResult("当前节目尚未开播");
             }

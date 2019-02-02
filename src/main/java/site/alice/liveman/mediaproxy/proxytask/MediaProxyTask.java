@@ -132,6 +132,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     }
 
     public void terminate() {
+        log.info("开始终止" + getVideoId() + "代理任务@" + runThread.getName());
         isTerminated = true;
     }
 

@@ -45,7 +45,7 @@ public class NicoLiveService extends LiveService {
         if (!channelUrl.endsWith("/live")) {
             channelUrl += "/live";
         }
-        String html = HttpRequestUtil.downloadUrl(new URI(channelUrl), channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String html = HttpRequestUtil.downloadUrl(new URI(channelUrl), channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = LIVE_VIDEO_URL_PATTERN.matcher(html);
         if (matcher.find()) {
             return new URI(matcher.group(1));
@@ -54,11 +54,11 @@ public class NicoLiveService extends LiveService {
     }
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         if (videoInfoUrl == null) {
             return null;
         }
-        String html = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String html = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = EMBEDDED_DATA_PATTERN.matcher(html);
         if (matcher.find()) {
             String embeddedData = matcher.group(1);
@@ -77,7 +77,7 @@ public class NicoLiveService extends LiveService {
             if (videoIdMatcher.find()) {
                 videoId = videoIdMatcher.group(1);
             }
-            return new VideoInfo(channelInfo, videoId, videoTitle, new URI(webSocketUrl), "m3u8");
+            return new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, new URI(webSocketUrl), "m3u8");
         } else {
             throw new RuntimeException("没有找到EmbeddedData[" + videoInfoUrl + "]");
         }
