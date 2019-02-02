@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.*;
@@ -157,16 +158,19 @@ public class BroadcastController {
             log.info("您没有权限修改他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
             return ActionResult.getErrorResult("你没有权限修改他人直播间的推流任务");
         }
-        if (cropConf != null && account.isVip()) {
+        if (cropConf != null) {
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN && !account.isVip()) {
+                return ActionResult.getErrorResult("你没有权限使用区域打码功能");
+            }
             videoInfo.setCropConf(cropConf);
             videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
-            ProcessUtil.killProcess(broadcastTask.getPid());
             try {
                 settingConfig.saveSetting(liveManSetting);
             } catch (Exception e) {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
             }
+            ProcessUtil.killProcess(broadcastTask.getPid());
         }
         return ActionResult.getSuccessResult(null);
     }
