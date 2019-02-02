@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.DynamicAreaUtil;
@@ -58,7 +59,7 @@ public class BiliBannedKeywordFilter implements VideoFilter {
         if (bannedKeyword == null) {
             return true;
         }
-        videoInfo.setVideoBanned(true);
+        videoInfo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.FULL_SCREEN);
         return true;
     }
 }

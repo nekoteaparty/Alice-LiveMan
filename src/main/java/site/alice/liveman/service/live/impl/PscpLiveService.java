@@ -64,15 +64,15 @@ public class PscpLiveService extends LiveService {
     }
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         String broadcastId = videoInfoUrl.getPath().replace("/w/", "");
-        String json = HttpRequestUtil.downloadUrl(new URI(accessVideoPublicUrl + broadcastId), channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String json = HttpRequestUtil.downloadUrl(new URI(accessVideoPublicUrl + broadcastId), channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         JSONObject accessVideoPublic = JSON.parseObject(json);
         JSONObject broadcast = accessVideoPublic.getJSONObject("broadcast");
         String title = broadcast.getString("status");
         String hlsUrl = accessVideoPublic.getString("hls_url");
         if (StringUtils.isNotEmpty(hlsUrl)) {
-            return new VideoInfo(channelInfo, broadcastId, title, new URI(hlsUrl), "m3u8");
+            return new VideoInfo(channelInfo, broadcastId, title, videoInfoUrl, new URI(hlsUrl), "m3u8");
         }
         return null;
     }

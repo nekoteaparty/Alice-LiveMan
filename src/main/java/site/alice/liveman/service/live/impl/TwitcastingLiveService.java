@@ -46,13 +46,13 @@ public class TwitcastingLiveService extends LiveService {
     }
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         if (videoInfoUrl == null) {
             return null;
         }
         String roomName = videoInfoUrl.toString().replace("https://twitcasting.tv/", "").replace("/", "");
         URI streamCheckerUrl = new URI("https://twitcasting.tv/streamchecker.php?u=" + roomName + "&v=999&myself=&islive=1&lastitemid=-1&__c=" + System.currentTimeMillis());
-        String streamChecker = HttpRequestUtil.downloadUrl(streamCheckerUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String streamChecker = HttpRequestUtil.downloadUrl(streamCheckerUrl, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         String[] checkes = streamChecker.split("\t");
         Video video = parseVideo(checkes[0], Integer.parseInt(checkes[1]), checkes[7], Integer.parseInt(checkes[19].trim()));
         if (!video.getOnline()) {
@@ -63,20 +63,20 @@ public class TwitcastingLiveService extends LiveService {
         }
         if (video.getWatchable()) {
             URI streamServerUrl = new URI("https://twitcasting.tv/streamserver.php?target=" + roomName + "&mode=client");
-            String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+            String serverInfo = HttpRequestUtil.downloadUrl(streamServerUrl, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
 
             JSONObject streamServer = JSONObject.parseObject(serverInfo);
             JSONObject movie = streamServer.getJSONObject("movie");
             if (movie.getBoolean("live")) {
                 String videoTitle = "";
-                String roomHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+                String roomHtml = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
                 Matcher matcher = ROOM_TITLE_PATTERN.matcher(roomHtml);
                 if (matcher.find()) {
                     videoTitle = matcher.group(1);
                 }
                 String videoId = movie.getString("id");
                 String mediaUrl = "wss://" + streamServer.getJSONObject("fmp4").getString("host") + "/ws.app/stream/" + videoId + "/fmp4/bd/1/1500?mode=main";
-                return new VideoInfo(channelInfo, videoId, video.getTelop() == null ? videoTitle : video.getTelop(), new URI(mediaUrl), "mp4");
+                return new VideoInfo(channelInfo, videoId, video.getTelop() == null ? videoTitle : video.getTelop(), videoInfoUrl, new URI(mediaUrl), "mp4");
             }
         }
         return null;

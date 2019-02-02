@@ -67,13 +67,10 @@ public class MediaProxyManager implements ApplicationContextAware {
         MediaProxyTask mediaProxyTask = createProxyTask(videoInfo, videoInfo.getMediaUrl(), videoInfo.getMediaFormat());
         mediaProxyTask.setVideoInfo(videoInfo);
         ChannelInfo channelInfo = videoInfo.getChannelInfo();
-        if (channelInfo == null) {
-            channelInfo = new ChannelInfo();
-            videoInfo.setChannelInfo(channelInfo);
+        if (channelInfo != null) {
+            videoInfo.setArea(channelInfo.getDefaultArea());
         }
-        channelInfo.setMediaUrl(mediaProxyTask.getTargetUrl().toString());
-        channelInfo.addProxyTask(mediaProxyTask);
-        videoInfo.setArea(channelInfo.getDefaultArea());
+        videoInfo.setMediaProxyUrl(mediaProxyTask.getTargetUrl());
         videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
         return mediaProxyTask;

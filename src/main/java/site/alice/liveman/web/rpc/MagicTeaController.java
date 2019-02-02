@@ -41,7 +41,7 @@ public class MagicTeaController {
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-            if (videoInfo != null) {
+            if (videoInfo != null && videoInfo.getChannelInfo() != null) {
                 LiveNowVO liveNowVO = new LiveNowVO();
                 if (videoInfo.getBroadcastTask() != null) {
                     AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();

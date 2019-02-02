@@ -17,6 +17,7 @@
  */
 package site.alice.liveman.service.live;
 
+import org.springframework.stereotype.Service;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
@@ -26,8 +27,8 @@ import java.net.URI;
 
 public abstract class LiveService {
 
-    public MediaProxyTask createMediaProxyTask(ChannelInfo channelInfo) throws Exception {
-        VideoInfo videoInfo = getLiveVideoInfo(getLiveVideoInfoUrl(channelInfo), channelInfo);
+    public MediaProxyTask createMediaProxyTask(ChannelInfo channelInfo, String resolution) throws Exception {
+        VideoInfo videoInfo = getLiveVideoInfo(getLiveVideoInfoUrl(channelInfo), channelInfo, resolution);
         if (videoInfo != null) {
             videoInfo.setNeedRecord(channelInfo.isNeedRecord());
             return MediaProxyManager.createProxy(videoInfo);
@@ -38,7 +39,7 @@ public abstract class LiveService {
 
     public abstract URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception;
 
-    public abstract VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception;
+    public abstract VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception;
 
     protected abstract boolean isMatch(URI channelUrl);
 }

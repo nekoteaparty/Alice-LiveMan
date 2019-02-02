@@ -31,6 +31,8 @@ public class VideoInfo implements Serializable {
     private String                         part;
     private String                         title;
     private String                         description;
+    private URI                            videoInfoUrl;
+    private URI                            mediaProxyUrl;
     private URI                            mediaUrl;
     private String                         mediaFormat;
     private int[]                          area;
@@ -43,14 +45,23 @@ public class VideoInfo implements Serializable {
     private AtomicReference<BroadcastTask> broadcastTask;
     private VideoCropConf                  cropConf;
 
-    public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI mediaUrl, String mediaFormat) {
+    public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI videoInfoUrl, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
         this.videoId = videoId;
         this.title = title;
+        this.videoInfoUrl = videoInfoUrl;
         this.mediaUrl = mediaUrl;
         this.mediaFormat = mediaFormat;
         this.broadcastTask = new AtomicReference<>();
         this.cropConf = new VideoCropConf();
+    }
+
+    public URI getVideoInfoUrl() {
+        return videoInfoUrl;
+    }
+
+    public void setVideoInfoUrl(URI videoInfoUrl) {
+        this.videoInfoUrl = videoInfoUrl;
     }
 
     public String getVideoUnionId() {
@@ -87,6 +98,14 @@ public class VideoInfo implements Serializable {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public URI getMediaProxyUrl() {
+        return mediaProxyUrl;
+    }
+
+    public void setMediaProxyUrl(URI mediaProxyUrl) {
+        this.mediaProxyUrl = mediaProxyUrl;
     }
 
     public URI getMediaUrl() {

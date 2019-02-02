@@ -54,7 +54,7 @@ public class YouTubeLiveService extends LiveService {
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
         String channelUrl = channelInfo.getChannelUrl();
         URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
-        String resHtml = HttpRequestUtil.downloadUrl(url, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String resHtml = HttpRequestUtil.downloadUrl(url, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher matcher = initDataJsonPattern.matcher(resHtml);
         if (matcher.find()) {
             String initDataJson = matcher.group(1);
@@ -86,11 +86,11 @@ public class YouTubeLiveService extends LiveService {
     }
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         if (videoInfoUrl == null) {
             return null;
         }
-        String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+        String videoInfoRes = HttpRequestUtil.downloadUrl(videoInfoUrl, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
         Matcher hlsvpMatcher = hlsvpPattern.matcher(videoInfoRes);
         Matcher videoTitleMatcher = videoTitlePattern.matcher(videoInfoRes);
         Matcher browseIdMatcher = browseIdPattern.matcher(videoInfoRes);
@@ -115,7 +115,7 @@ public class YouTubeLiveService extends LiveService {
             String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].startsWith("#") && m3u8List[i].contains(liveManSetting.getDefaultResolution())) {
+                if (m3u8List[i].startsWith("#") && m3u8List[i].contains(resolution)) {
                     mediaUrl = m3u8List[i + 1];
                     // 这里不需要加break，取相同分辨率下码率最高的
                 }
@@ -124,7 +124,7 @@ public class YouTubeLiveService extends LiveService {
                 mediaUrl = m3u8List[m3u8List.length - 1];
             }
             String[] videoParts = videoId.split("\\.");
-            VideoInfo videoInfo = new VideoInfo(channelInfo, videoParts[0], videoTitle, new URI(mediaUrl), "m3u8");
+            VideoInfo videoInfo = new VideoInfo(channelInfo, videoParts[0], videoTitle, videoInfoUrl, new URI(mediaUrl), "m3u8");
             if (videoParts.length > 1) {
                 videoInfo.setPart(videoParts[1]);
             }
