@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
@@ -123,7 +124,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
             long start = System.currentTimeMillis();
             try {
-                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset()).split("\n");
+                String m3u8Context = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset());
+                String[] m3u8Lines = m3u8Context.split("\n");
+                if (!m3u8Context.contains("#EXT-X-ENDLIST")) {
+                    m3u8Lines = (String[]) ArrayUtils.subarray(m3u8Lines, m3u8Lines.length - 10, m3u8Lines.length);
+                }
                 int seqCount = 0;
                 int readSeqCount = 0;
                 int startSeq = 0;
