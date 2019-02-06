@@ -172,7 +172,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     break;
                 }
             }
-            Thread.sleep(Math.max(1000 - (System.currentTimeMillis() - start), 0));
+            Thread.sleep(Math.max(500 - (System.currentTimeMillis() - start), 0));
         }
     }
 
