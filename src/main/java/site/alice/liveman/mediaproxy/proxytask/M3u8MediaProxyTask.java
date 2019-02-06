@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
@@ -44,43 +45,42 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    protected static final int                   MAX_RETRY_COUNT      = 60;
-    private                long                  NEXT_M3U8_WRITE_TIME = 0;
-    private                BlockingDeque<String> downloadDeque        = new LinkedBlockingDeque<>();
-    protected              AtomicInteger         retryCount           = new AtomicInteger(0);
-    private                int                   lastSeqIndex         = 0;
-    private final          MediaProxyTask        downloadTask;
+    protected static final int                        MAX_RETRY_COUNT      = 60;
+    private                long                       NEXT_M3U8_WRITE_TIME = 0;
+    private                BlockingDeque<M3u8SeqInfo> downloadDeque        = new LinkedBlockingDeque<>();
+    protected              AtomicInteger              retryCount           = new AtomicInteger(0);
+    private                int                        lastSeqIndex         = 0;
+    private final          MediaProxyTask             downloadTask;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
         super(videoId, sourceUrl);
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null) {
             @Override
             protected void runTask() throws InterruptedException {
+
                 while (retryCount.get() < MAX_RETRY_COUNT) {
-                    String queueData = downloadDeque.poll(1000, TimeUnit.MILLISECONDS);
-                    if (queueData != null) {
+                    M3u8SeqInfo m3u8SeqInfo = downloadDeque.poll(1000, TimeUnit.MILLISECONDS);
+                    if (m3u8SeqInfo != null) {
                         for (int i = 0; i < 3; i++) {
                             try {
                                 VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
-                                String[] queueDatas = queueData.split("@");
-                                File seqFile = new File(queueDatas[1]);
-                                if (!seqFile.exists()) {
+                                if (!m3u8SeqInfo.getSeqFile().exists()) {
                                     if (mediaVideoInfo.getEncodeMethod() == null) {
-                                        HttpRequestUtil.downloadToFile(new URI(queueDatas[0]), seqFile);
+                                        HttpRequestUtil.downloadToFile(m3u8SeqInfo.getSeqUrl(), m3u8SeqInfo.getSeqFile());
                                     } else {
-                                        seqFile.getParentFile().mkdirs();
-                                        byte[] encodedData = HttpRequestUtil.downloadUrl(new URI(queueDatas[0]));
+                                        m3u8SeqInfo.getSeqFile().getParentFile().mkdirs();
+                                        byte[] encodedData = HttpRequestUtil.downloadUrl(m3u8SeqInfo.getSeqUrl());
                                         try {
                                             SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
                                             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
                                             IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
                                             cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
                                             byte[] decodedData = cipher.doFinal(encodedData);
-                                            try (FileOutputStream seqFileStream = new FileOutputStream(seqFile)) {
+                                            try (FileOutputStream seqFileStream = new FileOutputStream(m3u8SeqInfo.getSeqFile())) {
                                                 IOUtils.write(decodedData, seqFileStream);
                                             }
                                         } catch (Throwable e) {
-                                            log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), seqFile);
+                                            log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), m3u8SeqInfo.getSeqFile());
                                         }
                                     }
                                     createM3U8File();
@@ -119,11 +119,14 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         VideoInfo videoInfo = getVideoInfo();
         File m3u8File = new File(MediaProxyManager.getTempPath() + "/m3u8/" + videoInfo.getVideoUnionId() + "/index.m3u8");
         m3u8File.delete();
+        boolean isFirst = true;
         while (retryCount.get() < MAX_RETRY_COUNT && !getTerminated()) {
             ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
+            List<M3u8SeqInfo> tempSeqList = new LinkedList<>();
             long start = System.currentTimeMillis();
             try {
-                String[] m3u8Lines = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset()).split("\n");
+                String m3u8Context = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset());
+                String[] m3u8Lines = m3u8Context.split("\n");
                 int seqCount = 0;
                 int readSeqCount = 0;
                 int startSeq = 0;
@@ -131,10 +134,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     if (!m3u8Line.startsWith("#") && StringUtils.isNotEmpty(m3u8Line.trim())) {
                         int currentSeqIndex = (startSeq + seqCount);
                         if (currentSeqIndex > lastSeqIndex) {
-                            m3u8Line = getSourceUrl().resolve(m3u8Line).toString();
-                            String queueData = m3u8Line + "@" + MediaProxyManager.getTempPath() + "/m3u8/" + videoInfo.getVideoUnionId() + "/" + currentSeqIndex + ".ts";
-                            if (!downloadDeque.contains(queueData)) {
-                                downloadDeque.offer(queueData);
+                            M3u8SeqInfo m3u8SeqInfo = new M3u8SeqInfo();
+                            m3u8SeqInfo.setSeqUrl(getSourceUrl().resolve(m3u8Line));
+                            m3u8SeqInfo.setSeqFile(new File(MediaProxyManager.getTempPath() + "/m3u8/" + videoInfo.getVideoUnionId() + "/" + currentSeqIndex + ".ts"));
+                            if (!downloadDeque.contains(m3u8SeqInfo)) {
+                                tempSeqList.add(m3u8SeqInfo);
                                 lastSeqIndex = currentSeqIndex;
                                 readSeqCount++;
                             }
@@ -145,6 +149,13 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                             startSeq = Integer.parseInt(m3u8Line.split(":")[1]);
                         }
                     }
+                }
+                if (isFirst && tempSeqList.size() > 3) {
+                    tempSeqList = tempSeqList.subList(tempSeqList.size() - 3, tempSeqList.size());
+                    isFirst = false;
+                }
+                for (M3u8SeqInfo m3u8SeqInfo : tempSeqList) {
+                    downloadDeque.offer(m3u8SeqInfo);
                 }
                 if (readSeqCount == 0) {
                     if ((retryCount.incrementAndGet() + 2) % 3 == 0) {
@@ -161,7 +172,41 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     break;
                 }
             }
-            Thread.sleep(Math.max(500 - (System.currentTimeMillis() - start), 0));
+            Thread.sleep(Math.max(1000 - (System.currentTimeMillis() - start), 0));
+        }
+    }
+
+    class M3u8SeqInfo {
+        private URI  seqUrl;
+        private File seqFile;
+
+        public URI getSeqUrl() {
+            return seqUrl;
+        }
+
+        public void setSeqUrl(URI seqUrl) {
+            this.seqUrl = seqUrl;
+        }
+
+        public File getSeqFile() {
+            return seqFile;
+        }
+
+        public void setSeqFile(File seqFile) {
+            this.seqFile = seqFile;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            M3u8SeqInfo that = (M3u8SeqInfo) o;
+            return Objects.equals(seqFile, that.seqFile);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(seqFile);
         }
     }
 

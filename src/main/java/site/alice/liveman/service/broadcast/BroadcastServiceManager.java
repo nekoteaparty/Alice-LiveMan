@@ -277,7 +277,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 if (mediaProxyTask != null) {
                                     lowVideoInfo = mediaProxyTask.getVideoInfo();
                                 } else {
-                                    lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "480");
+                                    lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "720");
                                     if (lowVideoInfo == null) {
                                         throw new RuntimeException("获取低清晰度视频源信息失败");
                                     }
