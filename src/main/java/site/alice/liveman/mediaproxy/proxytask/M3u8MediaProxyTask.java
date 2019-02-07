@@ -172,7 +172,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     break;
                 }
             }
-            Thread.sleep(Math.max(1000 - (System.currentTimeMillis() - start), 0));
+            Thread.sleep(Math.max(500 - (System.currentTimeMillis() - start), 0));
         }
     }
 
@@ -230,7 +230,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 }
             }
             seqList.sort(Comparator.reverseOrder());
-            seqList = seqList.subList(0, Math.min(5000, seqList.size()));
+            seqList = seqList.subList(0, Math.min(100, seqList.size()));
             Integer preSeqIndex = null;
             for (Iterator<Integer> iterator = seqList.iterator(); iterator.hasNext(); ) {
                 if (preSeqIndex == null) {

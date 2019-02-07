@@ -28,6 +28,7 @@ public class VideoCropConf implements Serializable {
     private int                 ctrlHeight;
     private int                 ctrlLeft;
     private int                 ctrlTop;
+    private int                 blurSize;
 
     public VideoBannedTypeEnum getVideoBannedType() {
         return videoBannedType;
@@ -69,6 +70,14 @@ public class VideoCropConf implements Serializable {
         this.ctrlTop = ctrlTop;
     }
 
+    public int getBlurSize() {
+        return blurSize;
+    }
+
+    public void setBlurSize(int blurSize) {
+        this.blurSize = blurSize;
+    }
+
     @Override
     public String toString() {
         return "VideoCropConf{" +
@@ -77,6 +86,7 @@ public class VideoCropConf implements Serializable {
                 ", ctrlHeight=" + ctrlHeight +
                 ", ctrlLeft=" + ctrlLeft +
                 ", ctrlTop=" + ctrlTop +
+                ", blurSize=" + blurSize +
                 '}';
     }
 }
