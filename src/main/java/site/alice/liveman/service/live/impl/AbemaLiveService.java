@@ -171,7 +171,7 @@ public class AbemaLiveService extends LiveService {
     }
 
     private long getKeyGenerator() {
-        return (System.currentTimeMillis() - 1499270400000L) / 1000 / 60 / 60 / 24 + 1;
+        return (System.currentTimeMillis() - 1499313600000L) / 1000 / 60 / 60 / 24 + 1;
     }
 
     @Override
