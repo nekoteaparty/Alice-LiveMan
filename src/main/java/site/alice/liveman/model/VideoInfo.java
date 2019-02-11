@@ -44,6 +44,8 @@ public class VideoInfo implements Serializable {
     private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;
     private VideoCropConf                  cropConf;
+    private String                         frameRate;
+    private String                         resolution;
 
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI videoInfoUrl, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
@@ -206,6 +208,22 @@ public class VideoInfo implements Serializable {
 
     public void setCropConf(VideoCropConf cropConf) {
         this.cropConf = cropConf;
+    }
+
+    public String getFrameRate() {
+        return frameRate;
+    }
+
+    public void setFrameRate(String frameRate) {
+        this.frameRate = frameRate;
+    }
+
+    public String getResolution() {
+        return resolution;
+    }
+
+    public void setResolution(String resolution) {
+        this.resolution = resolution;
     }
 
     @Override

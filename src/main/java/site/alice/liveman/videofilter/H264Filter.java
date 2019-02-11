@@ -25,13 +25,15 @@ import site.alice.liveman.videofilter.h264.NaluPriority;
 import site.alice.liveman.videofilter.h264.NaluType;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class H264Filter {
     private static RandomAccessFile h264bitstream;
     private static int              info2 = 0, info3 = 0;
 
     public static void main(String[] args) throws IOException {
-        simplest_h264_parser(new File("C:\\Users\\hasee\\Desktop\\2222\\1945.h264"));
+        simplest_h264_parser(new File("C:\\Users\\hasee\\Desktop\\output.ts"));
     }
 
     static int FindStartCode2(int startPos, byte[] Buf) {
@@ -55,21 +57,21 @@ public class H264Filter {
         if (3 != h264bitstream.read(buffer, 0, 3)) {
             return -1;
         }
+        pos = 3;
         info2 = FindStartCode2(0, buffer);
         if (info2 != 1) {
             if (1 != h264bitstream.read(buffer, 3, 1)) {
                 return -1;
             }
             info3 = FindStartCode3(0, buffer);
+            pos = 4;
             if (info3 != 1) {
-                return -1;
+                nalu.startcodeprefix_len = 0;
             } else {
-                pos = 4;
                 nalu.startcodeprefix_len = 4;
             }
         } else {
             nalu.startcodeprefix_len = 3;
-            pos = 3;
         }
         StartCodeFound = false;
         info2 = 0;
@@ -87,9 +89,17 @@ public class H264Filter {
                 if (nalu.len >= 0) {
                     System.arraycopy(buffer, nalu.startcodeprefix_len, nalu.buf, 0, nalu.len);
                 }
-                nalu.forbidden_bit = nalu.buf[0] & 0x80; //1 bit
-                nalu.nal_reference_idc = NaluPriority.values()[(nalu.buf[0] & 0x60) >> 5]; // 2 bit
-                nalu.nal_unit_type = NaluType.values()[nalu.buf[0] & 0x1f];// 5 bit
+                if (nalu.startcodeprefix_len > 0) {
+                    nalu.forbidden_bit = nalu.buf[0] & 0x80; //1 bit
+                    int naluPriority = (nalu.buf[0] & 0x60) >> 5;
+                    if (naluPriority < NaluPriority.values().length) {
+                        nalu.nal_reference_idc = NaluPriority.values()[naluPriority]; // 2 bit
+                    }
+                    int naluType = nalu.buf[0] & 0x1f;
+                    if (naluType < NaluType.values().length) {
+                        nalu.nal_unit_type = NaluType.values()[naluType];// 5 bit
+                    }
+                }
                 return pos - 1;
             }
         }
@@ -108,9 +118,18 @@ public class H264Filter {
         if (nalu.len >= 0) {
             System.arraycopy(buffer, nalu.startcodeprefix_len, nalu.buf, 0, nalu.len);
         }
-        nalu.forbidden_bit = nalu.buf[0] & 0x80; //1 bit
-        nalu.nal_reference_idc = NaluPriority.values()[(nalu.buf[0] & 0x60) >> 5]; // 2 bit
-        nalu.nal_unit_type = NaluType.values()[nalu.buf[0] & 0x1f];// 5 bit
+        if (nalu.startcodeprefix_len > 0) {
+            nalu.forbidden_bit = nalu.buf[0] & 0x80; //1 bit
+            int naluPriority = (nalu.buf[0] & 0x60) >> 5;
+            if (naluPriority < NaluPriority.values().length) {
+                nalu.nal_reference_idc = NaluPriority.values()[naluPriority]; // 2 bit
+            }
+            int naluType = nalu.buf[0] & 0x1f;
+            if (naluType < NaluType.values().length) {
+                nalu.nal_unit_type = NaluType.values()[naluType];// 5 bit
+            }
+        }
+
 
         return (pos + rewind);
     }
@@ -123,8 +142,8 @@ public class H264Filter {
     static int simplest_h264_parser(File h264File) throws IOException {
 
         NALUStruct naluStruct;
-        int buffersize = 1024 * 100;
-
+        int buffersize = 1024 * 1024;
+        List<NALUStruct> sliceNalus = new ArrayList<>();
         h264bitstream = new RandomAccessFile(h264File, "rw");
         int data_offset = 0;
         int nal_num = 0;
@@ -138,8 +157,9 @@ public class H264Filter {
             naluStruct.buf = new byte[buffersize];
             data_lenth = GetAnnexbNALU(naluStruct);
             if (data_lenth == -1) {
-                return 0;
+                break;
             }
+            sliceNalus.add(naluStruct);
             // naluStruct.buf = ArrayUtils.subarray(naluStruct.buf, 0, data_lenth);
             String type_str = "";
             switch (naluStruct.nal_unit_type) {
@@ -157,13 +177,6 @@ public class H264Filter {
                     break;
                 case NALU_TYPE_IDR:
                     type_str = StringUtils.rightPad("IDR", 15);
-                    long currentPoint = h264bitstream.getFilePointer();
-                    h264bitstream.seek(naluStruct.start_pos + 500);
-                    for (int i = 0; i < 5; i++) {
-                        h264bitstream.write(0);
-                    }
-                    h264bitstream.seek(currentPoint);
-                    IOUtils.write(naluStruct.buf, new FileOutputStream("C:\\Users\\hasee\\Desktop\\2222\\1945.yuv"));
                     break;
                 case NALU_TYPE_SEI:
                     type_str = StringUtils.rightPad("SEI", 15);
@@ -186,6 +199,8 @@ public class H264Filter {
                 case NALU_TYPE_FILL:
                     type_str = StringUtils.rightPad("FILL", 15);
                     break;
+                default:
+                    type_str = StringUtils.rightPad("OTHER", 15);
             }
             String idc_str = "";
             switch (naluStruct.nal_reference_idc) {
@@ -201,13 +216,27 @@ public class H264Filter {
                 case NALU_PRIORITY_HIGHEST:
                     idc_str = StringUtils.rightPad("HIGHEST", 15);
                     break;
+                default:
+                    idc_str = StringUtils.rightPad("OTHER", 15);
             }
 
-            System.out.println(String.format("%5d| %8d| %7s| %6s| %8d|", nal_num, data_offset, idc_str, type_str, naluStruct.len));
-
+            if (!(type_str.startsWith("OTHER") || idc_str.startsWith("OTHER"))) {
+                System.out.println(String.format("%5d| %8d| %7s| %6s| %8d|", nal_num++, data_offset, idc_str, type_str, naluStruct.len));
+            }
             data_offset = data_offset + data_lenth;
-
-            nal_num++;
         }
+        File outputFile = new File("C:\\Users\\hasee\\Desktop\\overframe.ts");
+        int i = 0;
+        try (OutputStream os = new FileOutputStream(outputFile)) {
+            for (NALUStruct nalus : sliceNalus) {
+                if (nalus.startcodeprefix_len == 3) {
+                    os.write(new byte[]{0, 0, 1});
+                } else if (nalus.startcodeprefix_len == 4) {
+                    os.write(new byte[]{0, 0, 0, 1});
+                }
+                os.write(nalus.buf, 0, nalus.len);
+            }
+        }
+        return 0;
     }
 }

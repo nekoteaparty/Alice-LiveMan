@@ -111,6 +111,7 @@ public class ProcessUtil {
         if (process != null) {
             try {
                 process.waitFor();
+                processTargetMap.remove(pid);
             } catch (InterruptedException ignore) {
 
             }
@@ -129,7 +130,11 @@ public class ProcessUtil {
         Process process = (Process) processTargetMap.get(pid);
         if (process != null) {
             try {
-                return process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);
+                boolean result = process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);
+                if (result) {
+                    processTargetMap.remove(pid);
+                }
+                return result;
             } catch (InterruptedException ignore) {
                 return false;
             }

@@ -30,6 +30,8 @@ import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.M3u8Util;
+import site.alice.liveman.utils.M3u8Util.StreamInfo;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -114,13 +116,16 @@ public class YouTubeLiveService extends LiveService {
             }
             String[] m3u8List = HttpRequestUtil.downloadUrl(new URI(hlsvpUrl), StandardCharsets.UTF_8).split("\n");
             String mediaUrl = null;
+            StreamInfo streamInfo = null;
             for (int i = 0; i < m3u8List.length; i++) {
-                if (m3u8List[i].startsWith("#") && m3u8List[i].contains(resolution)) {
+                if (m3u8List[i].startsWith("#EXT-X-STREAM-INF") && m3u8List[i].contains(resolution)) {
+                    streamInfo = M3u8Util.getStreamInfo(m3u8List[i]);
                     mediaUrl = m3u8List[i + 1];
-                    // 这里不需要加break，取相同分辨率下码率最高的
+                    break;
                 }
             }
             if (mediaUrl == null) {
+                streamInfo = M3u8Util.getStreamInfo(m3u8List[m3u8List.length - 2]);
                 mediaUrl = m3u8List[m3u8List.length - 1];
             }
             String[] videoParts = videoId.split("\\.");
@@ -129,6 +134,8 @@ public class YouTubeLiveService extends LiveService {
                 videoInfo.setPart(videoParts[1]);
             }
             videoInfo.setDescription(description);
+            videoInfo.setResolution(streamInfo.getResolution());
+            videoInfo.setFrameRate(streamInfo.getFrameRate());
             return videoInfo;
         } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
             return null;

@@ -27,7 +27,9 @@ import org.apache.commons.lang.StringUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.ProcessUtil;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -57,49 +59,86 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         downloadTask = new MediaProxyTask(getVideoId() + "_DOWNLOAD", null) {
             @Override
             protected void runTask() throws InterruptedException {
+                VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
+                boolean needLowFrameRate = mediaVideoInfo.getVideoId().endsWith("_low") && "60".equals(mediaVideoInfo.getFrameRate());
+                final BlockingQueue<M3u8SeqInfo> toLowFrameRatePidQueue = new LinkedBlockingQueue<>();
+                if (needLowFrameRate) {
+                    MediaProxyManager.runProxy(new MediaProxyTask(getVideoId() + "_LOW-FRAME-RATE", null) {
+                        @Override
+                        protected void runTask() throws Exception {
+                            while (!M3u8MediaProxyTask.this.getTerminated()) {
+                                M3u8SeqInfo m3u8SeqInfo = toLowFrameRatePidQueue.poll(1000, TimeUnit.MILLISECONDS);
+                                if (m3u8SeqInfo != null) {
+                                    ProcessUtil.waitProcess(m3u8SeqInfo.getConvertPid());
+                                    m3u8SeqInfo.getSeqFile().delete();
+                                    createM3U8File();
+                                }
+                            }
+                        }
 
+                        @Override
+                        protected void terminateTask() {
+
+                        }
+                    });
+                }
                 while (retryCount.get() < MAX_RETRY_COUNT) {
                     M3u8SeqInfo m3u8SeqInfo = downloadDeque.poll(1000, TimeUnit.MILLISECONDS);
                     if (m3u8SeqInfo != null) {
-                        for (int i = 0; i < 3; i++) {
-                            try {
-                                VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
-                                if (!m3u8SeqInfo.getSeqFile().exists()) {
-                                    if (mediaVideoInfo.getEncodeMethod() == null) {
-                                        HttpRequestUtil.downloadToFile(m3u8SeqInfo.getSeqUrl(), m3u8SeqInfo.getSeqFile());
-                                    } else {
-                                        m3u8SeqInfo.getSeqFile().getParentFile().mkdirs();
-                                        byte[] encodedData = HttpRequestUtil.downloadUrl(m3u8SeqInfo.getSeqUrl());
-                                        try {
-                                            SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
-                                            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-                                            IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
-                                            cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
-                                            byte[] decodedData = cipher.doFinal(encodedData);
-                                            try (FileOutputStream seqFileStream = new FileOutputStream(m3u8SeqInfo.getSeqFile())) {
-                                                IOUtils.write(decodedData, seqFileStream);
-                                            }
-                                        } catch (Throwable e) {
-                                            log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), m3u8SeqInfo.getSeqFile());
-                                        }
-                                    }
-                                    createM3U8File();
-                                    retryCount.set(0);
-                                }
-                                break;
-                            } catch (Throwable e) {
-                                if (e instanceof FileNotFoundException) {
-                                    log.warn(getVideoId() + "出错，媒体文件已过期", e);
-                                    break;
-                                }
-                                log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
-                            }
+                        File dictSeqFile = m3u8SeqInfo.getSeqFile();
+                        if (needLowFrameRate) {
+                            m3u8SeqInfo.setSeqFile(new File(m3u8SeqInfo.getSeqFile().toString() + ".tmp"));
+                        }
+                        downloadSeqFile(m3u8SeqInfo);
+                        if (needLowFrameRate) {
+                            long process = ProcessUtil.createProcess(FfmpegUtil.buildToLowFrameRateCmdLine(m3u8SeqInfo.getSeqFile(), dictSeqFile), getVideoId() + "_LOW-FRAME-RATE", false);
+                            m3u8SeqInfo.setConvertPid(process);
+                            toLowFrameRatePidQueue.offer(m3u8SeqInfo);
+                        } else {
+                            createM3U8File();
                         }
                     } else if (M3u8MediaProxyTask.this.getTerminated()) {
                         return;
                     }
                 }
             }
+
+            private void downloadSeqFile(M3u8SeqInfo m3u8SeqInfo) {
+                for (int i = 0; i < 3; i++) {
+                    try {
+                        VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
+                        if (!m3u8SeqInfo.getSeqFile().exists()) {
+                            if (mediaVideoInfo.getEncodeMethod() == null) {
+                                HttpRequestUtil.downloadToFile(m3u8SeqInfo.getSeqUrl(), m3u8SeqInfo.getSeqFile());
+                            } else {
+                                m3u8SeqInfo.getSeqFile().getParentFile().mkdirs();
+                                byte[] encodedData = HttpRequestUtil.downloadUrl(m3u8SeqInfo.getSeqUrl());
+                                try {
+                                    SecretKeySpec sKeySpec = new SecretKeySpec(mediaVideoInfo.getEncodeKey(), "AES");
+                                    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                                    IvParameterSpec ivParameterSpec = new IvParameterSpec(mediaVideoInfo.getEncodeIV());
+                                    cipher.init(Cipher.DECRYPT_MODE, sKeySpec, ivParameterSpec);
+                                    byte[] decodedData = cipher.doFinal(encodedData);
+                                    try (FileOutputStream seqFileStream = new FileOutputStream(m3u8SeqInfo.getSeqFile())) {
+                                        IOUtils.write(decodedData, seqFileStream);
+                                    }
+                                } catch (Throwable e) {
+                                    log.warn("媒体数据解密失败{} KEY={},IV={},SEQ={}", e.getMessage(), Hex.encodeHexString(mediaVideoInfo.getEncodeKey()), Hex.encodeHexString(mediaVideoInfo.getEncodeIV()), m3u8SeqInfo.getSeqFile());
+                                }
+                            }
+                            retryCount.set(0);
+                        }
+                        break;
+                    } catch (Throwable e) {
+                        if (e instanceof FileNotFoundException) {
+                            log.warn(getVideoId() + "出错，媒体文件已过期", e);
+                            break;
+                        }
+                        log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
+                    }
+                }
+            }
+
 
             @Override
             protected void terminateTask() {
@@ -179,6 +218,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     class M3u8SeqInfo {
         private URI  seqUrl;
         private File seqFile;
+        private Long convertPid;
 
         public URI getSeqUrl() {
             return seqUrl;
@@ -196,6 +236,14 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             this.seqFile = seqFile;
         }
 
+        public Long getConvertPid() {
+            return convertPid;
+        }
+
+        public void setConvertPid(Long convertPid) {
+            this.convertPid = convertPid;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -210,7 +258,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         }
     }
 
-    private void createM3U8File() throws IOException {
+    private void createM3U8File() {
         if (System.currentTimeMillis() < NEXT_M3U8_WRITE_TIME) {
             return;
         }
@@ -257,11 +305,15 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 sb.append(seq).append(".ts\n");
             }
             File m3u8FileTemp = new File(m3u8Path + "/index.m3u8.tmp");
-            FileUtils.write(m3u8FileTemp, sb);
-            File m3u8File = new File(m3u8Path + "/index.m3u8");
-            m3u8File.delete();
-            m3u8FileTemp.renameTo(m3u8File);
-            NEXT_M3U8_WRITE_TIME = System.currentTimeMillis() + 250;
+            try {
+                FileUtils.write(m3u8FileTemp, sb);
+                File m3u8File = new File(m3u8Path + "/index.m3u8");
+                m3u8File.delete();
+                m3u8FileTemp.renameTo(m3u8File);
+                NEXT_M3U8_WRITE_TIME = System.currentTimeMillis() + 250;
+            } catch (IOException e) {
+                log.error("M3U8序列文件写入失败", e);
+            }
         }
     }
 }

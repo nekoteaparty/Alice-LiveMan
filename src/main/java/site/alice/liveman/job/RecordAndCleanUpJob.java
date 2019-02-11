@@ -156,6 +156,9 @@ public class RecordAndCleanUpJob {
             } else {
                 success = true;
             }
+        } else {
+            // 没有转播记录当做垃圾数据清除
+            success = true;
         }
         if (sourceFile.exists()) {
             if (success) {

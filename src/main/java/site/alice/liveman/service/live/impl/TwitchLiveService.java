@@ -29,6 +29,8 @@ import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.M3u8Util;
+import site.alice.liveman.utils.M3u8Util.StreamInfo;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -49,7 +51,7 @@ public class TwitchLiveService extends LiveService {
     private LiveManSetting liveManSetting;
 
     @Override
-    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo,String resolution) throws Exception {
+    public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         if (videoInfoUrl == null) {
             return null;
         }
@@ -72,9 +74,11 @@ public class TwitchLiveService extends LiveService {
             String[] m3u8Lines = masterM3u8.split("\n");
             String m3u8FileUrl = null;
             boolean isFindResolution = false;
+            StreamInfo streamInfo = null;
             for (String m3u8Line : m3u8Lines) {
                 if (StringUtils.isNotEmpty(m3u8Line)) {
-                    if (m3u8Line.startsWith("#")) {
+                    if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
+                        streamInfo = M3u8Util.getStreamInfo(m3u8Line);
                         if (m3u8Line.contains(resolution)) {
                             isFindResolution = true;
                         }
@@ -92,6 +96,10 @@ public class TwitchLiveService extends LiveService {
                 }
             }
             VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, new URI(m3u8FileUrl), "m3u8");
+            if (streamInfo != null) {
+                videoInfo.setResolution(streamInfo.getResolution());
+                videoInfo.setFrameRate(streamInfo.getFrameRate());
+            }
             videoInfo.setDescription(streamObj.getString("game"));
             return videoInfo;
         }

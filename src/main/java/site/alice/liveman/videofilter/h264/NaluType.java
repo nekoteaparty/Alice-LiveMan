@@ -31,5 +31,6 @@ public enum NaluType {
     NALU_TYPE_AUD,
     NALU_TYPE_EOSEQ,
     NALU_TYPE_EOSTREAM,
-    NALU_TYPE_FILL
+    NALU_TYPE_FILL,
+    OTHER
 }
