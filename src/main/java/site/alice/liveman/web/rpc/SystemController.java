@@ -58,6 +58,7 @@ public class SystemController {
         settingVO.setDefaultResolution(liveManSetting.getDefaultResolution());
         settingVO.setBaseUrl(liveManSetting.getBaseUrl());
         settingVO.setHasOneDriveToken(StringUtils.isNotEmpty(liveManSetting.getOneDriveToken()));
+        settingVO.setPreReEncode(liveManSetting.getPreReEncode());
         return ActionResult.getSuccessResult(settingVO);
     }
 
@@ -72,6 +73,7 @@ public class SystemController {
         liveManSetting.setBannedYoutubeChannel(settingVO.getBannedYoutubeChannelArray());
         liveManSetting.setDefaultResolution(settingVO.getDefaultResolution());
         liveManSetting.setBaseUrl(settingVO.getBaseUrl());
+        liveManSetting.setPreReEncode(settingVO.getPreReEncode());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {

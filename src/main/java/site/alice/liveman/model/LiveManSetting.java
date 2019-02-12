@@ -37,6 +37,7 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<AccountInfo> accounts;
     private CopyOnWriteArraySet<ChannelInfo> channels;
     private CopyOnWriteArraySet<ServerInfo>  servers;
+    private Boolean                          preReEncode;
     private Proxy                            proxy;
 
     public String[] getBannedYoutubeChannel() {
@@ -125,6 +126,14 @@ public class LiveManSetting {
 
     public void setOneDriveToken(String oneDriveToken) {
         this.oneDriveToken = oneDriveToken;
+    }
+
+    public Boolean getPreReEncode() {
+        return preReEncode;
+    }
+
+    public void setPreReEncode(Boolean preReEncode) {
+        this.preReEncode = preReEncode;
     }
 
     @JSONField(serialize = false)

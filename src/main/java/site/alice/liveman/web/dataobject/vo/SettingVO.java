@@ -25,7 +25,8 @@ public class SettingVO {
     private String[] bannedKeywords;
     private String   defaultResolution;
     private String   baseUrl;
-    private boolean  hasOneDriveToken;
+    private Boolean  hasOneDriveToken;
+    private Boolean  preReEncode;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -89,5 +90,13 @@ public class SettingVO {
 
     public void setHasOneDriveToken(boolean hasOneDriveToken) {
         this.hasOneDriveToken = hasOneDriveToken;
+    }
+
+    public Boolean getPreReEncode() {
+        return preReEncode;
+    }
+
+    public void setPreReEncode(Boolean preReEncode) {
+        this.preReEncode = preReEncode;
     }
 }

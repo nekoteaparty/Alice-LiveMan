@@ -40,7 +40,7 @@ import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
-    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(100, 100, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10));
+    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(100, 100, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(100));
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
     private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;

@@ -23,8 +23,8 @@ public class NALUStruct {
     public int          len;
     public int          max_size;
     public int          forbidden_bit;
-    public NaluPriority nal_reference_idc;
-    public NaluType     nal_unit_type;
+    public NaluPriority nal_reference_idc = NaluPriority.OTHER;
+    public NaluType     nal_unit_type     = NaluType.OTHER;
     public byte[]       buf;
     public long         start_pos;
 }

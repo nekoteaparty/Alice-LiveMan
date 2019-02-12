@@ -28,6 +28,8 @@ import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.BroadcastServerService;
 
+import java.io.File;
+
 @Component
 @Slf4j
 public class FfmpegUtil {
@@ -49,6 +51,10 @@ public class FfmpegUtil {
         return liveManSetting.getFfmpegPath() + "\t-i\t" + mediaUrl + "\t-vframes\t1\t-y\t" + fileName;
     }
 
+    public static String buildToLowFrameRateCmdLine(File srcFile, File dictFile) {
+        return liveManSetting.getFfmpegPath() + "\t-i\t" + srcFile + "\t-r\t30\t-copyts\t-acodec\tcopy\t-qscale:v\t12\t" + dictFile + "\t-y";
+    }
+
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
         String ffmpegCmdLine = buildLocalFfmpegCmdLine(videoInfo, broadcastAddress);
         if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
@@ -62,7 +68,7 @@ public class FfmpegUtil {
     }
 
     public static String buildLocalFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String cmdLine = liveManSetting.getFfmpegPath() + "\t-re\t-i\t\"" + videoInfo.getMediaProxyUrl() + "\"";
+        String cmdLine = "\t-re\t-i\t\"" + videoInfo.getMediaProxyUrl() + "\"";
         if (videoInfo.isAudioBanned()) {
             cmdLine += "\t-ac\t1";
         }
@@ -71,13 +77,13 @@ public class FfmpegUtil {
             cmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
             cmdLine += "\t-vcodec\th264";
         } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-            String areaCmd = "\t-vf\t\"[ina]fps=30,scale=1280:720[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=" + cropConf.getBlurSize() + ":" + cropConf.getBlurSize() + "[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
+            String areaCmd = "\t-vf\t\"[ina]scale=1280:720[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=" + cropConf.getBlurSize() + ":" + cropConf.getBlurSize() + "[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
             cmdLine += String.format(areaCmd, cropConf.getCtrlWidth(), cropConf.getCtrlHeight(), cropConf.getCtrlLeft(), cropConf.getCtrlTop(), cropConf.getCtrlLeft(), cropConf.getCtrlTop());
             cmdLine += "\t-vcodec\th264\t-preset\tultrafast";
         } else {
             cmdLine += "\t-vcodec\tcopy";
         }
-        cmdLine += "\t-acodec\taac\t-b:a\t132K\t-f\tflv\t\"" + broadcastAddress + "\"";
-        return cmdLine;
+        cmdLine += "\t-acodec\taac\t-b:a\t130K\t-f\tflv\t\"" + broadcastAddress + "\"";
+        return liveManSetting.getFfmpegPath() + cmdLine;
     }
 }
