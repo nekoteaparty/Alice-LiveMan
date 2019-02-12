@@ -24,8 +24,10 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
+import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.HttpRequestUtil;
@@ -53,6 +55,8 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     protected              AtomicInteger              retryCount           = new AtomicInteger(0);
     private                int                        lastSeqIndex         = 0;
     private final          MediaProxyTask             downloadTask;
+    @Autowired
+    private                LiveManSetting             liveManSetting;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
         super(videoId, sourceUrl);
@@ -60,7 +64,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             @Override
             protected void runTask() throws InterruptedException {
                 VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
-                boolean needLowFrameRate = mediaVideoInfo.getVideoId().endsWith("_low") && "60".equals(mediaVideoInfo.getFrameRate());
+                boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") && "60".equals(mediaVideoInfo.getFrameRate());
                 final BlockingQueue<M3u8SeqInfo> toLowFrameRatePidQueue = new LinkedBlockingQueue<>();
                 if (needLowFrameRate) {
                     MediaProxyManager.runProxy(new MediaProxyTask(getVideoId() + "_LOW-FRAME-RATE", null) {
