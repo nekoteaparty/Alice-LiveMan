@@ -77,8 +77,10 @@ public class TwitchLiveService extends LiveService {
             StreamInfo streamInfo = null;
             for (String m3u8Line : m3u8Lines) {
                 if (StringUtils.isNotEmpty(m3u8Line)) {
-                    if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
-                        streamInfo = M3u8Util.getStreamInfo(m3u8Line);
+                    if (m3u8Line.startsWith("#")) {
+                        if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
+                            streamInfo = M3u8Util.getStreamInfo(m3u8Line);
+                        }
                         if (m3u8Line.contains(resolution)) {
                             isFindResolution = true;
                         }
