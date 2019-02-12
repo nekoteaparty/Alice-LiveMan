@@ -37,7 +37,7 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<AccountInfo> accounts;
     private CopyOnWriteArraySet<ChannelInfo> channels;
     private CopyOnWriteArraySet<ServerInfo>  servers;
-    private Boolean                          preReEncode;
+    private Boolean                          preReEncode = false;
     private Proxy                            proxy;
 
     public String[] getBannedYoutubeChannel() {
