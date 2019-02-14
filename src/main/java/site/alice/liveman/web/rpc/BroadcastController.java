@@ -246,20 +246,23 @@ public class BroadcastController {
         }
         VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
         BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
-        if (broadcastTask == null) {
-            log.info("此转播任务尚未运行，或已停止[BroadcastTask不存在][videoId=" + videoId + "]");
-            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        if (broadcastTask != null) {
+            AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+            if (broadcastAccount == null) {
+                log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
+                return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+            }
+            if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
+                log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
+                return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
+            }
+            videoInfo.setArea(broadcastTaskVO.getArea());
+            Integer areaId = null;
+            if (broadcastTaskVO.getArea() != null && broadcastTaskVO.getArea().length > 1) {
+                areaId = broadcastTaskVO.getArea()[1];
+            }
+            broadcastServiceManager.getBroadcastService(account.getAccountSite()).setBroadcastSetting(broadcastAccount, broadcastTaskVO.getRoomTitle(), areaId);
         }
-        AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
-        if (broadcastAccount == null) {
-            log.info("此转播任务尚未运行，或已停止[BroadcastAccount不存在][videoId=" + videoId + "]");
-            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
-        }
-        if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
-            log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
-            return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
-        }
-        videoInfo.setArea(broadcastTaskVO.getArea());
         videoInfo.setNeedRecord(broadcastTaskVO.isNeedRecord());
         MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
         if (mediaHistory != null) {
@@ -267,13 +270,10 @@ public class BroadcastController {
         }
         if (videoInfo.isAudioBanned() != broadcastTaskVO.isAudioBanned()) {
             videoInfo.setAudioBanned(broadcastTaskVO.isAudioBanned());
-            ProcessUtil.killProcess(broadcastTask.getPid());
+            if (broadcastTask != null) {
+                ProcessUtil.killProcess(broadcastTask.getPid());
+            }
         }
-        Integer areaId = null;
-        if (broadcastTaskVO.getArea() != null && broadcastTaskVO.getArea().length > 1) {
-            areaId = broadcastTaskVO.getArea()[1];
-        }
-        broadcastServiceManager.getBroadcastService(account.getAccountSite()).setBroadcastSetting(broadcastAccount, broadcastTaskVO.getRoomTitle(), areaId);
         return ActionResult.getSuccessResult(null);
     }
 
