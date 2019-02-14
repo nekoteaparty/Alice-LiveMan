@@ -265,16 +265,8 @@ public class BroadcastController {
         if (mediaHistory != null) {
             mediaHistory.setNeedRecord(broadcastTaskVO.isNeedRecord());
         }
-        boolean needReStream = false;
-        if (videoInfo.isVideoBanned() != broadcastTaskVO.isVideoBanned()) {
-            videoInfo.setVideoBanned(broadcastTaskVO.isVideoBanned());
-            needReStream = true;
-        }
         if (videoInfo.isAudioBanned() != broadcastTaskVO.isAudioBanned()) {
             videoInfo.setAudioBanned(broadcastTaskVO.isAudioBanned());
-            needReStream = true;
-        }
-        if (needReStream) {
             ProcessUtil.killProcess(broadcastTask.getPid());
         }
         Integer areaId = null;

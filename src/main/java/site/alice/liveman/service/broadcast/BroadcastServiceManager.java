@@ -284,6 +284,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                     lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
                                     MediaProxyManager.createProxy(lowVideoInfo);
                                 }
+                                lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
                                 lowVideoInfo.setCropConf(currentVideo.getCropConf());
                                 ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                             } else {
