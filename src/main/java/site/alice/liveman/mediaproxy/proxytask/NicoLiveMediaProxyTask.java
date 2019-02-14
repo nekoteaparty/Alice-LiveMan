@@ -49,13 +49,13 @@ public class NicoLiveMediaProxyTask extends M3u8MediaProxyTask {
     public void runTask() throws InterruptedException {
         session = connectToNicoLive();
         synchronized (this) {
-            this.wait();
-        }
-        if (getSourceUrl().getScheme().startsWith("wss")) {
-            log.error("无法获取NicoLive直播流地址，媒体代理线程退出[videoId=" + getVideoId() + "]");
-            return;
+            this.wait(60000);
         }
         try {
+            if (getSourceUrl().getScheme().startsWith("wss")) {
+                log.error("无法获取NicoLive直播流地址，媒体代理线程退出[videoId=" + getVideoId() + "]");
+                return;
+            }
             super.runTask();
         } finally {
             terminate();
@@ -71,13 +71,21 @@ public class NicoLiveMediaProxyTask extends M3u8MediaProxyTask {
 
     private Session connectToNicoLive() {
         String[] pathSplit = webSocketUrl.getPath().split("/");
-        String broadcastId = pathSplit[pathSplit.length - 1];
+        String _broadcastId = "";
+        for (String aPathSplit : pathSplit) {
+            if (StringUtils.isNotEmpty(aPathSplit) && StringUtils.isNumeric(aPathSplit)) {
+                _broadcastId = aPathSplit;
+                break;
+            }
+        }
+        final String broadcastId = _broadcastId;
         WebSocketContainer webSocketContainer = ContainerProvider.getWebSocketContainer();
         ClientEndpointConfig clientEndpointConfig = ClientEndpointConfig.Builder.create().configurator(new ClientEndpointConfig.Configurator() {
             @Override
             public void beforeRequest(Map<String, List<String>> headers) {
                 headers.put("Origin", Collections.singletonList("http://live2.nicovideo.jp"));
                 headers.put("User-Agent", Collections.singletonList("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"));
+                headers.put("Cookie", Collections.singletonList(getVideoInfo().getChannelInfo().getCookies()));
             }
         }).build();
         try {
@@ -92,6 +100,7 @@ public class NicoLiveMediaProxyTask extends M3u8MediaProxyTask {
                             try {
                                 if (StringUtils.isNotEmpty(message)) {
                                     JSONObject msgJson = JSON.parseObject(message);
+                                    System.out.println(msgJson);
                                     String type = msgJson.getString("type");
                                     switch (String.valueOf(type)) {
                                         case "ping":
