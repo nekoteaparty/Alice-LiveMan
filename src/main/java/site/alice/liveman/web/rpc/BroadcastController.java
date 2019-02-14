@@ -256,13 +256,13 @@ public class BroadcastController {
                 log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
                 return ActionResult.getErrorResult("你没有权限编辑他人直播间的推流任务");
             }
-            videoInfo.setArea(broadcastTaskVO.getArea());
             Integer areaId = null;
             if (broadcastTaskVO.getArea() != null && broadcastTaskVO.getArea().length > 1) {
                 areaId = broadcastTaskVO.getArea()[1];
             }
             broadcastServiceManager.getBroadcastService(account.getAccountSite()).setBroadcastSetting(broadcastAccount, broadcastTaskVO.getRoomTitle(), areaId);
         }
+        videoInfo.setArea(broadcastTaskVO.getArea());
         videoInfo.setNeedRecord(broadcastTaskVO.isNeedRecord());
         MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
         if (mediaHistory != null) {
