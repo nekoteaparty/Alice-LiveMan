@@ -204,6 +204,8 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     if ((retryCount.incrementAndGet() + 2) % 3 == 0) {
                         log.info(getVideoId() + "没有找到可以下载的片段，重试(" + retryCount.get() + "/" + MAX_RETRY_COUNT + ")次");
                     }
+                } else {
+                    retryCount.set(0);
                 }
             } catch (Throwable e) {
                 log.error(getVideoId() + "出错重试(" + retryCount.incrementAndGet() + "/" + MAX_RETRY_COUNT + ")次", e);
