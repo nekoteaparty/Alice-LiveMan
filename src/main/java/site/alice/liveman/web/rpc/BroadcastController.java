@@ -166,7 +166,9 @@ public class BroadcastController {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
             }
-            ProcessUtil.killProcess(broadcastTask.getPid());
+            if (broadcastTask != null) {
+                ProcessUtil.killProcess(broadcastTask.getPid());
+            }
         }
         return ActionResult.getSuccessResult(null);
     }
