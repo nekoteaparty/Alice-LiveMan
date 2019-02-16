@@ -317,6 +317,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
                     if (mediaProxyTask != null) {
                         mediaProxyTask.terminate();
+                        // 这里需要等待任务停止
+                        mediaProxyTask.waitForTerminate();
                     }
                     broadcastAccount.removeCurrentVideo(videoInfo);
                     if (broadcastAccount.isDisable() && singleTask) {

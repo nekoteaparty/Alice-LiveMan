@@ -170,7 +170,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                     } catch (Exception e) {
                         log.error("检查直播间推流状态发生错误，重试(" + i + "/3)", e);
                         if (i == 3) {
-                            return;
+                            log.info("无法读取[roomId=" + roomId + "]的直播视频流，尝试关闭直播间...");
                         }
                     }
                 }

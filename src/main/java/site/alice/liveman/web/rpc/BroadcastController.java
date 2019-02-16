@@ -202,6 +202,23 @@ public class BroadcastController {
         }
     }
 
+    @RequestMapping("/terminateTask.json")
+    public ActionResult terminateTask(String videoId) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        log.info("terminateTask()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        if (!account.isAdmin()) {
+            return ActionResult.getErrorResult("没有权限！");
+        }
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        mediaProxyTask.terminate();
+        mediaProxyTask.waitForTerminate();
+        return ActionResult.getSuccessResult(null);
+    }
+
     @RequestMapping("/createTask.json")
     public ActionResult createTask(String videoUrl, String cookies) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
