@@ -195,6 +195,7 @@ public class BroadcastController {
             return ActionResult.getErrorResult("你没有权限停止他人直播间的推流任务");
         }
         if (broadcastTask.terminateTask()) {
+            broadcastTask.waitForTerminate();
             return ActionResult.getSuccessResult(null);
         } else {
             log.info("终止转播任务失败：CAS操作失败，请刷新页面后重试[videoId=" + videoId + "]");

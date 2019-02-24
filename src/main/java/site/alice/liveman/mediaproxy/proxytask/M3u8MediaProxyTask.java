@@ -285,19 +285,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             }
             seqList.sort(Comparator.reverseOrder());
             seqList = seqList.subList(0, Math.min(100, seqList.size()));
-            Integer preSeqIndex = null;
-            for (Iterator<Integer> iterator = seqList.iterator(); iterator.hasNext(); ) {
-                if (preSeqIndex == null) {
-                    preSeqIndex = iterator.next();
-                } else {
-                    Integer seqIndex = iterator.next();
-                    if (preSeqIndex - seqIndex != 1) {
-                        iterator.remove();
-                    } else {
-                        preSeqIndex = seqIndex;
-                    }
-                }
-            }
             Collections.reverse(seqList);
 
             StringBuilder sb = new StringBuilder();

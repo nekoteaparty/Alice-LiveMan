@@ -230,7 +230,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
 
         @Override
-        public void run() {
+        public synchronized void run() {
             // 任务第一次启动时尝试用默认的转播账号进行一次转播
             if (!singleTask) {
                 ChannelInfo channelInfo = videoInfo.getChannelInfo();
@@ -292,6 +292,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
                                 if (mediaProxyTask != null) {
                                     mediaProxyTask.terminate();
+                                    mediaProxyTask.waitForTerminate();
                                 }
                                 ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             }
@@ -334,7 +335,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 } catch (InterruptedException ignore) {
                 }
             }
-            videoInfo.removeBroadcastTask(this);
+            if (!videoInfo.removeBroadcastTask(this)) {
+                log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
+            }
         }
 
         public boolean terminateTask() {
@@ -354,6 +357,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             videoInfo.removeBroadcastTask(this);
             ProcessUtil.killProcess(pid);
             return true;
+        }
+
+        public synchronized void waitForTerminate() {
+
         }
     }
 
