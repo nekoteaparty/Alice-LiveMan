@@ -132,9 +132,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.javolution</groupId>
-            <artifactId>javolution-core-java</artifactId>
-            <version>6.0.0</version>
+            <groupId>com.keypoint</groupId>
+            <artifactId>png-encoder</artifactId>
+            <version>1.5</version>
         </dependency>
 
     </dependencies>

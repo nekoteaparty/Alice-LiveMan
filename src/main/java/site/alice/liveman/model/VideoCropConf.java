@@ -18,17 +18,26 @@
 
 package site.alice.liveman.model;
 
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class VideoCropConf implements Serializable {
-    private VideoBannedTypeEnum videoBannedType = VideoBannedTypeEnum.NONE;
-    private int                 ctrlWidth;
-    private int                 ctrlHeight;
-    private int                 ctrlLeft;
-    private int                 ctrlTop;
-    private int                 blurSize;
+    private VideoBannedTypeEnum   videoBannedType = VideoBannedTypeEnum.NONE;
+    private int                   ctrlWidth;
+    private int                   ctrlHeight;
+    private int                   ctrlLeft;
+    private int                   ctrlTop;
+    private int                   blurSize;
+    private TreeSet<CustomLayout> layouts;
+
+    public VideoCropConf() {
+        layouts = new TreeSet<>();
+    }
 
     public VideoBannedTypeEnum getVideoBannedType() {
         return videoBannedType;
@@ -78,6 +87,14 @@ public class VideoCropConf implements Serializable {
         this.blurSize = blurSize;
     }
 
+    public TreeSet<CustomLayout> getLayouts() {
+        return layouts;
+    }
+
+    public void setLayouts(TreeSet<CustomLayout> layouts) {
+        this.layouts = layouts;
+    }
+
     @Override
     public String toString() {
         return "VideoCropConf{" +
@@ -87,6 +104,7 @@ public class VideoCropConf implements Serializable {
                 ", ctrlLeft=" + ctrlLeft +
                 ", ctrlTop=" + ctrlTop +
                 ", blurSize=" + blurSize +
+                ", layouts=" + layouts +
                 '}';
     }
 }

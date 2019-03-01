@@ -89,7 +89,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     public BufferedImage getKeyFrame() {
         String fileName = UUID.randomUUID() + ".jpg";
         String keyFrameCmdLine = FfmpegUtil.buildKeyFrameCmdLine(targetUrl.toString(), fileName);
-        long process = ProcessUtil.createProcess(keyFrameCmdLine, getVideoId() + "_KeyFrame", false);
+        long process = ProcessUtil.createProcess(keyFrameCmdLine, getVideoId() + "_KeyFrame");
         try {
             if (ProcessUtil.waitProcess(process, 10000)) {
                 return ImageIO.read(new File(fileName));

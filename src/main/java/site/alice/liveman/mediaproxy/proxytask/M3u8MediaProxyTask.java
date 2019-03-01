@@ -95,7 +95,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                         }
                         downloadSeqFile(m3u8SeqInfo);
                         if (needLowFrameRate) {
-                            long process = ProcessUtil.createProcess(FfmpegUtil.buildToLowFrameRateCmdLine(m3u8SeqInfo.getSeqFile(), dictSeqFile), getVideoId() + "_LOW-FRAME-RATE", false);
+                            long process = ProcessUtil.createProcess(FfmpegUtil.buildToLowFrameRateCmdLine(m3u8SeqInfo.getSeqFile(), dictSeqFile), getVideoId() + "_LOW-FRAME-RATE");
                             m3u8SeqInfo.setConvertPid(process);
                             toLowFrameRatePidQueue.offer(m3u8SeqInfo);
                         } else {

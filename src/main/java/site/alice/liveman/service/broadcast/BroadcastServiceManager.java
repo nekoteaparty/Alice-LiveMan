@@ -17,7 +17,9 @@
  */
 package site.alice.liveman.service.broadcast;
 
+import com.keypoint.PngEncoderB;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -37,28 +40,33 @@ import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
+import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
 public class BroadcastServiceManager implements ApplicationContextAware {
-    private static final ScheduledThreadPoolExecutor   threadPoolExecutor = new ScheduledThreadPoolExecutor(50);
-    private              Map<String, BroadcastService> broadcastServiceMap;
+    private Map<String, BroadcastService> broadcastServiceMap;
     @Autowired
-    private              LiveManSetting                liveManSetting;
+    private LiveManSetting                liveManSetting;
     @Autowired
-    private              BilibiliApiUtil               bilibiliApiUtil;
+    private BilibiliApiUtil               bilibiliApiUtil;
     @Autowired
-    private              MediaHistoryService           mediaHistoryService;
+    private MediaHistoryService           mediaHistoryService;
     @Autowired
-    private              LiveServiceFactory            liveServiceFactory;
+    private LiveServiceFactory            liveServiceFactory;
     @Autowired
-    private              BroadcastServerService        broadcastServerService;
+    private BroadcastServerService        broadcastServerService;
 
     @PostConstruct
     public void init() {
@@ -87,7 +95,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     } else {
                         broadcastTask = videoInfo.getBroadcastTask();
                     }
-                    threadPoolExecutor.execute(broadcastTask);
+                    ThreadPoolUtil.execute(broadcastTask);
                 }
             }
 
@@ -124,7 +132,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     if (!videoInfo.setBroadcastTask(broadcastTask)) {
                         throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
                     }
-                    threadPoolExecutor.execute(broadcastTask);
+                    ThreadPoolUtil.execute(broadcastTask);
                     return broadcastTask;
                 } else {
                     // 创建直播流代理任务
@@ -191,6 +199,52 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
+    public class CustomLayoutTask implements Runnable {
+        private static final int       fps = 5;
+        private              VideoInfo videoInfo;
+        private              Process   process;
+
+        public CustomLayoutTask(VideoInfo videoInfo, Process process) {
+            this.videoInfo = videoInfo;
+            this.process = process;
+        }
+
+        @Override
+        public void run() {
+            BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D graphics = image.createGraphics();
+            graphics.setBackground(new Color(0, 0, 0, 0));
+            log.info("CustomLayoutTask已启动[videoId=" + videoInfo.getVideoId() + "]");
+            while (process.isAlive()) {
+                long startTime = System.nanoTime();
+                graphics.clearRect(0, 0, image.getWidth(), image.getHeight());
+                Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+                if (CollectionUtils.isNotEmpty(customLayoutList)) {
+                    for (CustomLayout customLayout : customLayoutList) {
+                        try {
+                            customLayout.paintLayout(graphics);
+                        } catch (Exception e) {
+                            log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                        }
+                    }
+                }
+                try {
+                    PngEncoderB pngEncoderB = new PngEncoderB();
+                    pngEncoderB.setEncodeAlpha(true);
+                    pngEncoderB.setImage(image);
+                    OutputStream outputStream = process.getOutputStream();
+                    outputStream.write(pngEncoderB.pngEncode());
+                    outputStream.flush();
+                    long dt = (System.nanoTime() - startTime) / 1000000;
+                    Thread.sleep(Math.max(0, (1000 / fps) - dt));
+                } catch (Exception e) {
+                    log.error("无法输出图像数据到管道[videoId=" + videoInfo.getVideoId() + "]", e);
+                }
+            }
+            log.info("推流进程已结束[videoId=" + videoInfo.getVideoId() + "]，CustomLayoutTask自动退出...");
+        }
+    }
+
     public class BroadcastTask implements Runnable {
 
         private VideoInfo   videoInfo;
@@ -219,14 +273,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
         public AccountInfo getBroadcastAccount() {
             return broadcastAccount;
-        }
-
-        public boolean isTerminate() {
-            return terminate;
-        }
-
-        public boolean isSingleTask() {
-            return singleTask;
         }
 
         @Override
@@ -270,9 +316,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
                             }
                             String ffmpegCmdLine;
-                            // 如果是区域打码的，创建低分辨率媒体代理服务
+                            // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
                             VideoInfo lowVideoInfo = null;
-                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN || currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
                                 MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
                                 if (mediaProxyTask != null) {
                                     lowVideoInfo = mediaProxyTask.getVideoInfo();
@@ -296,10 +342,19 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 }
                                 ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             }
-                            pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId(), false);
+                            pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
+                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                                // 先等待2秒保证ffmpeg已启动
+                                Thread.sleep(2000);
+                                // 启动自定义视图渲染线程
+                                Process process = ProcessUtil.getProcess(pid);
+                                if (process != null && process.isAlive()) {
+                                    ThreadPoolUtil.execute(new CustomLayoutTask(currentVideo, process));
+                                }
+                            }
                             // 等待进程退出或者任务结束
-                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 5000)) ;
+                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
                             if (lowVideoInfo != null) {
@@ -310,7 +365,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             log.error("startBroadcast failed", e);
                         }
                         try {
-                            Thread.sleep(1000);
+                            if (!terminate) {
+                                Thread.sleep(1000);
+                            }
                         } catch (InterruptedException ignore) {
                         }
                     }
@@ -331,11 +388,13 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     log.error("startBroadcast failed", e);
                 }
                 try {
-                    Thread.sleep(5000);
+                    if (!terminate) {
+                        Thread.sleep(1000);
+                    }
                 } catch (InterruptedException ignore) {
                 }
             }
-            if (!videoInfo.removeBroadcastTask(this)) {
+            if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                 log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
             }
         }
@@ -343,7 +402,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         public boolean terminateTask() {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
-                threadPoolExecutor.schedule(() -> {
+                ThreadPoolUtil.schedule(() -> {
                     if (broadcastAccount.getCurrentVideo() == null) {
                         getBroadcastService(broadcastAccount.getAccountSite()).stopBroadcast(broadcastAccount, true);
                     }

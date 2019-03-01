@@ -36,18 +36,26 @@ import static com.sun.jna.platform.win32.WinNT.*;
 @Slf4j
 public class ProcessUtil {
 
-    private static final Map<Long, Object> processTargetMap = new ConcurrentHashMap<>();
+    private static final Map<Long, Process> processTargetMap = new ConcurrentHashMap<>();
 
-    public static long createProcess(String cmdLine, String videoId, boolean isVisible) {
+    public static long createProcess(String... args) {
+        return createProcess(args, null);
+    }
+
+    public static long createProcess(String cmdLine, String videoId) {
+        String[] args = cmdLine.split("\t");
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
+                args[i] = args[i].substring(1, args[i].length() - 1);
+            }
+        }
+        log.info(JSON.toJSONString(args));
+        return createProcess(args, videoId);
+    }
+
+    public static long createProcess(String[] args, String videoId) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder();
-            String[] args = cmdLine.split("\t");
-            for (int i = 0; i < args.length; i++) {
-                if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
-                    args[i] = args[i].substring(1, args[i].length() - 1);
-                }
-            }
-            log.info(JSON.toJSONString(args));
             processBuilder.command(args);
             if (videoId != null) {
                 File logFile = new File("logs/ffmpeg/" + videoId + ".log");
@@ -66,7 +74,7 @@ public class ProcessUtil {
     }
 
     public static boolean isProcessExist(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             return process.isAlive();
         }
@@ -95,19 +103,15 @@ public class ProcessUtil {
     }
 
     public static void killProcess(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             process.destroy();
-            try {
-                process.waitFor();
-            } catch (InterruptedException ignore) {
-
-            }
+            waitProcess(pid);
         }
     }
 
     public static void waitProcess(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             try {
                 process.waitFor();
@@ -116,6 +120,10 @@ public class ProcessUtil {
 
             }
         }
+    }
+
+    public static Process getProcess(long pid) {
+        return processTargetMap.get(pid);
     }
 
     /**
@@ -127,7 +135,7 @@ public class ProcessUtil {
         if (pid == 0) {
             return true;
         }
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             try {
                 boolean result = process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);

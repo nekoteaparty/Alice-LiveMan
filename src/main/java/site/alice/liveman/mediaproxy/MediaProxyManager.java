@@ -30,6 +30,7 @@ import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.VideoFilterService;
+import site.alice.liveman.utils.ThreadPoolUtil;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -40,7 +41,6 @@ import java.util.concurrent.*;
 
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
-    private static final ThreadPoolExecutor            threadPoolExecutor   = new ThreadPoolExecutor(100, 100, 100000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(100));
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
     private static final List<MediaProxyEventListener> listeners            = new CopyOnWriteArrayList<>();
     private static       Map<String, MediaProxy>       proxyMap;
@@ -109,7 +109,7 @@ public class MediaProxyManager implements ApplicationContextAware {
         if (!executedProxyTaskMap.containsKey(task.getVideoId())) {
             LOGGER.info("开始节目直播流代理[" + task.getVideoId() + "]" + (task.getSourceUrl() != null ? "[sourceUrl=" + task.getSourceUrl() + ", targetUrl=" + task.getTargetUrl() + "]" : ""));
             executedProxyTaskMap.put(task.getVideoId(), task);
-            threadPoolExecutor.execute(task);
+            ThreadPoolUtil.execute(task);
             for (MediaProxyEventListener listener : listeners) {
                 try {
                     MediaProxyEvent mediaProxyEvent = new MediaProxyEvent(MediaProxyManager.class);

@@ -58,14 +58,18 @@ public class BroadcastServerService {
     }
 
     public void addServer(ServerInfo serverInfo) throws Exception {
-        String scpCmd = String.format("sshpass\t-p\t%s\tscp\t-o\tStrictHostKeyChecking=no\t-P\t%s\t-r\t%s\t%s@%s:%s", serverInfo.getPassword(), serverInfo.getPort(), liveManSetting.getFfmpegPath(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
-        long process = ProcessUtil.createProcess(scpCmd, "install-scp" + serverInfo.getAddress(), false);
-        ProcessUtil.waitProcess(process);
-        String sshCmd = String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-p\t%s\t%s@%s\tchmod 777 %s", serverInfo.getPassword(), serverInfo.getPort(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
-        process = ProcessUtil.createProcess(sshCmd, "install-chmod" + serverInfo.getAddress(), false);
-        ProcessUtil.waitProcess(process);
+        installServer(serverInfo);
         liveManSetting.getServers().add(serverInfo);
         settingConfig.saveSetting(liveManSetting);
+    }
+
+    public void installServer(ServerInfo serverInfo) {
+        String scpCmd = String.format("sshpass\t-p\t%s\tscp\t-o\tStrictHostKeyChecking=no\t-P\t%s\t-r\t%s\t%s@%s:%s", serverInfo.getPassword(), serverInfo.getPort(), liveManSetting.getFfmpegPath(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
+        long process = ProcessUtil.createProcess(scpCmd, "install-scp" + serverInfo.getAddress());
+        ProcessUtil.waitProcess(process);
+        String sshCmd = String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-p\t%s\t%s@%s\tchmod 777 %s", serverInfo.getPassword(), serverInfo.getPort(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
+        process = ProcessUtil.createProcess(sshCmd, "install-chmod" + serverInfo.getAddress());
+        ProcessUtil.waitProcess(process);
     }
 
     public void releaseServer(VideoInfo videoInfo) {

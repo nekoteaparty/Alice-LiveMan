@@ -17,11 +17,15 @@
  */
 package site.alice.liveman.model;
 
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class VideoInfo implements Serializable {

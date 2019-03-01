@@ -20,12 +20,14 @@ package site.alice.liveman.web.rpc;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
@@ -153,11 +155,20 @@ public class BroadcastController {
             }
         }
         if (cropConf != null) {
-            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN && !account.isVip()) {
-                return ActionResult.getErrorResult("你没有权限使用区域打码功能");
+            if ((cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN || cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) && !account.isVip()) {
+                return ActionResult.getErrorResult("你没有权限使用区域打码或自定义功能");
+            }
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                for (CustomLayout layout : cropConf.getLayouts()) {
+                    layout.setVideoInfo(videoInfo);
+                }
+            } else if (CollectionUtils.isNotEmpty(cropConf.getLayouts())) {
+                cropConf.getLayouts().clear();
             }
             videoInfo.setCropConf(cropConf);
-            videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+                videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
+            }
             try {
                 settingConfig.saveSetting(liveManSetting);
             } catch (Exception e) {

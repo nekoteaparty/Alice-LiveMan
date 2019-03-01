@@ -19,5 +19,5 @@
 package site.alice.liveman.jenum;
 
 public enum VideoBannedTypeEnum {
-    NONE, FULL_SCREEN, AREA_SCREEN
+    NONE, FULL_SCREEN, AREA_SCREEN, CUSTOM_SCREEN
 }

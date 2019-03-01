@@ -18,6 +18,7 @@
 
 package site.alice.liveman.utils;
 
+import com.sun.jna.Platform;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -57,7 +58,7 @@ public class FfmpegUtil {
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
         String ffmpegCmdLine = buildLocalFfmpegCmdLine(videoInfo, broadcastAddress);
-        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
+        if (!Platform.isWindows() && (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN || videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN)) {
             ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
             return String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-tt\t-p\t%s\t%s@%s\t", availableServer.getPassword(),
                     availableServer.getPort(), availableServer.getUsername(), availableServer.getAddress()) +
@@ -80,6 +81,8 @@ public class FfmpegUtil {
             String areaCmd = "\t-vf\t\"[ina]fps=30,scale=1280:720[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=" + cropConf.getBlurSize() + ":" + cropConf.getBlurSize() + "[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
             cmdLine += String.format(areaCmd, cropConf.getCtrlWidth(), cropConf.getCtrlHeight(), cropConf.getCtrlLeft(), cropConf.getCtrlTop(), cropConf.getCtrlLeft(), cropConf.getCtrlTop());
             cmdLine += "\t-vcodec\th264\t-preset\tultrafast";
+        } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+            cmdLine += "\t-framerate\t5\t-f\timage2pipe\t-i\tpipe:0\t-filter_complex\t[0:v]fps=30,scale=1280x720[outv0];[outv0][1:v]overlay=0:0\t-vcodec\th264\t-preset\tultrafast";
         } else {
             cmdLine += "\t-vcodec\tcopy";
         }
