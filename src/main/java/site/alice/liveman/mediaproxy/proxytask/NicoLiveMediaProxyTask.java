@@ -69,6 +69,14 @@ public class NicoLiveMediaProxyTask extends M3u8MediaProxyTask {
         }
     }
 
+    @Override
+    public void setSourceUrl(URI sourceUrl) {
+        // Nico的如果已经解析成功不允许修改媒体源
+        if (getSourceUrl().getScheme().startsWith("wss")) {
+            super.setSourceUrl(sourceUrl);
+        }
+    }
+
     private Session connectToNicoLive() {
         String[] pathSplit = webSocketUrl.getPath().split("/");
         String _broadcastId = "";

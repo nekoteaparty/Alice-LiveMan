@@ -106,7 +106,8 @@ public class MediaProxyManager implements ApplicationContextAware {
     }
 
     public static void runProxy(MediaProxyTask task) {
-        if (!executedProxyTaskMap.containsKey(task.getVideoId())) {
+        MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(task.getVideoId());
+        if (mediaProxyTask == null) {
             LOGGER.info("开始节目直播流代理[" + task.getVideoId() + "]" + (task.getSourceUrl() != null ? "[sourceUrl=" + task.getSourceUrl() + ", targetUrl=" + task.getTargetUrl() + "]" : ""));
             executedProxyTaskMap.put(task.getVideoId(), task);
             ThreadPoolUtil.execute(task);
@@ -119,6 +120,8 @@ public class MediaProxyManager implements ApplicationContextAware {
                     LOGGER.error("调用" + listener + "失败", e);
                 }
             }
+        } else {
+            mediaProxyTask.setSourceUrl(task.getSourceUrl());
         }
     }
 

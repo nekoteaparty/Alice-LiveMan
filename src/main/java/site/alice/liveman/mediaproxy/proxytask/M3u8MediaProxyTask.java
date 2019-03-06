@@ -64,7 +64,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             @Override
             protected void runTask() throws InterruptedException {
                 VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
-                boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") && "60".equals(mediaVideoInfo.getFrameRate());
+                boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") && mediaVideoInfo.getFrameRate() != null && mediaVideoInfo.getFrameRate() > 30;
                 final BlockingQueue<M3u8SeqInfo> toLowFrameRatePidQueue = new LinkedBlockingQueue<>();
                 if (needLowFrameRate) {
                     MediaProxyManager.runProxy(new MediaProxyTask(getVideoId() + "_LOW-FRAME-RATE", null) {

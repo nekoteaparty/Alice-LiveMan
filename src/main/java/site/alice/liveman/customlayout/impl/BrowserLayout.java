@@ -60,7 +60,8 @@ public class BrowserLayout extends CustomLayout {
         Process browserProcess = ProcessUtil.getProcess(pid);
         if (browserProcess == null || !browserProcess.isAlive()) {
             log.info("BrowserLayout[videoId=" + videoInfo.getVideoId() + "]启动Browser...");
-            String[] args = new String[]{"phantomjs", "--web-security=false", "capture.js", getUrl().toString(),
+            String[] args = new String[]{new File("phantomjs").getAbsolutePath(), "--web-security=false",
+                                         new File("capture.js").getAbsolutePath(), getUrl().toString(),
                                          width + "", height + ""};
             pid = ProcessUtil.createProcess(args);
             final Process _browserProcess = ProcessUtil.getProcess(pid);

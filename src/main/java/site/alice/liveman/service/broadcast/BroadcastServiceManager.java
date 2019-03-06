@@ -199,52 +199,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
-    public class CustomLayoutTask implements Runnable {
-        private static final int       fps = 5;
-        private              VideoInfo videoInfo;
-        private              Process   process;
-
-        public CustomLayoutTask(VideoInfo videoInfo, Process process) {
-            this.videoInfo = videoInfo;
-            this.process = process;
-        }
-
-        @Override
-        public void run() {
-            BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D graphics = image.createGraphics();
-            graphics.setBackground(new Color(0, 0, 0, 0));
-            log.info("CustomLayoutTask已启动[videoId=" + videoInfo.getVideoId() + "]");
-            while (process.isAlive()) {
-                long startTime = System.nanoTime();
-                graphics.clearRect(0, 0, image.getWidth(), image.getHeight());
-                Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
-                if (CollectionUtils.isNotEmpty(customLayoutList)) {
-                    for (CustomLayout customLayout : customLayoutList) {
-                        try {
-                            customLayout.paintLayout(graphics);
-                        } catch (Exception e) {
-                            log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
-                        }
-                    }
-                }
-                try {
-                    PngEncoderB pngEncoderB = new PngEncoderB();
-                    pngEncoderB.setEncodeAlpha(true);
-                    pngEncoderB.setImage(image);
-                    OutputStream outputStream = process.getOutputStream();
-                    outputStream.write(pngEncoderB.pngEncode());
-                    outputStream.flush();
-                    long dt = (System.nanoTime() - startTime) / 1000000;
-                    Thread.sleep(Math.max(0, (1000 / fps) - dt));
-                } catch (Exception e) {
-                    log.error("无法输出图像数据到管道[videoId=" + videoInfo.getVideoId() + "]", e);
-                }
-            }
-            log.info("推流进程已结束[videoId=" + videoInfo.getVideoId() + "]，CustomLayoutTask自动退出...");
-        }
-    }
-
     public class BroadcastTask implements Runnable {
 
         private VideoInfo   videoInfo;
@@ -308,8 +262,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         }
                     }
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
+                        VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
+                        VideoInfo lowVideoInfo = null;
                         try {
-                            VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                             BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
                             String broadcastAddress = broadcastService.getBroadcastAddress(broadcastAccount);
                             if (broadcastAccount.isAutoRoomTitle()) {
@@ -317,52 +272,50 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             }
                             String ffmpegCmdLine;
                             // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
-                            VideoInfo lowVideoInfo = null;
-                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN || currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
-                                if (mediaProxyTask != null) {
-                                    lowVideoInfo = mediaProxyTask.getVideoInfo();
-                                } else {
-                                    lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "720");
-                                    if (lowVideoInfo == null) {
-                                        throw new RuntimeException("获取低清晰度视频源信息失败");
+                            switch (currentVideo.getCropConf().getVideoBannedType()) {
+                                case AREA_SCREEN:
+                                case CUSTOM_SCREEN: {
+                                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
+                                    if (mediaProxyTask != null) {
+                                        lowVideoInfo = mediaProxyTask.getVideoInfo();
+                                    } else {
+                                        lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "720");
+                                        if (lowVideoInfo == null) {
+                                            throw new RuntimeException("获取低清晰度视频源信息失败");
+                                        }
+                                        lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
+                                        MediaProxyManager.createProxy(lowVideoInfo);
                                     }
-                                    lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
-                                    MediaProxyManager.createProxy(lowVideoInfo);
+                                    lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
+                                    lowVideoInfo.setCropConf(currentVideo.getCropConf());
+                                    ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
+                                    pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
+                                    break;
                                 }
-                                lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
-                                lowVideoInfo.setCropConf(currentVideo.getCropConf());
-                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
-                            } else {
-                                // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
-                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
-                                if (mediaProxyTask != null) {
-                                    mediaProxyTask.terminate();
-                                    mediaProxyTask.waitForTerminate();
-                                }
-                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
-                            }
-                            pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
-                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
-                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-                                // 先等待2秒保证ffmpeg已启动
-                                Thread.sleep(2000);
-                                // 启动自定义视图渲染线程
-                                Process process = ProcessUtil.getProcess(pid);
-                                if (process != null && process.isAlive()) {
-                                    ThreadPoolUtil.execute(new CustomLayoutTask(currentVideo, process));
+                                default: {
+                                    // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
+                                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                                    if (mediaProxyTask != null) {
+                                        mediaProxyTask.terminate();
+                                        mediaProxyTask.waitForTerminate();
+                                    }
+                                    ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                                    pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
                                 }
                             }
+                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "]");
                             // 等待进程退出或者任务结束
                             while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
+                        } catch (Throwable e) {
+                            log.error("startBroadcast failed", e);
+                        } finally {
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
                             if (lowVideoInfo != null) {
                                 broadcastServerService.releaseServer(lowVideoInfo);
                             }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
-                        } catch (Throwable e) {
-                            log.error("startBroadcast failed", e);
+
                         }
                         try {
                             if (!terminate) {

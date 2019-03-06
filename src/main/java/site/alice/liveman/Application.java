@@ -33,6 +33,7 @@ import org.springframework.util.ResourceUtils;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class}, scanBasePackages = {"site.alice.liveman"})
 @Configuration
@@ -41,6 +42,10 @@ import java.io.IOException;
 public class Application {
 
     public static void main(String[] args) throws IOException {
+        Map<String, String> env = System.getenv();
+        for (String envName : env.keySet()) {
+            System.out.format("%s=%s%n", envName, env.get(envName));
+        }
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         Resource[] resources = resolver.getResources("resources/*");
         for (Resource resource : resources) {

@@ -89,7 +89,7 @@ public abstract class CustomLayout implements Comparable<CustomLayout> {
     @Override
     public int compareTo(@NotNull CustomLayout o) {
         if (o.index == this.index) {
-            return -1;
+            return 1;
         }
         return this.index - o.index;
     }

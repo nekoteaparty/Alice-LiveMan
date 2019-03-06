@@ -45,7 +45,7 @@ public class TwitchLiveService extends LiveService {
     private static final String clientId             = "jzkbprff40iqj646a697cyrvl0zt2m6";
     private static final String GET_STREAM_INFO_URL  = "https://api.twitch.tv/kraken/streams/";
     private static final String GET_STREAM_TOKEN_URL = "https://api.twitch.tv/api/channels/%s/access_token?need_https=true&oauth_token&platform=web&player_backend=mediaplayer&player_type=site";
-    private static final String MASTER_M3U8_URL      = "https://usher.ttvnw.net/api/channel/hls/%s.m3u8?allow_source=true&sig=%s&token=%s";
+    private static final String MASTER_M3U8_URL      = "https://usher.ttvnw.net/api/channel/hls/%s.m3u8?allow_source=true&playlist_include_framerate=true&sig=%s&token=%s";
 
     @Autowired
     private LiveManSetting liveManSetting;

@@ -33,6 +33,7 @@ public class DanmakuLayout extends BrowserLayout {
     public void setVideoInfo(VideoInfo videoInfo) {
         super.setVideoInfo(videoInfo);
         try {
+            width = (int) (width / zoom);
             setUrl(new URL(src + "&zoom=" + zoom));
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
