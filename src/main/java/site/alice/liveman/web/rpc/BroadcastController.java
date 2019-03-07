@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
@@ -155,28 +156,30 @@ public class BroadcastController {
             }
         }
         if (cropConf != null) {
-            if ((cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN || cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) && !account.isVip()) {
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && !account.isVip()) {
                 return ActionResult.getErrorResult("你没有权限使用区域打码或自定义功能");
             }
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                int blurLayoutCount = 0;
                 for (CustomLayout layout : cropConf.getLayouts()) {
                     layout.setVideoInfo(videoInfo);
+                    if (layout instanceof BlurLayout) {
+                        blurLayoutCount++;
+                    }
+                }
+                // 如果没有高斯迷糊滤镜层则设置模糊强度为0，减少不必要的性能损耗
+                if (blurLayoutCount == 0) {
+                    cropConf.setBlurSize(0);
                 }
             } else if (CollectionUtils.isNotEmpty(cropConf.getLayouts())) {
                 cropConf.getLayouts().clear();
             }
             videoInfo.setCropConf(cropConf);
-            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-                videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
-            }
             try {
                 settingConfig.saveSetting(liveManSetting);
             } catch (Exception e) {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
-            }
-            if (broadcastTask != null) {
-                ProcessUtil.killProcess(broadcastTask.getPid());
             }
         }
         return ActionResult.getSuccessResult(null);

@@ -28,11 +28,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.VideoInfo;
 
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -82,6 +84,42 @@ public class DrawingController {
                 pngEncoderB.setImage(image);
                 os.write(pngEncoderB.pngEncode());
                 os.flush();
+            } catch (Exception e) {
+                log.error("无法输出图像数据到响应流[videoId=" + videoInfo.getVideoId() + "]", e);
+            }
+        }
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "/mask/{videoId}")
+    public void mask(@PathVariable("videoId") String videoId) {
+        log.info("mask:" + videoId);
+        Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+        MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("找不到请求的媒体代理任务信息[videoId=" + videoId + "]");
+            return;
+        }
+        VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        if (videoInfo == null) {
+            log.info("找不到请求的媒体信息[videoId=" + videoId + "]");
+            return;
+        }
+        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+            BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = image.createGraphics();
+            Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+            for (CustomLayout customLayout : customLayoutList) {
+                if (customLayout instanceof BlurLayout) {
+                    try {
+                        customLayout.paintLayout(graphics);
+                    } catch (Exception e) {
+                        log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                    }
+                }
+            }
+            try (OutputStream os = response.getOutputStream()) {
+                ImageIO.write(image, "jpg", os);
             } catch (Exception e) {
                 log.error("无法输出图像数据到响应流[videoId=" + videoInfo.getVideoId() + "]", e);
             }

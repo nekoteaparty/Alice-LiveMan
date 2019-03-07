@@ -273,7 +273,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             String ffmpegCmdLine;
                             // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
                             switch (currentVideo.getCropConf().getVideoBannedType()) {
-                                case AREA_SCREEN:
                                 case CUSTOM_SCREEN: {
                                     MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
                                     if (mediaProxyTask != null) {

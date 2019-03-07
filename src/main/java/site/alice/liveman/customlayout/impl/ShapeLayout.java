@@ -29,6 +29,7 @@ public class ShapeLayout extends CustomLayout {
     private float  radiusPercentW;
     private float  radiusPercentH;
     private String hexColor;
+    private String rgba;
 
     public float getRadiusPercentW() {
         return radiusPercentW;
@@ -60,6 +61,14 @@ public class ShapeLayout extends CustomLayout {
 
     public void setOpacity(float opacity) {
         this.opacity = opacity;
+    }
+
+    public String getRgba() {
+        return rgba;
+    }
+
+    public void setRgba(String rgba) {
+        this.rgba = rgba;
     }
 
     @Override
