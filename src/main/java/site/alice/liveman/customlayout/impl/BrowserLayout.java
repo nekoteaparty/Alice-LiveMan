@@ -57,14 +57,14 @@ public class BrowserLayout extends CustomLayout {
     @Override
     public void paintLayout(Graphics2D g) {
         lastPaint = System.nanoTime();
-        Process browserProcess = ProcessUtil.getProcess(pid);
+        ProcessUtil.AliceProcess browserProcess = ProcessUtil.getAliceProcess(pid);
         if (browserProcess == null || !browserProcess.isAlive()) {
             log.info("BrowserLayout[videoId=" + videoInfo.getVideoId() + "]启动Browser...");
             String[] args = new String[]{new File("phantomjs").getAbsolutePath(), "--web-security=false",
                                          new File("capture.js").getAbsolutePath(), getUrl().toString(),
                                          width + "", height + ""};
             pid = ProcessUtil.createProcess(args);
-            final Process _browserProcess = ProcessUtil.getProcess(pid);
+            final ProcessUtil.AliceProcess _browserProcess = ProcessUtil.getAliceProcess(pid);
             if (_browserProcess != null && _browserProcess.isAlive()) {
                 ThreadPoolUtil.execute(new Runnable() {
                     @Override

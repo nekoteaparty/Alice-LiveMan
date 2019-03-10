@@ -26,19 +26,20 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 
 public class BroadcastTaskVO {
-    private String             nickname;
-    private String             roomId;
-    private String             accountSite;
-    private String             channelName;
-    private String             videoTitle;
-    private String             videoId;
-    private String             mediaUrl;
-    private int[]              area;
-    private boolean            isVideoBanned;
-    private boolean            isAudioBanned;
-    private boolean            needRecord;
-    private String             roomTitle;
-    private VideoCropConf      cropConf;
+    private String        nickname;
+    private String        roomId;
+    private String        accountSite;
+    private String        channelName;
+    private String        videoTitle;
+    private String        videoId;
+    private String        mediaUrl;
+    private int[]         area;
+    private boolean       isVideoBanned;
+    private boolean       isAudioBanned;
+    private boolean       needRecord;
+    private String        roomTitle;
+    private VideoCropConf cropConf;
+    private float         health;
 
     public String getNickname() {
         return nickname;
@@ -142,5 +143,13 @@ public class BroadcastTaskVO {
 
     public void setCropConf(VideoCropConf cropConf) {
         this.cropConf = cropConf;
+    }
+
+    public float getHealth() {
+        return health;
+    }
+
+    public void setHealth(float health) {
+        this.health = health;
     }
 }

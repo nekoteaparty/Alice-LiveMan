@@ -49,8 +49,6 @@ public class VideoInfo implements Serializable {
     private AtomicReference<BroadcastTask> broadcastTask;
     private VideoCropConf                  cropConf;
     private Double                         frameRate;
-    private String                         resolution;
-
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI videoInfoUrl, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
         this.videoId = videoId;
@@ -61,6 +59,8 @@ public class VideoInfo implements Serializable {
         this.broadcastTask = new AtomicReference<>();
         this.cropConf = new VideoCropConf();
     }
+
+    private String                         resolution;
 
     public URI getVideoInfoUrl() {
         return videoInfoUrl;

@@ -50,7 +50,7 @@ public class FfmpegUtil {
     }
 
     public static String buildToLowFrameRateCmdLine(File srcFile, File dictFile) {
-        return liveManSetting.getFfmpegPath() + "\t-i\t" + srcFile + "\t-r\t30\t-copyts\t-acodec\tcopy\t-qscale:v\t12\t" + dictFile + "\t-y";
+        return liveManSetting.getFfmpegPath() + "\t-i\t" + srcFile + "\t-r\t30\t-s\t1280x720\t-copyts\t-acodec\tcopy\t-qscale:v\t12\t" + dictFile + "\t-y";
     }
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {

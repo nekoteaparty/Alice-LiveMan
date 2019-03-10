@@ -77,8 +77,10 @@ public class BroadcastController {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
             if (videoInfo != null && videoInfo.getChannelInfo() != null) {
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
-                if (videoInfo.getBroadcastTask() != null) {
-                    AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
+                BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                if (broadcastTask != null) {
+                    broadcastTaskVO.setHealth(broadcastTask.getHealth());
+                    AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                     if (broadcastAccount != null) {
                         broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
                         broadcastTaskVO.setNickname(broadcastAccount.getNickname());
@@ -155,6 +157,7 @@ public class BroadcastController {
                 }
             }
         }
+        VideoCropConf _cropConf = videoInfo.getCropConf();
         if (cropConf != null) {
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && !account.isVip()) {
                 return ActionResult.getErrorResult("你没有权限使用区域打码或自定义功能");
@@ -175,11 +178,18 @@ public class BroadcastController {
                 cropConf.getLayouts().clear();
             }
             videoInfo.setCropConf(cropConf);
+            MediaProxyTask lowMediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId + "_low");
+            if (lowMediaProxyTask != null) {
+                lowMediaProxyTask.getVideoInfo().setCropConf(cropConf);
+            }
             try {
                 settingConfig.saveSetting(liveManSetting);
             } catch (Exception e) {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
+            }
+            if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
+                ProcessUtil.killProcess(broadcastTask.getPid());
             }
         }
         return ActionResult.getSuccessResult(null);

@@ -34,10 +34,21 @@ public class DanmakuLayout extends BrowserLayout {
         super.setVideoInfo(videoInfo);
         try {
             width = (int) (width / zoom);
+            height = (int) (height / zoom);
             setUrl(new URL(src + "&zoom=" + zoom));
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public int getWidth() {
+        return (int) (width * zoom);
+    }
+
+    @Override
+    public int getHeight() {
+        return (int) (height * zoom);
     }
 
     public String getSrc() {

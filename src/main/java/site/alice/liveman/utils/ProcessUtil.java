@@ -39,7 +39,7 @@ import static com.sun.jna.platform.win32.WinNT.*;
 @Slf4j
 public class ProcessUtil {
 
-    private static final Map<Long, Process> processTargetMap = new ConcurrentHashMap<>();
+    private static final Map<Long, AliceProcess> processTargetMap = new ConcurrentHashMap<>();
 
     public static long createProcess(String... args) {
         return createProcess(args, null);
@@ -65,7 +65,7 @@ public class ProcessUtil {
             log.info("create process..." + processBuilder.command());
             Process process = processBuilder.start();
             long processHandle = getProcessHandle(process);
-            processTargetMap.put(processHandle, process);
+            processTargetMap.put(processHandle, new AliceProcess(process, processBuilder));
             return processHandle;
         } catch (IOException e) {
             log.error("createProcess failed", e);
@@ -84,9 +84,9 @@ public class ProcessUtil {
             Process process = processBuilder.start();
             long processHandle = getProcessHandle(process);
             if (!terminalMode) {
-                process = new RemoteProcess(process, remoteServer, cmdLine);
+                process = new RemoteProcess(process, processBuilder, remoteServer, cmdLine);
             }
-            processTargetMap.put(processHandle, process);
+            processTargetMap.put(processHandle, new AliceProcess(process, processBuilder));
             return processHandle;
         } catch (IOException e) {
             log.error("createProcess failed", e);
@@ -109,12 +109,16 @@ public class ProcessUtil {
         return false;
     }
 
-    public static HANDLE getProcessHandle(long pid) {
+    private static HANDLE getProcessHandle(long pid) {
         Kernel32 kernel = Kernel32.INSTANCE;
         return kernel.OpenProcess(PROCESS_ALL_ACCESS, false, (int) pid);
     }
 
-    public static long getProcessHandle(Process process) {
+    public static long getProcessHandle(AliceProcess process) {
+        return getProcessHandle(process.getProcess());
+    }
+
+    private static long getProcessHandle(Process process) {
         try {
             Field handleField;
             if (Platform.isWindows()) {
@@ -150,7 +154,7 @@ public class ProcessUtil {
         }
     }
 
-    public static Process getProcess(long pid) {
+    public static AliceProcess getAliceProcess(long pid) {
         return processTargetMap.get(pid);
     }
 
@@ -179,14 +183,72 @@ public class ProcessUtil {
         }
     }
 
-    private static class RemoteProcess extends Process {
+    public static class AliceProcess extends Process {
+
+        private Process        process;
+        private ProcessBuilder processBuilder;
+
+        public AliceProcess(Process process, ProcessBuilder processBuilder) {
+            this.process = process;
+            this.processBuilder = processBuilder;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return process.getOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return process.getInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return process.getErrorStream();
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            return process.waitFor();
+        }
+
+        @Override
+        public int exitValue() {
+            return process.exitValue();
+        }
+
+        @Override
+        public void destroy() {
+            process.destroy();
+        }
+
+        public Process getProcess() {
+            return process;
+        }
+
+        public void setProcess(Process process) {
+            this.process = process;
+        }
+
+        public ProcessBuilder getProcessBuilder() {
+            return processBuilder;
+        }
+
+        public void setProcessBuilder(ProcessBuilder processBuilder) {
+            this.processBuilder = processBuilder;
+        }
+    }
+
+    private static class RemoteProcess extends AliceProcess {
 
         private String     killRemoteProcessCmdLine = "ps -ef | grep -F \"%s\" | grep -v grep | awk -F ' ' '{print $2}'| xargs kill -9";
         private Process    sshProcess;
         private ServerInfo remoteServer;
         private String     cmdLine;
 
-        public RemoteProcess(Process sshProcess, ServerInfo remoteServer, String cmdLine) {
+        public RemoteProcess(Process sshProcess, ProcessBuilder builder, ServerInfo remoteServer, String cmdLine) {
+            super(sshProcess, builder);
             this.sshProcess = sshProcess;
             this.remoteServer = remoteServer;
             this.cmdLine = cmdLine;

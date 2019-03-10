@@ -20,6 +20,7 @@ package site.alice.liveman.service.broadcast;
 import com.keypoint.PngEncoderB;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
@@ -45,13 +46,20 @@ import site.alice.liveman.utils.ThreadPoolUtil;
 import javax.annotation.PostConstruct;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
@@ -201,11 +209,17 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
     public class BroadcastTask implements Runnable {
 
+        private Pattern     logSpeedPattern = Pattern.compile("speed=([0-9\\.\\s]+)x");
         private VideoInfo   videoInfo;
         private long        pid;
         private AccountInfo broadcastAccount;
         private boolean     terminate;
         private boolean     singleTask;
+        private long        lastHitTime;
+        private long        lastLogLength;
+        private long        lastLogTime;
+        private float       health;
+        private int         lowHealthCount;
 
         public BroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) {
             this.videoInfo = videoInfo;
@@ -304,7 +318,52 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "]");
                             // 等待进程退出或者任务结束
-                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) ;
+                            lastHitTime = 0;
+                            lowHealthCount = 0;
+                            health = 0;
+                            lastLogLength = 0;
+                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
+                                ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
+                                File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
+                                if (logFile != null && logFile.length() > 1024) {
+                                    if (lastLogLength != logFile.length()) {
+                                        lastLogLength = logFile.length();
+                                        lastLogTime = System.currentTimeMillis();
+                                    }
+                                    long dt = System.currentTimeMillis() - lastLogTime;
+                                    if (dt > 5000) {
+                                        log.warn("持续" + dt + "毫秒没有推流日志输出，终止推流进程...[pid:" + pid + ", logFile:\"" + logFile + "\"]");
+                                        ProcessUtil.killProcess(pid);
+                                        continue;
+                                    }
+                                    try (FileInputStream fis = new FileInputStream(logFile)) {
+                                        fis.skip(logFile.length() - 1024);
+                                        List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
+                                        // 最多向上读取10行日志
+                                        for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
+                                            Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
+                                            if (matcher.find()) {
+                                                health = Float.parseFloat(matcher.group(1).trim()) * 100;
+                                                lastHitTime = System.currentTimeMillis();
+                                                break;
+                                            }
+                                        }
+                                        if (lastHitTime > 0 && System.currentTimeMillis() - lastHitTime > 10000) {
+                                            log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
+                                            ProcessUtil.killProcess(pid);
+                                        } else if (health > 0 && health < 90) {
+                                            if (lowHealthCount++ < 10) {
+                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次！[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                            } else {
+                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次，终止推流进程...[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                                ProcessUtil.killProcess(pid);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        log.error("读取推流进程日志文件时出错[pid:" + pid + ", logFile:\"" + logFile + "\"]", e);
+                                    }
+                                }
+                            }
                         } catch (Throwable e) {
                             log.error("startBroadcast failed", e);
                         } finally {
@@ -349,6 +408,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                 log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
             }
+        }
+
+        public float getHealth() {
+            return health;
+        }
+
+        public void setHealth(float health) {
+            this.health = health;
         }
 
         public boolean terminateTask() {

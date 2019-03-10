@@ -24,7 +24,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import site.alice.liveman.customlayout.CustomLayout;
@@ -38,6 +37,8 @@ import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
@@ -46,13 +47,11 @@ import java.util.Set;
 @Controller
 @RequestMapping("/api/drawing")
 public class DrawingController {
-
     @Autowired
     private HttpServletResponse response;
 
     @RequestMapping(method = RequestMethod.GET, value = "/screen/{videoId}")
     public void screen(@PathVariable("videoId") String videoId) {
-        log.info("screen:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -71,6 +70,9 @@ public class DrawingController {
             Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
             if (CollectionUtils.isNotEmpty(customLayoutList)) {
                 for (CustomLayout customLayout : customLayoutList) {
+                    if (customLayout instanceof BlurLayout) {
+                        continue;
+                    }
                     try {
                         customLayout.paintLayout(graphics);
                     } catch (Exception e) {
@@ -93,7 +95,6 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/mask/{videoId}")
     public void mask(@PathVariable("videoId") String videoId) {
-        log.info("mask:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
