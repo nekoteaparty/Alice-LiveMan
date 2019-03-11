@@ -49,9 +49,13 @@ public class Application {
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         Resource[] resources = resolver.getResources("resources/*");
         for (Resource resource : resources) {
-            try (FileOutputStream fos = new FileOutputStream(resource.getFilename())) {
+            File resourceFile = new File(resource.getFilename());
+            try (FileOutputStream fos = new FileOutputStream(resourceFile)) {
                 IOUtils.copyLarge(resource.getInputStream(), fos);
             }
+            resourceFile.setExecutable(true);
+            resourceFile.setReadable(true);
+            resourceFile.setWritable(true);
         }
         SpringApplication.run(Application.class, args);
     }
