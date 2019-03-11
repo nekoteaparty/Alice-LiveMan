@@ -23,10 +23,13 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
+import site.alice.liveman.model.ServerInfo;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -36,28 +39,33 @@ import static com.sun.jna.platform.win32.WinNT.*;
 @Slf4j
 public class ProcessUtil {
 
-    private static final Map<Long, Object> processTargetMap = new ConcurrentHashMap<>();
+    private static final Map<Long, AliceProcess> processTargetMap = new ConcurrentHashMap<>();
 
-    public static long createProcess(String cmdLine, String videoId, boolean isVisible) {
+    public static long createProcess(String... args) {
+        return createProcess(args, null);
+    }
+
+    public static long createProcess(String cmdLine, String videoId) {
+        String[] args = cmdLine.split("\t");
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
+                args[i] = args[i].substring(1, args[i].length() - 1);
+            }
+        }
+        return createProcess(args, videoId);
+    }
+
+    public static long createProcess(String[] args, String videoId) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder();
-            String[] args = cmdLine.split("\t");
-            for (int i = 0; i < args.length; i++) {
-                if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
-                    args[i] = args[i].substring(1, args[i].length() - 1);
-                }
-            }
-            log.info(JSON.toJSONString(args));
             processBuilder.command(args);
             if (videoId != null) {
-                File logFile = new File("logs/ffmpeg/" + videoId + ".log");
-                logFile.getParentFile().mkdirs();
-                processBuilder.redirectOutput(logFile);
-                processBuilder.redirectError(logFile);
+                settingStdLog(videoId, processBuilder);
             }
+            log.info("create process..." + processBuilder.command());
             Process process = processBuilder.start();
             long processHandle = getProcessHandle(process);
-            processTargetMap.put(processHandle, process);
+            processTargetMap.put(processHandle, new AliceProcess(process, processBuilder));
             return processHandle;
         } catch (IOException e) {
             log.error("createProcess failed", e);
@@ -65,20 +73,52 @@ public class ProcessUtil {
         }
     }
 
+    public static long createRemoteProcess(String cmdLine, ServerInfo remoteServer, boolean terminalMode, String videoId) {
+        try {
+            cmdLine = cmdLine.replaceAll("\t", " ");
+            ProcessBuilder processBuilder = createRemoteProcessBuilder(remoteServer, cmdLine, terminalMode);
+            if (videoId != null) {
+                settingStdLog(videoId, processBuilder);
+            }
+            log.info("create process..." + processBuilder.command());
+            Process process = processBuilder.start();
+            long processHandle = getProcessHandle(process);
+            if (!terminalMode) {
+                process = new RemoteProcess(process, processBuilder, remoteServer, cmdLine);
+            }
+            processTargetMap.put(processHandle, new AliceProcess(process, processBuilder));
+            return processHandle;
+        } catch (IOException e) {
+            log.error("createProcess failed", e);
+            return 0;
+        }
+    }
+
+    private static void settingStdLog(String logName, ProcessBuilder processBuilder) {
+        File logFile = new File("logs/ffmpeg/" + logName + "/" + (System.currentTimeMillis() / 10000) + ".log");
+        logFile.getParentFile().mkdirs();
+        processBuilder.redirectOutput(logFile);
+        processBuilder.redirectError(logFile);
+    }
+
     public static boolean isProcessExist(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             return process.isAlive();
         }
         return false;
     }
 
-    public static HANDLE getProcessHandle(long pid) {
+    private static HANDLE getProcessHandle(long pid) {
         Kernel32 kernel = Kernel32.INSTANCE;
         return kernel.OpenProcess(PROCESS_ALL_ACCESS, false, (int) pid);
     }
 
-    public static long getProcessHandle(Process process) {
+    public static long getProcessHandle(AliceProcess process) {
+        return getProcessHandle(process.getProcess());
+    }
+
+    private static long getProcessHandle(Process process) {
         try {
             Field handleField;
             if (Platform.isWindows()) {
@@ -95,19 +135,15 @@ public class ProcessUtil {
     }
 
     public static void killProcess(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             process.destroy();
-            try {
-                process.waitFor();
-            } catch (InterruptedException ignore) {
-
-            }
+            waitProcess(pid);
         }
     }
 
     public static void waitProcess(long pid) {
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             try {
                 process.waitFor();
@@ -116,6 +152,10 @@ public class ProcessUtil {
 
             }
         }
+    }
+
+    public static AliceProcess getAliceProcess(long pid) {
+        return processTargetMap.get(pid);
     }
 
     /**
@@ -127,7 +167,7 @@ public class ProcessUtil {
         if (pid == 0) {
             return true;
         }
-        Process process = (Process) processTargetMap.get(pid);
+        Process process = processTargetMap.get(pid);
         if (process != null) {
             try {
                 boolean result = process.waitFor(dwMilliseconds, TimeUnit.MILLISECONDS);
@@ -141,5 +181,150 @@ public class ProcessUtil {
         } else {
             return true;
         }
+    }
+
+    public static class AliceProcess extends Process {
+
+        private Process        process;
+        private ProcessBuilder processBuilder;
+
+        public AliceProcess(Process process, ProcessBuilder processBuilder) {
+            this.process = process;
+            this.processBuilder = processBuilder;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return process.getOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return process.getInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return process.getErrorStream();
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            return process.waitFor();
+        }
+
+        @Override
+        public int exitValue() {
+            return process.exitValue();
+        }
+
+        @Override
+        public void destroy() {
+            process.destroy();
+        }
+
+        public Process getProcess() {
+            return process;
+        }
+
+        public void setProcess(Process process) {
+            this.process = process;
+        }
+
+        public ProcessBuilder getProcessBuilder() {
+            return processBuilder;
+        }
+
+        public void setProcessBuilder(ProcessBuilder processBuilder) {
+            this.processBuilder = processBuilder;
+        }
+    }
+
+    private static class RemoteProcess extends AliceProcess {
+
+        private String     killRemoteProcessCmdLine = "ps -ef | grep -F \"%s\" | grep -v grep | awk -F ' ' '{print $2}'| xargs kill -9";
+        private Process    sshProcess;
+        private ServerInfo remoteServer;
+        private String     cmdLine;
+
+        public RemoteProcess(Process sshProcess, ProcessBuilder builder, ServerInfo remoteServer, String cmdLine) {
+            super(sshProcess, builder);
+            this.sshProcess = sshProcess;
+            this.remoteServer = remoteServer;
+            this.cmdLine = cmdLine;
+        }
+
+        public Process getSshProcess() {
+            return sshProcess;
+        }
+
+        public void setSshProcess(Process sshProcess) {
+            this.sshProcess = sshProcess;
+        }
+
+        public ServerInfo getRemoteServer() {
+            return remoteServer;
+        }
+
+        public void setRemoteServer(ServerInfo remoteServer) {
+            this.remoteServer = remoteServer;
+        }
+
+        public String getCmdLine() {
+            return cmdLine;
+        }
+
+        public void setCmdLine(String cmdLine) {
+            this.cmdLine = cmdLine;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return sshProcess.getOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return sshProcess.getInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return sshProcess.getErrorStream();
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            return sshProcess.waitFor();
+        }
+
+        @Override
+        public int exitValue() {
+            return sshProcess.exitValue();
+        }
+
+        @Override
+        public void destroy() {
+            ProcessBuilder processBuilder = createRemoteProcessBuilder(remoteServer, String.format(killRemoteProcessCmdLine, cmdLine.replaceAll("\"", "")), true);
+            try {
+                Process process = processBuilder.start();
+                process.waitFor();
+            } catch (IOException | InterruptedException e) {
+                log.error("destroy remote process failed\n" + processBuilder.command(), e);
+            }
+            sshProcess.destroy();
+        }
+    }
+
+    private static ProcessBuilder createRemoteProcessBuilder(ServerInfo remoteServer, String cmdLine, boolean terminalMode) {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        List<String> args = new ArrayList<>();
+        args.addAll(Arrays.asList("sshpass", "-p", remoteServer.getPassword(), "ssh", "-o", "StrictHostKeyChecking=no"));
+        if (terminalMode) {
+            args.add("-tt");
+        }
+        args.addAll(Arrays.asList("-p", String.valueOf(remoteServer.getPort()), remoteServer.getUsername() + "@" + remoteServer.getAddress(), cmdLine));
+        processBuilder.command(args);
+        return processBuilder;
     }
 }

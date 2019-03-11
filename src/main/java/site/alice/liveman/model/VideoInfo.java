@@ -17,11 +17,15 @@
  */
 package site.alice.liveman.model;
 
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class VideoInfo implements Serializable {
@@ -44,9 +48,7 @@ public class VideoInfo implements Serializable {
     private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;
     private VideoCropConf                  cropConf;
-    private String                         frameRate;
-    private String                         resolution;
-
+    private Double                         frameRate;
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI videoInfoUrl, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
         this.videoId = videoId;
@@ -57,6 +59,8 @@ public class VideoInfo implements Serializable {
         this.broadcastTask = new AtomicReference<>();
         this.cropConf = new VideoCropConf();
     }
+
+    private String                         resolution;
 
     public URI getVideoInfoUrl() {
         return videoInfoUrl;
@@ -210,11 +214,11 @@ public class VideoInfo implements Serializable {
         this.cropConf = cropConf;
     }
 
-    public String getFrameRate() {
+    public Double getFrameRate() {
         return frameRate;
     }
 
-    public void setFrameRate(String frameRate) {
+    public void setFrameRate(Double frameRate) {
         this.frameRate = frameRate;
     }
 

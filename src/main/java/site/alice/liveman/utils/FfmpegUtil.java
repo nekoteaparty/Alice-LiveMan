@@ -18,10 +18,12 @@
 
 package site.alice.liveman.utils;
 
+import com.sun.jna.Platform;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.ServerInfo;
 import site.alice.liveman.model.VideoCropConf;
@@ -34,13 +36,9 @@ import java.io.File;
 @Slf4j
 public class FfmpegUtil {
 
-    private static BroadcastServerService broadcastServerService;
-    private static LiveManSetting         liveManSetting;
-
-    @Autowired
-    public void setBroadcastServerService(BroadcastServerService broadcastServerService) {
-        FfmpegUtil.broadcastServerService = broadcastServerService;
-    }
+    private static       LiveManSetting liveManSetting;
+    private static final String         CUSTOM_SCREEN_URL = "http://" + MediaProxyManager.getIpAddress() + ":8080/api/drawing/screen/%s";
+    private static final String         BOXBLUR_MASK_URL  = "http://" + MediaProxyManager.getIpAddress() + ":8080/api/drawing/mask/%s";
 
     @Autowired
     public void setLiveManSetting(LiveManSetting liveManSetting) {
@@ -52,22 +50,10 @@ public class FfmpegUtil {
     }
 
     public static String buildToLowFrameRateCmdLine(File srcFile, File dictFile) {
-        return liveManSetting.getFfmpegPath() + "\t-i\t" + srcFile + "\t-r\t30\t-copyts\t-acodec\tcopy\t-qscale:v\t12\t" + dictFile + "\t-y";
+        return liveManSetting.getFfmpegPath() + "\t-i\t" + srcFile + "\t-r\t30\t-s\t1280x720\t-copyts\t-acodec\tcopy\t-qscale:v\t12\t" + dictFile + "\t-y";
     }
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
-        String ffmpegCmdLine = buildLocalFfmpegCmdLine(videoInfo, broadcastAddress);
-        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-            ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
-            return String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-tt\t-p\t%s\t%s@%s\t", availableServer.getPassword(),
-                    availableServer.getPort(), availableServer.getUsername(), availableServer.getAddress()) +
-                    ffmpegCmdLine.replaceAll("\t", " ");
-        } else {
-            return ffmpegCmdLine;
-        }
-    }
-
-    public static String buildLocalFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
         String cmdLine = "\t-re\t-i\t\"" + videoInfo.getMediaProxyUrl() + "\"";
         if (videoInfo.isAudioBanned()) {
             cmdLine += "\t-ac\t1";
@@ -76,10 +62,19 @@ public class FfmpegUtil {
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.FULL_SCREEN) {
             cmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
             cmdLine += "\t-vcodec\th264";
-        } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-            String areaCmd = "\t-vf\t\"[ina]fps=30,scale=1280:720[outa];[outa]split[blurin][originalin];[blurin]crop=%s:%s:%s:%s,boxblur=" + cropConf.getBlurSize() + ":" + cropConf.getBlurSize() + "[blurout];[originalin][blurout]overlay=x=%s:y=%s[out]\"";
-            cmdLine += String.format(areaCmd, cropConf.getCtrlWidth(), cropConf.getCtrlHeight(), cropConf.getCtrlLeft(), cropConf.getCtrlTop(), cropConf.getCtrlLeft(), cropConf.getCtrlTop());
-            cmdLine += "\t-vcodec\th264\t-preset\tultrafast";
+        } else if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+            String filter;
+            if (cropConf.getBlurSize() > 0) {
+                cmdLine += "\t-framerate\t1\t-loop\t1\t-i\t\"" + String.format(BOXBLUR_MASK_URL, videoInfo.getVideoId()) + "\"";
+                if (liveManSetting.getPreReEncode()) {
+                    filter = "[0:v]smartblur=" + cropConf.getBlurSize() + ":1:cr=0:cs=0[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[0:v][alf]overlay[v];[v][2:v]overlay";
+                } else {
+                    filter = "[0:v]fps=30,scale=1280x720,split=2[ref0][ref1];[ref0]smartblur=" + cropConf.getBlurSize() + ":1:cr=0:cs=0[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[ref1][alf]overlay[v];[v][2:v]overlay";
+                }
+            } else {
+                filter = "[0:v]fps=30,scale=1280x720[v];[v][1:v]overlay";
+            }
+            cmdLine += "\t-framerate\t1\t-loop\t1\t-i\t\"" + String.format(CUSTOM_SCREEN_URL, videoInfo.getVideoId()) + "\"\t-filter_complex\t\"" + filter + "\"\t-vcodec\th264\t-preset\tultrafast";
         } else {
             cmdLine += "\t-vcodec\tcopy";
         }

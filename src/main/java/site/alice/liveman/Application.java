@@ -17,12 +17,23 @@
  */
 package site.alice.liveman;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.util.ResourceUtils;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Map;
 
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class}, scanBasePackages = {"site.alice.liveman"})
 @Configuration
@@ -30,7 +41,22 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class Application {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        Map<String, String> env = System.getenv();
+        for (String envName : env.keySet()) {
+            System.out.format("%s=%s%n", envName, env.get(envName));
+        }
+        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Resource[] resources = resolver.getResources("resources/*");
+        for (Resource resource : resources) {
+            File resourceFile = new File(resource.getFilename());
+            try (FileOutputStream fos = new FileOutputStream(resourceFile)) {
+                IOUtils.copyLarge(resource.getInputStream(), fos);
+            }
+            resourceFile.setExecutable(true);
+            resourceFile.setReadable(true);
+            resourceFile.setWritable(true);
+        }
         SpringApplication.run(Application.class, args);
     }
 

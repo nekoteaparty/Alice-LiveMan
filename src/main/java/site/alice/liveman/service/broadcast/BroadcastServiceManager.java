@@ -17,7 +17,10 @@
  */
 package site.alice.liveman.service.broadcast;
 
+import com.keypoint.PngEncoderB;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
@@ -25,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -37,28 +41,40 @@ import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
+import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 public class BroadcastServiceManager implements ApplicationContextAware {
-    private static final ScheduledThreadPoolExecutor   threadPoolExecutor = new ScheduledThreadPoolExecutor(50);
-    private              Map<String, BroadcastService> broadcastServiceMap;
+    private Map<String, BroadcastService> broadcastServiceMap;
     @Autowired
-    private              LiveManSetting                liveManSetting;
+    private LiveManSetting                liveManSetting;
     @Autowired
-    private              BilibiliApiUtil               bilibiliApiUtil;
+    private BilibiliApiUtil               bilibiliApiUtil;
     @Autowired
-    private              MediaHistoryService           mediaHistoryService;
+    private MediaHistoryService           mediaHistoryService;
     @Autowired
-    private              LiveServiceFactory            liveServiceFactory;
+    private LiveServiceFactory            liveServiceFactory;
     @Autowired
-    private              BroadcastServerService        broadcastServerService;
+    private BroadcastServerService        broadcastServerService;
 
     @PostConstruct
     public void init() {
@@ -87,7 +103,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     } else {
                         broadcastTask = videoInfo.getBroadcastTask();
                     }
-                    threadPoolExecutor.execute(broadcastTask);
+                    ThreadPoolUtil.execute(broadcastTask);
                 }
             }
 
@@ -124,7 +140,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     if (!videoInfo.setBroadcastTask(broadcastTask)) {
                         throw new RuntimeException("此媒体已在推流任务列表中，无法添加");
                     }
-                    threadPoolExecutor.execute(broadcastTask);
+                    ThreadPoolUtil.execute(broadcastTask);
                     return broadcastTask;
                 } else {
                     // 创建直播流代理任务
@@ -193,11 +209,17 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
     public class BroadcastTask implements Runnable {
 
+        private Pattern     logSpeedPattern = Pattern.compile("speed=([0-9\\.\\s]+)x");
         private VideoInfo   videoInfo;
         private long        pid;
         private AccountInfo broadcastAccount;
         private boolean     terminate;
         private boolean     singleTask;
+        private long        lastHitTime;
+        private long        lastLogLength;
+        private long        lastLogTime;
+        private float       health;
+        private int         lowHealthCount;
 
         public BroadcastTask(VideoInfo videoInfo, AccountInfo broadcastAccount) {
             this.videoInfo = videoInfo;
@@ -221,16 +243,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             return broadcastAccount;
         }
 
-        public boolean isTerminate() {
-            return terminate;
-        }
-
-        public boolean isSingleTask() {
-            return singleTask;
-        }
-
         @Override
-        public void run() {
+        public synchronized void run() {
             // 任务第一次启动时尝试用默认的转播账号进行一次转播
             if (!singleTask) {
                 ChannelInfo channelInfo = videoInfo.getChannelInfo();
@@ -262,54 +276,109 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         }
                     }
                     while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
+                        VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
+                        VideoInfo lowVideoInfo = null;
                         try {
-                            VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                             BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
                             String broadcastAddress = broadcastService.getBroadcastAddress(broadcastAccount);
                             if (broadcastAccount.isAutoRoomTitle()) {
                                 broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
                             }
                             String ffmpegCmdLine;
-                            // 如果是区域打码的，创建低分辨率媒体代理服务
-                            VideoInfo lowVideoInfo = null;
-                            if (currentVideo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN) {
-                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
-                                if (mediaProxyTask != null) {
-                                    lowVideoInfo = mediaProxyTask.getVideoInfo();
-                                } else {
-                                    lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "720");
-                                    if (lowVideoInfo == null) {
-                                        throw new RuntimeException("获取低清晰度视频源信息失败");
+                            // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
+                            switch (currentVideo.getCropConf().getVideoBannedType()) {
+                                case CUSTOM_SCREEN: {
+                                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
+                                    if (mediaProxyTask != null) {
+                                        lowVideoInfo = mediaProxyTask.getVideoInfo();
+                                    } else {
+                                        lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), null, "720");
+                                        if (lowVideoInfo == null) {
+                                            throw new RuntimeException("获取低清晰度视频源信息失败");
+                                        }
+                                        lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
+                                        MediaProxyManager.createProxy(lowVideoInfo);
                                     }
-                                    lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
-                                    MediaProxyManager.createProxy(lowVideoInfo);
+                                    lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
+                                    lowVideoInfo.setCropConf(currentVideo.getCropConf());
+                                    ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
+                                    pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
+                                    break;
                                 }
-                                lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
-                                lowVideoInfo.setCropConf(currentVideo.getCropConf());
-                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
-                            } else {
-                                // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
-                                MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
-                                if (mediaProxyTask != null) {
-                                    mediaProxyTask.terminate();
+                                default: {
+                                    // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
+                                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                                    if (mediaProxyTask != null) {
+                                        mediaProxyTask.terminate();
+                                        mediaProxyTask.waitForTerminate();
+                                    }
+                                    ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                                    pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
                                 }
-                                ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
                             }
-                            pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId(), false);
-                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "][" + ffmpegCmdLine.replace("\t", " ") + "]");
+                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "]");
                             // 等待进程退出或者任务结束
-                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 5000)) ;
+                            lastHitTime = 0;
+                            lowHealthCount = 0;
+                            health = 0;
+                            lastLogLength = 0;
+                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
+                                ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
+                                File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
+                                if (logFile != null && logFile.length() > 1024) {
+                                    if (lastLogLength != logFile.length()) {
+                                        lastLogLength = logFile.length();
+                                        lastLogTime = System.currentTimeMillis();
+                                    }
+                                    long dt = System.currentTimeMillis() - lastLogTime;
+                                    if (dt > 5000) {
+                                        log.warn("持续" + dt + "毫秒没有推流日志输出，终止推流进程...[pid:" + pid + ", logFile:\"" + logFile + "\"]");
+                                        ProcessUtil.killProcess(pid);
+                                        continue;
+                                    }
+                                    try (FileInputStream fis = new FileInputStream(logFile)) {
+                                        fis.skip(logFile.length() - 1024);
+                                        List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
+                                        // 最多向上读取10行日志
+                                        for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
+                                            Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
+                                            if (matcher.find()) {
+                                                health = Float.parseFloat(matcher.group(1).trim()) * 100;
+                                                lastHitTime = System.currentTimeMillis();
+                                                break;
+                                            }
+                                        }
+                                        if (lastHitTime > 0 && System.currentTimeMillis() - lastHitTime > 10000) {
+                                            log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
+                                            ProcessUtil.killProcess(pid);
+                                        } else if (health > 0 && health < 90) {
+                                            if (lowHealthCount++ < 10) {
+                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次！[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                            } else {
+                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次，终止推流进程...[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                                ProcessUtil.killProcess(pid);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        log.error("读取推流进程日志文件时出错[pid:" + pid + ", logFile:\"" + logFile + "\"]", e);
+                                    }
+                                }
+                            }
+                        } catch (Throwable e) {
+                            log.error("startBroadcast failed", e);
+                        } finally {
                             // 杀死进程
                             ProcessUtil.killProcess(pid);
                             if (lowVideoInfo != null) {
                                 broadcastServerService.releaseServer(lowVideoInfo);
                             }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
-                        } catch (Throwable e) {
-                            log.error("startBroadcast failed", e);
+
                         }
                         try {
-                            Thread.sleep(1000);
+                            if (!terminate) {
+                                Thread.sleep(1000);
+                            }
                         } catch (InterruptedException ignore) {
                         }
                     }
@@ -330,17 +399,29 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     log.error("startBroadcast failed", e);
                 }
                 try {
-                    Thread.sleep(5000);
+                    if (!terminate) {
+                        Thread.sleep(1000);
+                    }
                 } catch (InterruptedException ignore) {
                 }
             }
-            videoInfo.removeBroadcastTask(this);
+            if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
+                log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
+            }
+        }
+
+        public float getHealth() {
+            return health;
+        }
+
+        public void setHealth(float health) {
+            this.health = health;
         }
 
         public boolean terminateTask() {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
-                threadPoolExecutor.schedule(() -> {
+                ThreadPoolUtil.schedule(() -> {
                     if (broadcastAccount.getCurrentVideo() == null) {
                         getBroadcastService(broadcastAccount.getAccountSite()).stopBroadcast(broadcastAccount, true);
                     }
@@ -354,6 +435,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             videoInfo.removeBroadcastTask(this);
             ProcessUtil.killProcess(pid);
             return true;
+        }
+
+        public synchronized void waitForTerminate() {
+
         }
     }
 

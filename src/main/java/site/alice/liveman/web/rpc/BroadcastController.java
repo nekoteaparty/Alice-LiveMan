@@ -20,12 +20,15 @@ package site.alice.liveman.web.rpc;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
+import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
@@ -74,8 +77,10 @@ public class BroadcastController {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
             if (videoInfo != null && videoInfo.getChannelInfo() != null) {
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
-                if (videoInfo.getBroadcastTask() != null) {
-                    AccountInfo broadcastAccount = videoInfo.getBroadcastTask().getBroadcastAccount();
+                BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                if (broadcastTask != null) {
+                    broadcastTaskVO.setHealth(broadcastTask.getHealth());
+                    AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                     if (broadcastAccount != null) {
                         broadcastTaskVO.setAccountSite(broadcastAccount.getAccountSite());
                         broadcastTaskVO.setNickname(broadcastAccount.getNickname());
@@ -152,19 +157,38 @@ public class BroadcastController {
                 }
             }
         }
+        VideoCropConf _cropConf = videoInfo.getCropConf();
         if (cropConf != null) {
-            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.AREA_SCREEN && !account.isVip()) {
-                return ActionResult.getErrorResult("你没有权限使用区域打码功能");
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && !account.isVip()) {
+                return ActionResult.getErrorResult("你没有权限使用区域打码或自定义功能");
+            }
+            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                int blurLayoutCount = 0;
+                for (CustomLayout layout : cropConf.getLayouts()) {
+                    layout.setVideoInfo(videoInfo);
+                    if (layout instanceof BlurLayout) {
+                        blurLayoutCount++;
+                    }
+                }
+                // 如果没有高斯迷糊滤镜层则设置模糊强度为0，减少不必要的性能损耗
+                if (blurLayoutCount == 0) {
+                    cropConf.setBlurSize(0);
+                }
+            } else if (CollectionUtils.isNotEmpty(cropConf.getLayouts())) {
+                cropConf.getLayouts().clear();
             }
             videoInfo.setCropConf(cropConf);
-            videoInfo.getChannelInfo().setDefaultCropConf(cropConf);
+            MediaProxyTask lowMediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId + "_low");
+            if (lowMediaProxyTask != null) {
+                lowMediaProxyTask.getVideoInfo().setCropConf(cropConf);
+            }
             try {
                 settingConfig.saveSetting(liveManSetting);
             } catch (Exception e) {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
             }
-            if (broadcastTask != null) {
+            if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
                 ProcessUtil.killProcess(broadcastTask.getPid());
             }
         }
@@ -195,6 +219,7 @@ public class BroadcastController {
             return ActionResult.getErrorResult("你没有权限停止他人直播间的推流任务");
         }
         if (broadcastTask.terminateTask()) {
+            broadcastTask.waitForTerminate();
             return ActionResult.getSuccessResult(null);
         } else {
             log.info("终止转播任务失败：CAS操作失败，请刷新页面后重试[videoId=" + videoId + "]");

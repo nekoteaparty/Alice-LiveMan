@@ -30,13 +30,18 @@ public class M3u8Util {
         private String bandwidth;
         private String codecs;
         private String resolution;
-        private String frameRate;
+        private Double frameRate;
 
         public StreamInfo(Map<String, String> propertyMap) {
             this.bandwidth = propertyMap.get("BANDWIDTH");
             this.codecs = propertyMap.get("CODECS");
             this.resolution = propertyMap.get("RESOLUTION");
-            this.frameRate = propertyMap.get("FRAME-RATE");
+            try {
+                if (propertyMap.containsKey("FRAME-RATE")) {
+                    this.frameRate = Double.parseDouble(propertyMap.get("FRAME-RATE"));
+                }
+            } catch (NumberFormatException ignore) {
+            }
         }
 
         public String getBandwidth() {
@@ -63,11 +68,11 @@ public class M3u8Util {
             this.resolution = resolution;
         }
 
-        public String getFrameRate() {
+        public Double getFrameRate() {
             return frameRate;
         }
 
-        public void setFrameRate(String frameRate) {
+        public void setFrameRate(Double frameRate) {
             this.frameRate = frameRate;
         }
     }

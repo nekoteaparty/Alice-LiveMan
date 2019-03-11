@@ -18,7 +18,12 @@
 
 package site.alice.liveman.web.dataobject.vo;
 
+import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.model.VideoCropConf;
+
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 public class BroadcastTaskVO {
     private String        nickname;
@@ -34,6 +39,7 @@ public class BroadcastTaskVO {
     private boolean       needRecord;
     private String        roomTitle;
     private VideoCropConf cropConf;
+    private float         health;
 
     public String getNickname() {
         return nickname;
@@ -137,5 +143,13 @@ public class BroadcastTaskVO {
 
     public void setCropConf(VideoCropConf cropConf) {
         this.cropConf = cropConf;
+    }
+
+    public float getHealth() {
+        return health;
+    }
+
+    public void setHealth(float health) {
+        this.health = health;
     }
 }
