@@ -95,7 +95,7 @@ public class ProcessUtil {
     }
 
     private static void settingStdLog(String logName, ProcessBuilder processBuilder) {
-        File logFile = new File("logs/ffmpeg/" + logName + "/" + (System.currentTimeMillis() / 100000) + ".log");
+        File logFile = new File("logs/ffmpeg/" + logName + "/" + (System.currentTimeMillis() / 10000) + ".log");
         logFile.getParentFile().mkdirs();
         processBuilder.redirectOutput(logFile);
         processBuilder.redirectError(logFile);
