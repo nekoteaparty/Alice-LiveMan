@@ -376,7 +376,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 broadcastServerService.releaseServer(lowVideoInfo);
                             }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
-
                         }
                         try {
                             if (!terminate) {
