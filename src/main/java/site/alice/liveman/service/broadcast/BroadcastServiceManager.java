@@ -358,6 +358,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                                 log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次，终止推流进程...[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
                                                 ProcessUtil.killProcess(pid);
                                             }
+                                        } else if (health > 110) {
+                                            log.warn("当前推流健康度异常，终止推流进程[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]...");
+                                            ProcessUtil.killProcess(pid);
                                         }
                                     } catch (Exception e) {
                                         log.error("读取推流进程日志文件时出错[pid:" + pid + ", logFile:\"" + logFile + "\"]", e);
@@ -373,7 +376,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 broadcastServerService.releaseServer(lowVideoInfo);
                             }
                             log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
-
                         }
                         try {
                             if (!terminate) {

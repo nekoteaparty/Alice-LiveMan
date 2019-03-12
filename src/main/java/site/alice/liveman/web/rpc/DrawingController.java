@@ -37,8 +37,6 @@ import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
@@ -82,6 +80,7 @@ public class DrawingController {
             }
             try (OutputStream os = response.getOutputStream()) {
                 PngEncoderB pngEncoderB = new PngEncoderB();
+                pngEncoderB.setCompressionLevel(6);
                 pngEncoderB.setEncodeAlpha(true);
                 pngEncoderB.setImage(image);
                 os.write(pngEncoderB.pngEncode());
