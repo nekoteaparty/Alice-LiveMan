@@ -67,9 +67,9 @@ public class FfmpegUtil {
             if (cropConf.getBlurSize() > 0) {
                 cmdLine += "\t-framerate\t1\t-loop\t1\t-i\t\"" + String.format(BOXBLUR_MASK_URL, videoInfo.getVideoId()) + "\"";
                 if (liveManSetting.getPreReEncode()) {
-                    filter = "[0:v]smartblur=" + cropConf.getBlurSize() + ":1:cr=0:cs=0[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[0:v][alf]overlay[v];[v][2:v]overlay";
+                    filter = "[0:v]smartblur=" + cropConf.getBlurSize() + ":1[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[0:v][alf]overlay[v];[v][2:v]overlay";
                 } else {
-                    filter = "[0:v]fps=30,scale=1280x720,split=2[ref0][ref1];[ref0]smartblur=" + cropConf.getBlurSize() + ":1:cr=0:cs=0[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[ref1][alf]overlay[v];[v][2:v]overlay";
+                    filter = "[0:v]fps=30,scale=1280x720,split=2[ref0][ref1];[ref0]smartblur=" + cropConf.getBlurSize() + ":1[blur];[1:v]fps=30[mask];[blur][mask]alphamerge[alf];[ref1][alf]overlay[v];[v][2:v]overlay";
                 }
             } else {
                 filter = "[0:v]fps=30,scale=1280x720[v];[v][1:v]overlay";
