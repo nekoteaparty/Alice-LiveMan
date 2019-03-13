@@ -80,7 +80,7 @@ public class DrawingController {
             }
             try (OutputStream os = response.getOutputStream()) {
                 PngEncoderB pngEncoderB = new PngEncoderB();
-                pngEncoderB.setCompressionLevel(6);
+                pngEncoderB.setCompressionLevel(3);
                 pngEncoderB.setEncodeAlpha(true);
                 pngEncoderB.setImage(image);
                 os.write(pngEncoderB.pngEncode());
