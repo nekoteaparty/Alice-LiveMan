@@ -35,7 +35,7 @@ public class NicoLiveService extends LiveService {
 
     private static final Pattern LIVE_VIDEO_URL_PATTERN = Pattern.compile("<p class=\"live_btn\"><a href=\"(.+?)\">");
     private static final Pattern EMBEDDED_DATA_PATTERN  = Pattern.compile("<script id=\"embedded-data\" data-props=\"(.+?)\">");
-    private static final Pattern WEB_SOCKET_URL_PATTERN = Pattern.compile("&quot;webSocketUrl&quot;:&quot;(.+?)&quot;");
+    private static final Pattern WEB_SOCKET_URL_PATTERN = Pattern.compile("&quot;(wss://.+?)&quot;");
     private static final Pattern TITLE_PATTERN          = Pattern.compile("&quot;title&quot;:&quot;(.+?)&quot;");
     private static final Pattern VIDEO_ID_PATTERN       = Pattern.compile("&quot;nicoliveProgramId&quot;:&quot;(.+?)&quot;");
 
