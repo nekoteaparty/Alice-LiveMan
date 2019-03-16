@@ -11,6 +11,7 @@
 + Twitch `https://www.twitch.tv/alicemana_v`
 + NicoLive `https://live2.nicovideo.jp/watch/lv318312102`或 `https://cas.nicovideo.jp/user/83115560/lv319023737`
 + PscpTV `https://www.pscp.tv/w/xxxxxxxx`
++ 17Live `https://17.live/live/xxxxxxxx`
 
 ## 支持的转播目标
 + Bilibili
