@@ -28,6 +28,7 @@ import java.net.Proxy;
 import java.net.URI;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class TwitcastingMediaProxy implements MediaProxy {
@@ -55,7 +56,10 @@ public class TwitcastingMediaProxy implements MediaProxy {
             try (ServletOutputStream outputStream = response.getOutputStream()) {
                 boolean headerWrote = false;
                 while (!twcProxyTask.getTerminated()) {
-                    byte[] bytes = bufferedQueue.take();
+                    byte[] bytes = bufferedQueue.poll(1000, TimeUnit.MILLISECONDS);
+                    if (bytes == null) {
+                        continue;
+                    }
                     if (!headerWrote) {
                         outputStream.write(twcProxyTask.getM4sHeader());
                         headerWrote = true;

@@ -207,6 +207,11 @@ public class HttpRequestUtil {
 
     public static void downloadToFile(URI url, File file) throws IOException {
         HttpGet httpGet = new HttpGet(url);
+        downloadToFile(httpGet, file);
+    }
+
+    public static void downloadToFile(HttpGet httpGet, File file) throws IOException {
+        File tempFile = new File(file.toString() + ".tmp");
         HttpClientContext context = HttpClientContext.create();
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
@@ -227,13 +232,14 @@ public class HttpRequestUtil {
             if (responseEntity.getContentEncoding() != null && StringUtils.containsIgnoreCase(responseEntity.getContentEncoding().getValue(), "gzip")) {
                 is = new GZIPInputStream(is);
             }
-            File tempFile = new File(file.toString() + ".tmp");
             tempFile.getParentFile().mkdirs();
+            byte[] buffer = new byte[1024 * 1024];
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                byte[] buffer = new byte[1024];
                 int readCount = -1;
                 while ((readCount = is.read(buffer)) > -1) {
                     fos.write(buffer, 0, readCount);
+                    fos.flush();
+                    tempFile.getParentFile().setLastModified(System.currentTimeMillis());
                 }
                 is.close();
             }
@@ -242,6 +248,8 @@ public class HttpRequestUtil {
         } catch (IllegalStateException e) {
             initClient();
             throw e;
+        } finally {
+            tempFile.delete();
         }
     }
 

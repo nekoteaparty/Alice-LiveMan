@@ -105,7 +105,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return null;
     }
 
-    public MediaProxyTask(String videoId, URI sourceUrl) {
+    protected MediaProxyTask(String videoId, URI sourceUrl) {
         this.videoId = videoId;
         this.sourceUrl = sourceUrl;
     }
@@ -142,6 +142,10 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     protected abstract void runTask() throws Exception;
 
     protected abstract void terminateTask();
+
+    protected Thread getRunThread() {
+        return runThread;
+    }
 
     public List<MediaProxyTask> getParentProxyTasks() {
         return parentProxyTasks;
