@@ -9,7 +9,8 @@
 + Mirrativ `https://www.mirrativ.com/user/alice-liveman`
 + AbemaTV `https://abema.tv/channels/ultra-games-2/slots/Dufru6t7zsEuXV`
 + Twitch `https://www.twitch.tv/alicemana_v`
-+ NicoLive `http://live2.nicovideo.jp/watch/lv318312102`
++ NicoLive `http://live2.nicovideo.jp/watch/lv318312102`或 `https://cas.nicovideo.jp/user/83115560/lv319023737`
++ PscpTV `https://www.pscp.tv/w/xxxxxxxx`
 
 ## 支持的转播目标
 + Bilibili
