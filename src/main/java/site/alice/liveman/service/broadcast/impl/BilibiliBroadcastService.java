@@ -31,6 +31,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastService;
@@ -69,12 +70,12 @@ public class BilibiliBroadcastService implements BroadcastService {
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         VideoInfo videoInfo = accountInfo.getCurrentVideo();
         int area = 199;
-        if (videoInfo.isVideoBanned()) {
+        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.FULL_SCREEN) {
             area = 33;
         } else if (videoInfo.getArea() != null) {
             area = videoInfo.getArea()[1];
         }
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area, StandardCharsets.UTF_8);
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area + (videoInfo.isVertical() ? "&type=1" : ""), StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.get("data") instanceof JSONObject) {
@@ -96,6 +97,9 @@ public class BilibiliBroadcastService implements BroadcastService {
     public void setBroadcastSetting(AccountInfo accountInfo, String title, Integer areaId) {
         String postData = null;
         try {
+            if (title == null && areaId == null) {
+                return;
+            }
             Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
             String csrfToken = "";
             if (matcher.find()) {
@@ -184,12 +188,12 @@ public class BilibiliBroadcastService implements BroadcastService {
             String resJson = HttpRequestUtil.downloadUrl(new URI(BILI_STOP_LIVE_URL), accountInfo.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject resObject = JSON.parseObject(resJson);
             if (resObject.getInteger("code") != 0) {
-                log.error("自动关闭直播间失败" + resJson);
+                log.error("关闭直播间失败" + resJson);
             } else {
                 log.info("直播间[roomId=" + accountInfo.getRoomId() + "]已关闭！");
             }
         } catch (Throwable e) {
-            log.error("自动关闭直播间失败", e);
+            log.error("关闭直播间失败", e);
         }
     }
 

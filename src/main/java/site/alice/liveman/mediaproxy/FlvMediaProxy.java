@@ -65,20 +65,21 @@ public class FlvMediaProxy implements MediaProxy {
                 byte[] buffer = new byte[1024 * 1024];
                 try (RandomAccessFile raf = new RandomAccessFile(flvFiles[0], "r")) {
                     try (OutputStream os = response.getOutputStream()) {
-                        if (raf.length() > buffer.length) {
+                        if (raf.length() > 2 * buffer.length) {
                             // 读FLV头部1KB数据
                             raf.read(buffer, 0, 1024);
                             os.write(buffer, 0, 1024);
-                            raf.seek(raf.length() - 2 * 1024 * 1024);
+                            raf.seek(raf.length() - buffer.length);
                         }
                         while (!mediaProxyTask.getTerminated()) {
                             int readed = 0;
                             if ((readed = raf.read(buffer)) < 0) {
-                                log.info("not have any stream bytes:" + raf.length());
+                                log.info("not have any stream bytes[videoId=" + videoId + "]:" + raf.length());
                                 Thread.sleep(500);
                             } else {
-                                log.info("read stream bytes:" + raf.getFilePointer() + "@" + raf.length() + ", read:" + readed);
+                                log.info("read stream bytes[videoId=" + videoId + "]:" + raf.getFilePointer() + "@" + raf.length() + ", read:" + readed);
                                 os.write(buffer, 0, readed);
+                                os.flush();
                             }
                         }
                     }

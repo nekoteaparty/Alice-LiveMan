@@ -233,7 +233,7 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             tempFile.getParentFile().mkdirs();
-            byte[] buffer = new byte[1024 * 1024];
+            byte[] buffer = new byte[1024];
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 int readCount = -1;
                 while ((readCount = is.read(buffer)) > -1) {
@@ -249,7 +249,9 @@ public class HttpRequestUtil {
             initClient();
             throw e;
         } finally {
-            tempFile.delete();
+            if (tempFile.length() == 0) {
+                tempFile.delete();
+            }
         }
     }
 

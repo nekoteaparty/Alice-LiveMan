@@ -34,12 +34,12 @@ public class BroadcastTaskVO {
     private String        videoId;
     private String        mediaUrl;
     private int[]         area;
-    private boolean       isVideoBanned;
     private boolean       isAudioBanned;
     private boolean       needRecord;
     private String        roomTitle;
     private VideoCropConf cropConf;
     private float         health;
+    private boolean       vertical;
 
     public String getNickname() {
         return nickname;
@@ -105,14 +105,6 @@ public class BroadcastTaskVO {
         this.area = area;
     }
 
-    public boolean isVideoBanned() {
-        return isVideoBanned;
-    }
-
-    public void setVideoBanned(boolean videoBanned) {
-        isVideoBanned = videoBanned;
-    }
-
     public boolean isAudioBanned() {
         return isAudioBanned;
     }
@@ -151,5 +143,13 @@ public class BroadcastTaskVO {
 
     public void setHealth(float health) {
         this.health = health;
+    }
+
+    public boolean isVertical() {
+        return vertical;
+    }
+
+    public void setVertical(boolean vertical) {
+        this.vertical = vertical;
     }
 }

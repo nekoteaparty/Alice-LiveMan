@@ -40,7 +40,6 @@ public class VideoInfo implements Serializable {
     private URI                            mediaUrl;
     private String                         mediaFormat;
     private int[]                          area;
-    private boolean                        isVideoBanned;
     private boolean                        isAudioBanned;
     private boolean                        needRecord;
     private String                         encodeMethod;
@@ -48,7 +47,10 @@ public class VideoInfo implements Serializable {
     private byte[]                         encodeIV;
     private AtomicReference<BroadcastTask> broadcastTask;
     private VideoCropConf                  cropConf;
+    private boolean                        vertical;
     private Double                         frameRate;
+    private String                         resolution;
+
     public VideoInfo(ChannelInfo channelInfo, String videoId, String title, URI videoInfoUrl, URI mediaUrl, String mediaFormat) {
         this.channelInfo = channelInfo;
         this.videoId = videoId;
@@ -59,8 +61,6 @@ public class VideoInfo implements Serializable {
         this.broadcastTask = new AtomicReference<>();
         this.cropConf = new VideoCropConf();
     }
-
-    private String                         resolution;
 
     public URI getVideoInfoUrl() {
         return videoInfoUrl;
@@ -128,14 +128,6 @@ public class VideoInfo implements Serializable {
 
     public void setMediaFormat(String mediaFormat) {
         this.mediaFormat = mediaFormat;
-    }
-
-    public boolean isVideoBanned() {
-        return isVideoBanned;
-    }
-
-    public void setVideoBanned(boolean videoBanned) {
-        isVideoBanned = videoBanned;
     }
 
     public boolean isAudioBanned() {
@@ -230,6 +222,14 @@ public class VideoInfo implements Serializable {
         this.resolution = resolution;
     }
 
+    public boolean isVertical() {
+        return vertical;
+    }
+
+    public void setVertical(boolean vertical) {
+        this.vertical = vertical;
+    }
+
     @Override
     public String toString() {
         return "VideoInfo{" +
@@ -240,7 +240,6 @@ public class VideoInfo implements Serializable {
                 ", mediaUrl=" + mediaUrl +
                 ", mediaFormat='" + mediaFormat + '\'' +
                 ", area=" + Arrays.toString(area) +
-                ", isVideoBanned=" + isVideoBanned +
                 ", isAudioBanned=" + isAudioBanned +
                 ", encodeMethod='" + encodeMethod + '\'' +
                 ", encodeKey=" + Arrays.toString(encodeKey) +
