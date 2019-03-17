@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class FlvMediaProxyTask extends MediaProxyTask {
-    private static final int           MAX_RETRY_COUNT = 10;
+    private static final int           MAX_RETRY_COUNT = 30;
     private              HttpGet       httpGet;
     protected            AtomicInteger retryCount      = new AtomicInteger(0);
 
@@ -40,7 +40,7 @@ public class FlvMediaProxyTask extends MediaProxyTask {
 
     @Override
     protected void runTask() throws Exception {
-        while (!getTerminated() && retryCount.get() < 50) {
+        while (!getTerminated() && retryCount.get() < MAX_RETRY_COUNT) {
             VideoInfo videoInfo = getVideoInfo();
             try {
                 File flvFile = new File(MediaProxyManager.getTempPath() + "/flv/" + videoInfo.getVideoUnionId() + "/" + System.currentTimeMillis() + ".flv");

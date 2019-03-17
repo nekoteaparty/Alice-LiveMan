@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 public class SeventeenLiveService extends LiveService {
 
     private static final String liveStreamInfoUrl = "https://api-dsa.17app.co/api/v1/liveStreams/getLiveStreamInfo";
-    private static final String liveRoomUrl       = "https://17.live/live/";
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
@@ -48,7 +47,7 @@ public class SeventeenLiveService extends LiveService {
         String liveStreamInfo = HttpRequestUtil.downloadUrl(new URI(liveStreamInfoUrl), channelInfo.getCookies(), "{\"liveStreamID\":\"" + profileId + "\"}", StandardCharsets.UTF_8);
         JSONObject jsonObject = JSON.parseObject(liveStreamInfo).getJSONObject("data");
         JSONArray rtmpUrls = jsonObject.getJSONArray("rtmpUrls");
-        if (rtmpUrls != null && rtmpUrls.size() > 0) {
+        if (jsonObject.getInteger("status") > 0 && rtmpUrls != null && rtmpUrls.size() > 0) {
             URI videoUrl = new URI(rtmpUrls.getJSONObject(0).getString("url"));
             return new VideoInfo(channelInfo, profileId, jsonObject.getString("caption"), videoInfoUrl, videoUrl, "flv");
         }

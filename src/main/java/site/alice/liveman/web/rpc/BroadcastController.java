@@ -93,12 +93,12 @@ public class BroadcastController {
                 }
                 broadcastTaskVO.setArea(videoInfo.getArea());
                 broadcastTaskVO.setAudioBanned(videoInfo.isAudioBanned());
-                broadcastTaskVO.setVideoBanned(videoInfo.isVideoBanned());
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
                 broadcastTaskVO.setNeedRecord(videoInfo.isNeedRecord());
                 broadcastTaskVO.setCropConf(videoInfo.getCropConf());
                 broadcastTaskVO.setMediaUrl(mediaProxyTask.getTargetUrl().getPath());
+                broadcastTaskVO.setVertical(videoInfo.isVertical());
                 broadcastTaskVOList.add(broadcastTaskVO);
             }
         }
@@ -297,9 +297,13 @@ public class BroadcastController {
                 if (broadcastTaskVO.getArea() != null && broadcastTaskVO.getArea().length > 1) {
                     areaId = broadcastTaskVO.getArea()[1];
                 }
+                if (broadcastTaskVO.isVertical() != videoInfo.isVertical()) {
+                    broadcastServiceManager.getBroadcastService(account.getAccountSite()).stopBroadcast(broadcastAccount, false);
+                }
                 broadcastServiceManager.getBroadcastService(account.getAccountSite()).setBroadcastSetting(broadcastAccount, broadcastTaskVO.getRoomTitle(), areaId);
             }
         }
+        videoInfo.setVertical(broadcastTaskVO.isVertical());
         videoInfo.setArea(broadcastTaskVO.getArea());
         videoInfo.setNeedRecord(broadcastTaskVO.isNeedRecord());
         MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoId);
