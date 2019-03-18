@@ -49,14 +49,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    protected static final int                        MAX_RETRY_COUNT = 60;
-    private                BlockingDeque<M3u8SeqInfo> downloadDeque   = new LinkedBlockingDeque<>();
-    private                Queue<File>                seqFileQueue    = new ConcurrentLinkedQueue<>();
-    protected              AtomicInteger              retryCount      = new AtomicInteger(0);
-    private                int                        lastSeqIndex    = 0;
-    private final          MediaProxyTask             downloadTask;
+    protected static final int                         MAX_RETRY_COUNT = 60;
+    private                BlockingDeque<M3u8SeqInfo>  downloadDeque   = new LinkedBlockingDeque<>();
+    private                ConcurrentLinkedQueue<File> seqFileQueue    = new ConcurrentLinkedQueue<>();
+    protected              AtomicInteger               retryCount      = new AtomicInteger(0);
+    private                int                         lastSeqIndex    = 0;
+    private final          MediaProxyTask              downloadTask;
     @Autowired
-    private                LiveManSetting             liveManSetting;
+    private                LiveManSetting              liveManSetting;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
         super(videoId, sourceUrl);
