@@ -233,13 +233,17 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             tempFile.getParentFile().mkdirs();
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[40960];
+            long setLastModifiedTime = System.nanoTime();
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 int readCount = -1;
                 while ((readCount = is.read(buffer)) > -1) {
                     fos.write(buffer, 0, readCount);
                     fos.flush();
-                    tempFile.getParentFile().setLastModified(System.currentTimeMillis());
+                    if (TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - setLastModifiedTime) > 10) {
+                        setLastModifiedTime = System.nanoTime();
+                        tempFile.getParentFile().setLastModified(System.currentTimeMillis());
+                    }
                 }
                 is.close();
             }

@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.customlayout.impl.BlurLayout;
+import site.alice.liveman.customlayout.impl.BrowserLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
@@ -37,6 +38,7 @@ import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
@@ -62,28 +64,39 @@ public class DrawingController {
             return;
         }
         if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-            BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D graphics = image.createGraphics();
-            graphics.setBackground(new Color(0, 0, 0, 0));
-            Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
-            if (CollectionUtils.isNotEmpty(customLayoutList)) {
-                for (CustomLayout customLayout : customLayoutList) {
-                    if (customLayout instanceof BlurLayout) {
-                        continue;
-                    }
-                    try {
-                        customLayout.paintLayout(graphics);
-                    } catch (Exception e) {
-                        log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+            byte[] cachedDrawBytes = videoInfo.getCropConf().getCachedDrawBytes();
+            if (cachedDrawBytes == null) {
+                boolean canCache = true;
+                BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D graphics = image.createGraphics();
+                graphics.setBackground(new Color(0, 0, 0, 0));
+                Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+                if (CollectionUtils.isNotEmpty(customLayoutList)) {
+                    for (CustomLayout customLayout : customLayoutList) {
+                        if (customLayout instanceof BlurLayout) {
+                            continue;
+                        }
+                        if (customLayout instanceof BrowserLayout) {
+                            canCache = false;
+                        }
+                        try {
+                            customLayout.paintLayout(graphics);
+                        } catch (Exception e) {
+                            log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                        }
                     }
                 }
-            }
-            try (OutputStream os = response.getOutputStream()) {
                 PngEncoderB pngEncoderB = new PngEncoderB();
                 pngEncoderB.setCompressionLevel(3);
                 pngEncoderB.setEncodeAlpha(true);
                 pngEncoderB.setImage(image);
-                os.write(pngEncoderB.pngEncode());
+                cachedDrawBytes = pngEncoderB.pngEncode();
+                if (canCache) {
+                    videoInfo.getCropConf().setCachedDrawBytes(cachedDrawBytes);
+                }
+            }
+            try (OutputStream os = response.getOutputStream()) {
+                os.write(cachedDrawBytes);
                 os.flush();
             } catch (Exception e) {
                 log.error("无法输出图像数据到响应流[videoId=" + videoInfo.getVideoId() + "]", e);
@@ -106,20 +119,27 @@ public class DrawingController {
             return;
         }
         if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-            BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_RGB);
-            Graphics2D graphics = image.createGraphics();
-            Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
-            for (CustomLayout customLayout : customLayoutList) {
-                if (customLayout instanceof BlurLayout) {
-                    try {
-                        customLayout.paintLayout(graphics);
-                    } catch (Exception e) {
-                        log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
-                    }
-                }
-            }
             try (OutputStream os = response.getOutputStream()) {
-                ImageIO.write(image, "jpg", os);
+                byte[] cachedBlurBytes = videoInfo.getCropConf().getCachedBlurBytes();
+                if (cachedBlurBytes == null) {
+                    BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D graphics = image.createGraphics();
+                    Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+                    for (CustomLayout customLayout : customLayoutList) {
+                        if (customLayout instanceof BlurLayout) {
+                            try {
+                                customLayout.paintLayout(graphics);
+                            } catch (Exception e) {
+                                log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                            }
+                        }
+                    }
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    ImageIO.write(image, "jpg", bos);
+                    cachedBlurBytes = bos.toByteArray();
+                }
+                os.write(cachedBlurBytes);
+                os.flush();
             } catch (Exception e) {
                 log.error("无法输出图像数据到响应流[videoId=" + videoInfo.getVideoId() + "]", e);
             }
