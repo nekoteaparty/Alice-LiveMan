@@ -81,7 +81,8 @@ public class RecordAndCleanUpJob {
                                 }
                                 break;
                             }
-                            case "mp4": {
+                            case "mp4":
+                            case "flv": {
                                 uploadDir(sourcePath, sourcePath.getName());
                                 break;
                             }
