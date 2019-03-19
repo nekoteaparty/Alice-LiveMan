@@ -96,7 +96,6 @@ public class BroadcastController {
                 broadcastTaskVO.setVideoId(videoInfo.getVideoId());
                 broadcastTaskVO.setVideoTitle(videoInfo.getTitle());
                 broadcastTaskVO.setNeedRecord(videoInfo.isNeedRecord());
-                broadcastTaskVO.setCropConf(videoInfo.getCropConf());
                 broadcastTaskVO.setMediaUrl(mediaProxyTask.getTargetUrl().getPath());
                 broadcastTaskVO.setVertical(videoInfo.isVertical());
                 broadcastTaskVOList.add(broadcastTaskVO);
@@ -136,6 +135,18 @@ public class BroadcastController {
             return ActionResult.getErrorResult("操作失败：" + e.getMessage());
         }
     }
+
+    @RequestMapping("/getCropConf.json")
+    public ActionResult<VideoCropConf> getCropConf(String videoId) {
+        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+        if (mediaProxyTask == null) {
+            log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
+            return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        VideoCropConf cropConf = mediaProxyTask.getVideoInfo().getCropConf();
+        return ActionResult.getSuccessResult(cropConf);
+    }
+
 
     @RequestMapping("/cropConfSave.json")
     public ActionResult cropConfSave(String videoId, @RequestBody VideoCropConf cropConf) {

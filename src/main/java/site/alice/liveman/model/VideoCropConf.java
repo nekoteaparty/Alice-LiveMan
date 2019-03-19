@@ -18,6 +18,8 @@
 
 package site.alice.liveman.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 
@@ -32,7 +34,9 @@ public class VideoCropConf implements Serializable {
     private int                   ctrlTop;
     private int                   blurSize;
     private TreeSet<CustomLayout> layouts;
+    @JsonIgnore
     private byte[]                cachedDrawBytes;
+    @JsonIgnore
     private byte[]                cachedBlurBytes;
 
     public VideoCropConf() {

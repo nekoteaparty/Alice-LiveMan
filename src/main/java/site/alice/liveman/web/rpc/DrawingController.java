@@ -32,6 +32,7 @@ import site.alice.liveman.customlayout.impl.BrowserLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
 
 import javax.imageio.ImageIO;
@@ -63,14 +64,15 @@ public class DrawingController {
             log.info("找不到请求的媒体信息[videoId=" + videoId + "]");
             return;
         }
-        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-            byte[] cachedDrawBytes = videoInfo.getCropConf().getCachedDrawBytes();
+        VideoCropConf cropConf = videoInfo.getCropConf();
+        if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+            byte[] cachedDrawBytes = cropConf.getCachedDrawBytes();
             if (cachedDrawBytes == null) {
                 boolean canCache = true;
                 BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D graphics = image.createGraphics();
                 graphics.setBackground(new Color(0, 0, 0, 0));
-                Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+                Set<CustomLayout> customLayoutList = cropConf.getLayouts();
                 if (CollectionUtils.isNotEmpty(customLayoutList)) {
                     for (CustomLayout customLayout : customLayoutList) {
                         if (customLayout instanceof BlurLayout) {
@@ -92,7 +94,7 @@ public class DrawingController {
                 pngEncoderB.setImage(image);
                 cachedDrawBytes = pngEncoderB.pngEncode();
                 if (canCache) {
-                    videoInfo.getCropConf().setCachedDrawBytes(cachedDrawBytes);
+                    cropConf.setCachedDrawBytes(cachedDrawBytes);
                 }
             }
             try (OutputStream os = response.getOutputStream()) {
@@ -118,13 +120,14 @@ public class DrawingController {
             log.info("找不到请求的媒体信息[videoId=" + videoId + "]");
             return;
         }
-        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+        VideoCropConf cropConf = videoInfo.getCropConf();
+        if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             try (OutputStream os = response.getOutputStream()) {
-                byte[] cachedBlurBytes = videoInfo.getCropConf().getCachedBlurBytes();
+                byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
                 if (cachedBlurBytes == null) {
                     BufferedImage image = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_RGB);
                     Graphics2D graphics = image.createGraphics();
-                    Set<CustomLayout> customLayoutList = videoInfo.getCropConf().getLayouts();
+                    Set<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
                         if (customLayout instanceof BlurLayout) {
                             try {
@@ -137,6 +140,7 @@ public class DrawingController {
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     ImageIO.write(image, "jpg", bos);
                     cachedBlurBytes = bos.toByteArray();
+                    cropConf.setCachedBlurBytes(cachedBlurBytes);
                 }
                 os.write(cachedBlurBytes);
                 os.flush();
