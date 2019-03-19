@@ -49,14 +49,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    protected static final int                        MAX_RETRY_COUNT      = 60;
-    private                long                       NEXT_M3U8_WRITE_TIME = 0;
-    private                BlockingDeque<M3u8SeqInfo> downloadDeque        = new LinkedBlockingDeque<>();
-    protected              AtomicInteger              retryCount           = new AtomicInteger(0);
-    private                int                        lastSeqIndex         = 0;
-    private final          MediaProxyTask             downloadTask;
+    protected static final int                         MAX_RETRY_COUNT = 60;
+    private                BlockingDeque<M3u8SeqInfo>  downloadDeque   = new LinkedBlockingDeque<>();
+    private                ConcurrentLinkedQueue<File> seqFileQueue    = new ConcurrentLinkedQueue<>();
+    protected              AtomicInteger               retryCount      = new AtomicInteger(0);
+    private                int                         lastSeqIndex    = 0;
+    private final          MediaProxyTask              downloadTask;
     @Autowired
-    private                LiveManSetting             liveManSetting;
+    private                LiveManSetting              liveManSetting;
 
     public M3u8MediaProxyTask(String videoId, URI sourceUrl) {
         super(videoId, sourceUrl);
@@ -78,6 +78,13 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                 if (m3u8SeqInfo != null) {
                                     ProcessUtil.waitProcess(m3u8SeqInfo.getConvertPid());
                                     m3u8SeqInfo.getSeqFile().delete();
+                                    File recodedFile = new File(m3u8SeqInfo.getSeqFile().toString().replace(".tmp", ""));
+                                    if (recodedFile.exists() && recodedFile.length() > 0) {
+                                        while (seqFileQueue.size() > 100) {
+                                            seqFileQueue.poll();
+                                        }
+                                        seqFileQueue.offer(recodedFile);
+                                    }
                                     createM3U8File();
                                 }
                             }
@@ -102,6 +109,10 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                             m3u8SeqInfo.setConvertPid(process);
                             toLowFrameRatePidQueue.offer(m3u8SeqInfo);
                         } else {
+                            while (seqFileQueue.size() > 100) {
+                                seqFileQueue.poll();
+                            }
+                            seqFileQueue.offer(dictSeqFile);
                             createM3U8File();
                         }
                     } else if (M3u8MediaProxyTask.this.getTerminated()) {
@@ -169,7 +180,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         while (retryCount.get() < MAX_RETRY_COUNT && !getTerminated()) {
             ChannelInfo channelInfo = getVideoInfo().getChannelInfo();
             List<M3u8SeqInfo> tempSeqList = new LinkedList<>();
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             try {
                 String m3u8Context = HttpRequestUtil.downloadUrl(getSourceUrl(), Charset.defaultCharset());
                 String[] m3u8Lines = m3u8Context.split("\n");
@@ -220,7 +231,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     break;
                 }
             }
-            Thread.sleep(Math.max(500 - (System.currentTimeMillis() - start), 0));
+            Thread.sleep(Math.max(500 - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), 0));
         }
     }
 
@@ -268,48 +279,29 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     }
 
     private void createM3U8File() {
-        if (System.currentTimeMillis() < NEXT_M3U8_WRITE_TIME) {
-            return;
-        }
         VideoInfo videoInfo = getVideoInfo();
         File m3u8Path = new File(MediaProxyManager.getTempPath() + "/m3u8/" + videoInfo.getVideoUnionId() + "/");
         m3u8Path.mkdirs();
-        File[] seqFiles = m3u8Path.listFiles((dir, name) -> name.endsWith(".ts"));
-        if (seqFiles.length > 0) {
-            List<Integer> seqList = new LinkedList<>();
-            for (File file : seqFiles) {
-                if (file.length() > 0) {
-                    try {
-                        seqList.add(Integer.parseInt(FilenameUtils.getBaseName(file.getName())));
-                    } catch (NumberFormatException ignored) {
-                        log.info(file.getName() + " is not a seq file skipped.");
-                    }
-                }
+        StringBuilder sb = new StringBuilder();
+        for (File seqFile : seqFileQueue) {
+            if (sb.length() == 0) {
+                sb.append("#EXTM3U\n" +
+                        "#EXT-X-VERSION:3\n" +
+                        "#EXT-X-TARGETDURATION:2\n" +
+                        "#EXT-X-MEDIA-SEQUENCE:" + Integer.parseInt(FilenameUtils.getBaseName(seqFile.getName())) + "\n" +
+                        "#EXT-X-DISCONTINUITY-SEQUENCE:1\n");
             }
-            seqList.sort(Comparator.reverseOrder());
-            seqList = seqList.subList(0, Math.min(100, seqList.size()));
-            Collections.reverse(seqList);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("#EXTM3U\n" +
-                    "#EXT-X-VERSION:3\n" +
-                    "#EXT-X-TARGETDURATION:2\n" +
-                    "#EXT-X-MEDIA-SEQUENCE:" + seqList.get(0) + "\n" +
-                    "#EXT-X-DISCONTINUITY-SEQUENCE:1\n");
-            for (Integer seq : seqList) {
-                sb.append("#EXTINF:1.0,\n");
-                sb.append(seq).append(".ts\n");
-            }
-            File m3u8FileTemp = new File(m3u8Path + "/index.m3u8.tmp");
-            try {
-                FileUtils.write(m3u8FileTemp, sb);
-                File m3u8File = new File(m3u8Path + "/index.m3u8");
-                m3u8File.delete();
-                m3u8FileTemp.renameTo(m3u8File);
-                NEXT_M3U8_WRITE_TIME = System.currentTimeMillis() + 250;
-            } catch (IOException e) {
-                log.error("M3U8序列文件写入失败", e);
-            }
+            sb.append("#EXTINF:1.0,\n");
+            sb.append(seqFile.getName()).append("\n");
+        }
+        File m3u8FileTemp = new File(m3u8Path + "/index.m3u8.tmp");
+        try {
+            FileUtils.write(m3u8FileTemp, sb);
+            File m3u8File = new File(m3u8Path + "/index.m3u8");
+            m3u8File.delete();
+            m3u8FileTemp.renameTo(m3u8File);
+        } catch (IOException e) {
+            log.error("M3U8序列文件写入失败", e);
         }
     }
 }

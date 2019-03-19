@@ -18,13 +18,13 @@
 
 package site.alice.liveman.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 public class VideoCropConf implements Serializable {
     private VideoBannedTypeEnum   videoBannedType = VideoBannedTypeEnum.NONE;
@@ -34,6 +34,10 @@ public class VideoCropConf implements Serializable {
     private int                   ctrlTop;
     private int                   blurSize;
     private TreeSet<CustomLayout> layouts;
+    @JsonIgnore
+    private byte[]                cachedDrawBytes;
+    @JsonIgnore
+    private byte[]                cachedBlurBytes;
 
     public VideoCropConf() {
         layouts = new TreeSet<>();
@@ -93,6 +97,22 @@ public class VideoCropConf implements Serializable {
 
     public void setLayouts(TreeSet<CustomLayout> layouts) {
         this.layouts = layouts;
+    }
+
+    public byte[] getCachedDrawBytes() {
+        return cachedDrawBytes;
+    }
+
+    public void setCachedDrawBytes(byte[] cachedDrawBytes) {
+        this.cachedDrawBytes = cachedDrawBytes;
+    }
+
+    public byte[] getCachedBlurBytes() {
+        return cachedBlurBytes;
+    }
+
+    public void setCachedBlurBytes(byte[] cachedBlurBytes) {
+        this.cachedBlurBytes = cachedBlurBytes;
     }
 
     @Override

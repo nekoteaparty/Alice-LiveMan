@@ -328,10 +328,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 if (logFile != null && logFile.length() > 1024) {
                                     if (lastLogLength != logFile.length()) {
                                         lastLogLength = logFile.length();
-                                        lastLogTime = System.currentTimeMillis();
+                                        lastLogTime = System.nanoTime();
                                     }
-                                    long dt = System.currentTimeMillis() - lastLogTime;
-                                    if (dt > 5000) {
+                                    long dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastLogTime);
+                                    if (dt > 10000) {
                                         log.warn("持续" + dt + "毫秒没有推流日志输出，终止推流进程...[pid:" + pid + ", logFile:\"" + logFile + "\"]");
                                         ProcessUtil.killProcess(pid);
                                         continue;
@@ -344,11 +344,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                             Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
                                             if (matcher.find()) {
                                                 health = Float.parseFloat(matcher.group(1).trim()) * 100;
-                                                lastHitTime = System.currentTimeMillis();
+                                                lastHitTime = System.nanoTime();
                                                 break;
                                             }
                                         }
-                                        if (lastHitTime > 0 && System.currentTimeMillis() - lastHitTime > 10000) {
+                                        if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
                                             log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
                                             ProcessUtil.killProcess(pid);
                                         } else if (health > 0 && health < 90) {
