@@ -120,8 +120,6 @@ public class MediaProxyManager implements ApplicationContextAware {
                     LOGGER.error("调用" + listener + "失败", e);
                 }
             }
-        } else {
-            mediaProxyTask.setSourceUrl(task.getSourceUrl());
         }
     }
 
