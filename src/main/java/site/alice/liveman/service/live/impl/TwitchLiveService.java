@@ -78,11 +78,13 @@ public class TwitchLiveService extends LiveService {
             for (String m3u8Line : m3u8Lines) {
                 if (StringUtils.isNotEmpty(m3u8Line)) {
                     if (m3u8Line.startsWith("#")) {
-                        if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
-                            streamInfo = M3u8Util.getStreamInfo(m3u8Line);
-                        }
                         if (m3u8Line.contains(resolution)) {
                             isFindResolution = true;
+                        }
+                        if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
+                            if (streamInfo == null || isFindResolution) {
+                                streamInfo = M3u8Util.getStreamInfo(m3u8Line);
+                            }
                         }
                     } else {
                         // 默认优先第一个最高码流的
