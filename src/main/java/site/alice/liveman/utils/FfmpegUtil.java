@@ -55,9 +55,6 @@ public class FfmpegUtil {
 
     public static String buildFfmpegCmdLine(VideoInfo videoInfo, String broadcastAddress) {
         String cmdLine = "\t-re\t-i\t\"" + videoInfo.getMediaProxyUrl() + "\"";
-        if (videoInfo.isAudioBanned()) {
-            cmdLine += "\t-ac\t1";
-        }
         VideoCropConf cropConf = videoInfo.getCropConf();
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.FULL_SCREEN) {
             cmdLine += "\t-vf\t\"[in]scale=32:-1[out]\"";
@@ -77,6 +74,9 @@ public class FfmpegUtil {
             cmdLine += "\t-framerate\t1\t-loop\t1\t-i\t\"" + String.format(CUSTOM_SCREEN_URL, videoInfo.getVideoId()) + "\"\t-filter_complex\t\"" + filter + "\"\t-vcodec\th264\t-preset\tultrafast";
         } else {
             cmdLine += "\t-vcodec\tcopy";
+        }
+        if (videoInfo.isAudioBanned()) {
+            cmdLine += "\t-ac\t1";
         }
         cmdLine += "\t-acodec\taac\t-b:a\t130K\t-f\tflv\t\"" + broadcastAddress + "\"";
         return liveManSetting.getFfmpegPath() + cmdLine;
