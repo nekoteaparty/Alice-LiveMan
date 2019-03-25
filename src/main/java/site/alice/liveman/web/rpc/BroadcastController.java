@@ -75,10 +75,10 @@ public class BroadcastController {
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         for (MediaProxyTask mediaProxyTask : executedProxyTaskMap.values()) {
             VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
-            if (videoInfo.getVideoId().endsWith("_low")) {
-                continue;
-            }
             if (videoInfo != null && videoInfo.getChannelInfo() != null) {
+                if (videoInfo.getVideoId().endsWith("_low")) {
+                    continue;
+                }
                 BroadcastTaskVO broadcastTaskVO = new BroadcastTaskVO();
                 BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
                 if (broadcastTask != null) {
