@@ -19,26 +19,28 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import site.alice.liveman.dataobject.OcrAppSecretDO;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class LiveManSetting {
-    private String[]                         bannedYoutubeChannel;
-    private String[]                         bannedKeywords;
-    private String                           tempPath;
-    private String                           ffmpegPath;
-    private String                           defaultResolution;
-    private String                           baseUrl;
-    private String                           oneDriveClientId;
-    private String                           oneDriveClientSecret;
-    private String                           oneDriveToken;
-    private CopyOnWriteArraySet<AccountInfo> accounts;
-    private CopyOnWriteArraySet<ChannelInfo> channels;
-    private CopyOnWriteArraySet<ServerInfo>  servers;
-    private Boolean                          preReEncode = false;
-    private Proxy                            proxy;
+    private String[]                            bannedYoutubeChannel;
+    private String[]                            bannedKeywords;
+    private String                              tempPath;
+    private String                              ffmpegPath;
+    private String                              defaultResolution;
+    private String                              baseUrl;
+    private String                              oneDriveClientId;
+    private String                              oneDriveClientSecret;
+    private String                              oneDriveToken;
+    private CopyOnWriteArraySet<AccountInfo>    accounts;
+    private CopyOnWriteArraySet<ChannelInfo>    channels;
+    private CopyOnWriteArraySet<ServerInfo>     servers;
+    private CopyOnWriteArraySet<OcrAppSecretDO> ocrAppSecretDOS;
+    private Boolean                             preReEncode = false;
+    private Proxy                               proxy;
 
     public String[] getBannedYoutubeChannel() {
         return bannedYoutubeChannel;
@@ -175,5 +177,13 @@ public class LiveManSetting {
 
     public void setServers(CopyOnWriteArraySet<ServerInfo> servers) {
         this.servers = servers;
+    }
+
+    public CopyOnWriteArraySet<OcrAppSecretDO> getOcrAppSecretDOS() {
+        return ocrAppSecretDOS;
+    }
+
+    public void setOcrAppSecretDOS(CopyOnWriteArraySet<OcrAppSecretDO> ocrAppSecretDOS) {
+        this.ocrAppSecretDOS = ocrAppSecretDOS;
     }
 }

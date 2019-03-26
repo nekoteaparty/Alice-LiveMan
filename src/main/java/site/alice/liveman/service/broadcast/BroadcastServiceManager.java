@@ -29,6 +29,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -38,6 +39,8 @@ import site.alice.liveman.model.*;
 import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.service.live.LiveServiceFactory;
+import site.alice.liveman.service.ocr.TextLocation;
+import site.alice.liveman.service.ocr.TextLocationService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
@@ -51,15 +54,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -75,6 +78,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     private LiveServiceFactory            liveServiceFactory;
     @Autowired
     private BroadcastServerService        broadcastServerService;
+    @Autowired
+    private TextLocationService           baiduTextLocationService;
 
     @PostConstruct
     public void init() {
@@ -207,6 +212,68 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
+    public class TextLocationConsumer implements Consumer<List<TextLocation>> {
+
+        private VideoInfo videoInfo;
+
+        public TextLocationConsumer(VideoInfo videoInfo) {
+            this.videoInfo = videoInfo;
+        }
+
+        @Override
+        public void accept(List<TextLocation> textLocations) {
+            textLocations.removeIf(textLocation -> textLocation.getRectangle().getHeight() < 10 || textLocation.getRectangle().getHeight() > 36);
+            textLocations.sort((o1, o2) -> (int) (o1.getRectangle().getHeight() - o2.getRectangle().getHeight()));
+            TextLocation first = null;
+            double maxDH = 8;
+            List<List<TextLocation>> nearTextHeightGroupList = new ArrayList<>();
+            List<TextLocation> nearTextHeightGroup = null;
+            for (TextLocation textLocation : textLocations) {
+                if (first == null || Math.abs(first.getRectangle().getHeight() - textLocation.getRectangle().getHeight()) > 2 * maxDH) {
+                    first = textLocation;
+                }
+                if (first == textLocation) {
+                    nearTextHeightGroup = new ArrayList<>();
+                    nearTextHeightGroupList.add(nearTextHeightGroup);
+                }
+                nearTextHeightGroup.add(textLocation);
+            }
+            nearTextHeightGroupList.sort(Comparator.comparing(List::size));
+            List<TextLocation> bestNearTextHeightGroup = nearTextHeightGroupList.get(nearTextHeightGroupList.size() - 1);
+            List<Rectangle> groupRectangle = new ArrayList<>();
+            int textHeight = 20;
+            if (bestNearTextHeightGroup.size() > 3) {
+                for (TextLocation textLocation : bestNearTextHeightGroup) {
+                    boolean isFound = false;
+                    Rectangle textLocationRectangle = textLocation.getRectangle();
+                    for (Rectangle rectangle : groupRectangle) {
+                        Rectangle mergeRect = new Rectangle((int) (rectangle.getX() - textLocationRectangle.getWidth() - textHeight), (int) (rectangle.getY() - textLocationRectangle.getHeight() - textHeight), (int) (rectangle.getWidth() + 2 * textLocationRectangle.getWidth() + 2 * textHeight), (int) (rectangle.getHeight() + 2 * textLocationRectangle.getHeight() + 2 * textHeight));
+                        if (mergeRect.contains(textLocationRectangle)) {
+                            rectangle.add(textLocationRectangle);
+                            isFound = true;
+                            break;
+                        }
+                    }
+                    if (!isFound) {
+                        groupRectangle.add(new Rectangle(textLocationRectangle));
+                    }
+                }
+            }
+            int count = 0;
+            videoInfo.getCropConf().getLayouts().removeIf(customLayout -> customLayout instanceof BlurLayout);
+            for (Rectangle rectangle : groupRectangle) {
+
+                BlurLayout blurLayout = new BlurLayout();
+                blurLayout.setX((int) rectangle.getX() - textHeight);
+                blurLayout.setY((int) rectangle.getY() - textHeight);
+                blurLayout.setWidth((int) rectangle.getWidth() + textHeight);
+                blurLayout.setHeight((int) rectangle.getHeight() + textHeight);
+                blurLayout.setVideoInfo(videoInfo);
+                videoInfo.getCropConf().getLayouts().add(blurLayout);
+            }
+        }
+    }
+
     public class BroadcastTask implements Runnable {
 
         private Pattern     logSpeedPattern = Pattern.compile("speed=([0-9\\.\\s]+)x");
@@ -258,6 +325,23 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     }
                 }
             }
+            ThreadPoolUtil.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+                        if (mediaProxyTask != null) {
+                            baiduTextLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumer(videoInfo));
+                        }
+                    } catch (Throwable e) {
+                        log.error("requireTextLocation failed", e);
+                    } finally {
+                        if (!terminate) {
+                            ThreadPoolUtil.schedule(this, 1, TimeUnit.MINUTES);
+                        }
+                    }
+                }
+            }, 10, TimeUnit.SECONDS);
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
