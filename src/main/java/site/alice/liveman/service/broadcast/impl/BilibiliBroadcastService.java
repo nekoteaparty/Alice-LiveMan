@@ -75,7 +75,12 @@ public class BilibiliBroadcastService implements BroadcastService {
         } else if (videoInfo.getArea() != null) {
             area = videoInfo.getArea()[1];
         }
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area + (videoInfo.isVertical() ? "&type=1" : ""), StandardCharsets.UTF_8);
+        Matcher matcher = Pattern.compile("bili_jct=(.{32})").matcher(accountInfo.getCookies());
+        String csrfToken = "";
+        if (matcher.find()) {
+            csrfToken = matcher.group(1);
+        }
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area + (videoInfo.isVertical() ? "&type=1" : "") + "&csrf_token=" + csrfToken, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.get("data") instanceof JSONObject) {
