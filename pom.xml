@@ -76,9 +76,9 @@
             <version>0.0.20</version>
         </dependency>
         <dependency>
-            <groupId>com.github.nekosunflower</groupId>
-            <artifactId>onedrivesdk</artifactId>
-            <version>0.0.4</version>
+            <groupId>com.github.NekoSunflower</groupId>
+            <artifactId>OneDriveJavaSDK</artifactId>
+            <version>bd24f1c119</version>
         </dependency>
         <dependency>
             <groupId>commons-collections</groupId>
@@ -136,8 +136,19 @@
             <artifactId>png-encoder</artifactId>
             <version>1.5</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.baidu.aip</groupId>
+            <artifactId>java-sdk</artifactId>
+            <version>4.10.0</version>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
