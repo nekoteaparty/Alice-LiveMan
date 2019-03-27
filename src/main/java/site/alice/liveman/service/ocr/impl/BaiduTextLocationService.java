@@ -39,6 +39,7 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -49,7 +50,7 @@ public class BaiduTextLocationService implements TextLocationService {
     private OcrAppSecretBO ocrAppSecretBO;
 
     @Override
-    public void requireTextLocation(BufferedImage image, Consumer<List<TextLocation>> callback) {
+    public void requireTextLocation(BufferedImage image, BiConsumer<List<TextLocation>, BufferedImage> callback) {
         try {
             OcrAppSecretDO ocrAppSecret = ocrAppSecretBO.getOcrAppSecret("baidu");
             AipOcr client = new AipOcr(ocrAppSecret.getAppId(), ocrAppSecret.getAppKey(), ocrAppSecret.getSecretKey());
@@ -57,9 +58,8 @@ public class BaiduTextLocationService implements TextLocationService {
             options.put("language_type", "JAP");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ImageIO.write(image, "jpg", bos);
-            IOUtils.write(bos.toByteArray(), new FileOutputStream("keyframe.jpg"));
-            JSONObject general = client.accurateGeneral(bos.toByteArray(), options);
-            callback.accept(parseTextLocationList(general));
+            JSONObject general = client.general(bos.toByteArray(), options);
+            callback.accept(parseTextLocationList(general), image);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

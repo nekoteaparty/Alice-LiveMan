@@ -20,9 +20,9 @@ package site.alice.liveman.service.ocr;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public interface TextLocationService {
 
-    void requireTextLocation(BufferedImage image, Consumer<List<TextLocation>> callback);
+    void requireTextLocation(BufferedImage image, BiConsumer<List<TextLocation>, BufferedImage> callback);
 }

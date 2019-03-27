@@ -47,6 +47,7 @@ import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -59,6 +60,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -212,7 +214,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
-    public class TextLocationConsumer implements Consumer<List<TextLocation>> {
+    public class TextLocationConsumer implements BiConsumer<List<TextLocation>, BufferedImage> {
 
         private VideoInfo videoInfo;
 
@@ -220,56 +222,65 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             this.videoInfo = videoInfo;
         }
 
+        private void dfs(TextLocation textLocation, List<TextLocation> textLocations, Map<TextLocation, Boolean> v, List<TextLocation> group, double maxTextHeight) {
+            v.put(textLocation, true);
+            Rectangle textLocationRectangle = textLocation.getRectangle();
+            for (TextLocation location : textLocations) {
+                Rectangle rectangle = location.getRectangle();
+                Rectangle mergeRect = new Rectangle((int) (textLocationRectangle.getX() - rectangle.getWidth() - maxTextHeight), (int) (textLocationRectangle.getY() - rectangle.getHeight() - maxTextHeight), (int) (textLocationRectangle.getWidth() + 2 * rectangle.getWidth() + 2 * maxTextHeight), (int) (textLocationRectangle.getHeight() + 2 * rectangle.getHeight() + 2 * maxTextHeight));
+                if (!Boolean.TRUE.equals(v.get(location)) && mergeRect.contains(rectangle)) {
+                    group.add(location);
+                    dfs(location, textLocations, v, group, maxTextHeight);
+                }
+            }
+        }
+
         @Override
-        public void accept(List<TextLocation> textLocations) {
-            textLocations.removeIf(textLocation -> textLocation.getRectangle().getHeight() < 10 || textLocation.getRectangle().getHeight() > 36);
-            textLocations.sort((o1, o2) -> (int) (o1.getRectangle().getHeight() - o2.getRectangle().getHeight()));
-            TextLocation first = null;
-            double maxDH = 8;
-            List<List<TextLocation>> nearTextHeightGroupList = new ArrayList<>();
-            List<TextLocation> nearTextHeightGroup = null;
+        public void accept(List<TextLocation> textLocations, BufferedImage bufferedImage) {
+            Graphics2D graphics2D = bufferedImage.createGraphics();
+            graphics2D.setStroke(new BasicStroke(2));
+            int maxTextHeight = bufferedImage.getHeight() / 15;
+            textLocations.removeIf(textLocation -> {
+                if (textLocation.getRectangle().getHeight() > maxTextHeight) {
+                    graphics2D.setColor(Color.RED);
+                    graphics2D.draw(textLocation.getRectangle());
+                    return true;
+                }
+                return false;
+            });
+            Map<TextLocation, Boolean> v = new HashMap<>();
+            Map<TextLocation, List<TextLocation>> groups = new HashMap<>();
             for (TextLocation textLocation : textLocations) {
-                if (first == null || Math.abs(first.getRectangle().getHeight() - textLocation.getRectangle().getHeight()) > 2 * maxDH) {
-                    first = textLocation;
+                graphics2D.setColor(Color.BLUE);
+                graphics2D.draw(textLocation.getRectangle());
+                if (!Boolean.TRUE.equals(v.get(textLocation))) {
+                    dfs(textLocation, textLocations, v, groups.computeIfAbsent(textLocation, key -> new ArrayList<>()), maxTextHeight);
                 }
-                if (first == textLocation) {
-                    nearTextHeightGroup = new ArrayList<>();
-                    nearTextHeightGroupList.add(nearTextHeightGroup);
-                }
-                nearTextHeightGroup.add(textLocation);
             }
-            nearTextHeightGroupList.sort(Comparator.comparing(List::size));
-            List<TextLocation> bestNearTextHeightGroup = nearTextHeightGroupList.get(nearTextHeightGroupList.size() - 1);
             List<Rectangle> groupRectangle = new ArrayList<>();
-            int textHeight = 20;
-            if (bestNearTextHeightGroup.size() > 3) {
-                for (TextLocation textLocation : bestNearTextHeightGroup) {
-                    boolean isFound = false;
-                    Rectangle textLocationRectangle = textLocation.getRectangle();
-                    for (Rectangle rectangle : groupRectangle) {
-                        Rectangle mergeRect = new Rectangle((int) (rectangle.getX() - textLocationRectangle.getWidth() - textHeight), (int) (rectangle.getY() - textLocationRectangle.getHeight() - textHeight), (int) (rectangle.getWidth() + 2 * textLocationRectangle.getWidth() + 2 * textHeight), (int) (rectangle.getHeight() + 2 * textLocationRectangle.getHeight() + 2 * textHeight));
-                        if (mergeRect.contains(textLocationRectangle)) {
-                            rectangle.add(textLocationRectangle);
-                            isFound = true;
-                            break;
-                        }
-                    }
-                    if (!isFound) {
-                        groupRectangle.add(new Rectangle(textLocationRectangle));
-                    }
+            for (Map.Entry<TextLocation, List<TextLocation>> entry : groups.entrySet()) {
+                Rectangle rectangle = entry.getKey().getRectangle();
+                for (TextLocation textLocation : entry.getValue()) {
+                    rectangle.add(textLocation.getRectangle());
                 }
+                groupRectangle.add(rectangle);
             }
-            int count = 0;
             videoInfo.getCropConf().getLayouts().removeIf(customLayout -> customLayout instanceof BlurLayout);
             for (Rectangle rectangle : groupRectangle) {
-
+                graphics2D.setColor(Color.GREEN);
+                graphics2D.draw(rectangle);
                 BlurLayout blurLayout = new BlurLayout();
-                blurLayout.setX((int) rectangle.getX() - textHeight);
-                blurLayout.setY((int) rectangle.getY() - textHeight);
-                blurLayout.setWidth((int) rectangle.getWidth() + textHeight);
-                blurLayout.setHeight((int) rectangle.getHeight() + textHeight);
+                blurLayout.setX((int) rectangle.getX() - maxTextHeight);
+                blurLayout.setY((int) rectangle.getY() - maxTextHeight);
+                blurLayout.setWidth((int) rectangle.getWidth() + maxTextHeight);
+                blurLayout.setHeight((int) rectangle.getHeight() + maxTextHeight);
                 blurLayout.setVideoInfo(videoInfo);
                 videoInfo.getCropConf().getLayouts().add(blurLayout);
+            }
+            try {
+                ImageIO.write(bufferedImage, "png", new File("keyframe.png"));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -337,7 +348,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         log.error("requireTextLocation failed", e);
                     } finally {
                         if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 1, TimeUnit.MINUTES);
+                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
                         }
                     }
                 }
