@@ -45,6 +45,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
@@ -66,10 +67,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                 VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
                 boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") &&
                         (mediaVideoInfo.getFrameRate() != null && mediaVideoInfo.getFrameRate() > 30 ||
-                                mediaVideoInfo.getResolution() != null && !mediaVideoInfo.getResolution().contains("720"));
+                                mediaVideoInfo.getResolution() != null && Arrays.stream(mediaVideoInfo.getResolution().split("x")).mapToLong(Long::parseLong).sum() > (1280 + 720));
                 log.info("videoId=" + mediaVideoInfo.getVideoId() + ", fps=" + mediaVideoInfo.getFrameRate() + ", resolution=" + mediaVideoInfo.getResolution() + ", needLowFrameRate=" + needLowFrameRate);
                 final BlockingQueue<M3u8SeqInfo> toLowFrameRatePidQueue = new LinkedBlockingQueue<>();
                 if (needLowFrameRate) {
+                    mediaVideoInfo.setResolution("1280x720");
                     MediaProxyManager.runProxy(new MediaProxyTask(getVideoId() + "_LOW-FRAME-RATE", null) {
                         @Override
                         protected void runTask() throws Exception {

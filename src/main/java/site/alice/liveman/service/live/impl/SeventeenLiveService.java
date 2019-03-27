@@ -44,7 +44,7 @@ public class SeventeenLiveService extends LiveService {
     public VideoInfo getLiveVideoInfo(URI videoInfoUrl, ChannelInfo channelInfo, String resolution) throws Exception {
         String[] pathSplit = videoInfoUrl.getPath().split("/");
         String profileId = pathSplit[pathSplit.length - 1];
-        String liveStreamInfo = HttpRequestUtil.downloadUrl(new URI(liveStreamInfoUrl), channelInfo.getCookies(), "{\"liveStreamID\":\"" + profileId + "\"}", StandardCharsets.UTF_8);
+        String liveStreamInfo = HttpRequestUtil.downloadUrl(new URI(liveStreamInfoUrl), channelInfo == null ? null : channelInfo.getCookies(), "{\"liveStreamID\":\"" + profileId + "\"}", StandardCharsets.UTF_8);
         JSONObject jsonObject = JSON.parseObject(liveStreamInfo).getJSONObject("data");
         JSONArray rtmpUrls = jsonObject.getJSONArray("rtmpUrls");
         if (jsonObject.getInteger("status") > 0 && rtmpUrls != null && rtmpUrls.size() > 0) {
