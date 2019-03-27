@@ -28,10 +28,6 @@ import java.util.TreeSet;
 
 public class VideoCropConf implements Serializable {
     private VideoBannedTypeEnum   videoBannedType = VideoBannedTypeEnum.NONE;
-    private int                   ctrlWidth;
-    private int                   ctrlHeight;
-    private int                   ctrlLeft;
-    private int                   ctrlTop;
     private int                   blurSize;
     private TreeSet<CustomLayout> layouts;
     @JsonIgnore
@@ -49,38 +45,6 @@ public class VideoCropConf implements Serializable {
 
     public void setVideoBannedType(VideoBannedTypeEnum videoBannedType) {
         this.videoBannedType = videoBannedType;
-    }
-
-    public int getCtrlWidth() {
-        return ctrlWidth;
-    }
-
-    public void setCtrlWidth(int ctrlWidth) {
-        this.ctrlWidth = ctrlWidth;
-    }
-
-    public int getCtrlHeight() {
-        return ctrlHeight;
-    }
-
-    public void setCtrlHeight(int ctrlHeight) {
-        this.ctrlHeight = ctrlHeight;
-    }
-
-    public int getCtrlLeft() {
-        return ctrlLeft;
-    }
-
-    public void setCtrlLeft(int ctrlLeft) {
-        this.ctrlLeft = ctrlLeft;
-    }
-
-    public int getCtrlTop() {
-        return ctrlTop;
-    }
-
-    public void setCtrlTop(int ctrlTop) {
-        this.ctrlTop = ctrlTop;
     }
 
     public int getBlurSize() {
@@ -119,10 +83,6 @@ public class VideoCropConf implements Serializable {
     public String toString() {
         return "VideoCropConf{" +
                 "videoBannedType=" + videoBannedType +
-                ", ctrlWidth=" + ctrlWidth +
-                ", ctrlHeight=" + ctrlHeight +
-                ", ctrlLeft=" + ctrlLeft +
-                ", ctrlTop=" + ctrlTop +
                 ", blurSize=" + blurSize +
                 ", layouts=" + layouts +
                 '}';

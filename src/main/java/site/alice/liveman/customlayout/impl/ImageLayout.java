@@ -50,7 +50,7 @@ public class ImageLayout extends CustomLayout {
             BufferedImage image = ImageIO.read(bis);
             Composite oldComp = g.getComposite();
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
-            g.drawImage(image, x, y, width, height, null);
+            g.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), x, y, null);
             g.setComposite(oldComp);
         }
     }
