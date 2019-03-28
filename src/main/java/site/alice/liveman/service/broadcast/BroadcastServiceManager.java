@@ -302,8 +302,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                     lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
                                     lowVideoInfo.setCropConf(currentVideo.getCropConf());
                                     ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
-                                    pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
-                                    // pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
+                                    // pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
+                                    pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
                                     break;
                                 }
                                 default: {
