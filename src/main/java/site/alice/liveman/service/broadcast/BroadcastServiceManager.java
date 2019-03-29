@@ -81,7 +81,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     @Autowired
     private BroadcastServerService        broadcastServerService;
     @Autowired
-    private TextLocationService           baiduTextLocationService;
+    private TextLocationService           aliceCommentTextLocationService;
 
     @PostConstruct
     public void init() {
@@ -239,43 +239,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         public void accept(List<TextLocation> textLocations, BufferedImage bufferedImage) {
             Graphics2D graphics2D = bufferedImage.createGraphics();
             graphics2D.setStroke(new BasicStroke(2));
-            int maxTextHeight = bufferedImage.getHeight() / 15;
-            textLocations.removeIf(textLocation -> {
-                if (textLocation.getRectangle().getHeight() > maxTextHeight) {
-                    graphics2D.setColor(Color.RED);
-                    graphics2D.draw(textLocation.getRectangle());
-                    return true;
-                }
-                return false;
-            });
-            Map<TextLocation, Boolean> v = new HashMap<>();
-            Map<TextLocation, List<TextLocation>> groups = new HashMap<>();
             for (TextLocation textLocation : textLocations) {
                 graphics2D.setColor(Color.BLUE);
                 graphics2D.draw(textLocation.getRectangle());
-                if (!Boolean.TRUE.equals(v.get(textLocation))) {
-                    dfs(textLocation, textLocations, v, groups.computeIfAbsent(textLocation, key -> new ArrayList<>()), maxTextHeight);
-                }
-            }
-            List<Rectangle> groupRectangle = new ArrayList<>();
-            for (Map.Entry<TextLocation, List<TextLocation>> entry : groups.entrySet()) {
-                Rectangle rectangle = entry.getKey().getRectangle();
-                for (TextLocation textLocation : entry.getValue()) {
-                    rectangle.add(textLocation.getRectangle());
-                }
-                groupRectangle.add(rectangle);
-            }
-            videoInfo.getCropConf().getLayouts().removeIf(customLayout -> customLayout instanceof BlurLayout);
-            for (Rectangle rectangle : groupRectangle) {
-                graphics2D.setColor(Color.GREEN);
-                graphics2D.draw(rectangle);
-                BlurLayout blurLayout = new BlurLayout();
-                blurLayout.setX((int) rectangle.getX() - maxTextHeight);
-                blurLayout.setY((int) rectangle.getY() - maxTextHeight);
-                blurLayout.setWidth((int) rectangle.getWidth() + maxTextHeight);
-                blurLayout.setHeight((int) rectangle.getHeight() + maxTextHeight);
-                blurLayout.setVideoInfo(videoInfo);
-                videoInfo.getCropConf().getLayouts().add(blurLayout);
             }
             try {
                 ImageIO.write(bufferedImage, "png", new File("keyframe.png"));
@@ -342,17 +308,17 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     try {
                         MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                         if (mediaProxyTask != null) {
-                            baiduTextLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumer(videoInfo));
+                            aliceCommentTextLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumer(videoInfo));
                         }
                     } catch (Throwable e) {
                         log.error("requireTextLocation failed", e);
                     } finally {
                         if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
+                            ThreadPoolUtil.schedule(this, 10, TimeUnit.MINUTES);
                         }
                     }
                 }
-            }, 10, TimeUnit.SECONDS);
+            }, 1, TimeUnit.MINUTES);
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
