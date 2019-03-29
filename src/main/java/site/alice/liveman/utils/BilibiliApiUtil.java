@@ -75,9 +75,6 @@ public class BilibiliApiUtil {
             JSONObject jsonObject = JSONObject.parseObject(res);
             if (!jsonObject.getString("msg").equals("succ")) {
                 log.error("发送B站动态失败[postData=" + postData + "]" + res);
-                if (jsonObject.getInteger("code") == -6) {
-                    accountInfo.setDisable(true);
-                }
             }
         } catch (Exception ex) {
             log.error("发送B站动态失败[postData=" + postData + "]", ex);
