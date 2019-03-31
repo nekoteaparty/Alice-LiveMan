@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.bo;
+package site.alice.liveman.service.external;
 
-import site.alice.liveman.dataobject.OcrAppSecretDO;
+import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.function.BiConsumer;
 
-public interface OcrAppSecretBO {
+public interface TextLocationService {
 
-    OcrAppSecretDO getOcrAppSecret(String type);
-
-    void insert(OcrAppSecretDO ocrAppSecretDO);
+    void requireTextLocation(BufferedImage image, BiConsumer<List<TextLocation>, BufferedImage> callback);
 }

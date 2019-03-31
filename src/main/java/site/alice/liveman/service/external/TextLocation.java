@@ -16,13 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.service.ocr;
+package site.alice.liveman.service.external;
 
-import java.awt.image.BufferedImage;
-import java.util.List;
-import java.util.function.BiConsumer;
+import java.awt.*;
 
-public interface TextLocationService {
+public class TextLocation {
+    private Rectangle rectangle;
+    private String    text;
 
-    void requireTextLocation(BufferedImage image, BiConsumer<List<TextLocation>, BufferedImage> callback);
+    public Rectangle getRectangle() {
+        return rectangle;
+    }
+
+    public void setRectangle(Rectangle rectangle) {
+        this.rectangle = rectangle;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
 }

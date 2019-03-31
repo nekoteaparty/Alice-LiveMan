@@ -18,16 +18,21 @@
 
 package site.alice.liveman.dataobject;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class OcrAppSecretDO {
+public class ExternalAppSecretDO {
     private String        type;
     private String        appId;
     private String        appKey;
     private String        secretKey;
     private AtomicInteger limit;
     private int           totalLimit;
+    @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd")
     private Date          nextResumeTime;
 
     public String getType() {
@@ -66,8 +71,8 @@ public class OcrAppSecretDO {
         return limit;
     }
 
-    public void setLimit(AtomicInteger limit) {
-        this.limit = limit;
+    public void setLimit(int limit) {
+        this.limit = new AtomicInteger(limit);
     }
 
     public int getTotalLimit() {
@@ -84,5 +89,19 @@ public class OcrAppSecretDO {
 
     public void setNextResumeTime(Date nextResumeTime) {
         this.nextResumeTime = nextResumeTime;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExternalAppSecretDO that = (ExternalAppSecretDO) o;
+        return Objects.equals(type, that.type) &&
+                Objects.equals(appId, that.appId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, appId);
     }
 }

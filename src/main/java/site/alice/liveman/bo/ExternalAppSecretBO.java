@@ -16,27 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.service.ocr;
+package site.alice.liveman.bo;
 
-import java.awt.*;
+import site.alice.liveman.dataobject.ExternalAppSecretDO;
+import site.alice.liveman.service.external.ExternalServiceType;
 
-public class TextLocation {
-    private Rectangle rectangle;
-    private String    text;
+import java.util.List;
 
-    public Rectangle getRectangle() {
-        return rectangle;
-    }
+public interface ExternalAppSecretBO {
 
-    public void setRectangle(Rectangle rectangle) {
-        this.rectangle = rectangle;
-    }
+    ExternalAppSecretDO getAppSecret(ExternalServiceType type);
 
-    public String getText() {
-        return text;
-    }
+    void insert(ExternalAppSecretDO externalAppSecretDO);
 
-    public void setText(String text) {
-        this.text = text;
-    }
+    List<ExternalAppSecretDO> selectForList();
+
+    int update(ExternalAppSecretDO externalAppSecretDO);
+
+    int remove(ExternalAppSecretDO externalAppSecretDO);
 }

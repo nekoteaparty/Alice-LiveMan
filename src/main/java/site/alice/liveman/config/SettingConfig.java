@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import site.alice.liveman.dataobject.OcrAppSecretDO;
+import site.alice.liveman.dataobject.ExternalAppSecretDO;
 import site.alice.liveman.model.LiveManSetting;
 
 import javax.crypto.Cipher;
@@ -56,29 +56,19 @@ public class SettingConfig {
             if (liveManSetting.getServers() == null) {
                 liveManSetting.setServers(new CopyOnWriteArraySet<>());
             }
-            if (liveManSetting.getOcrAppSecretDOS() == null) {
-                liveManSetting.setOcrAppSecretDOS(new CopyOnWriteArraySet<>());
+            if (liveManSetting.getExternalAppSecretDOS() == null) {
+                liveManSetting.setExternalAppSecretDOS(new CopyOnWriteArraySet<>());
             }
         } else {
             liveManSetting = new LiveManSetting();
             liveManSetting.setAccounts(new CopyOnWriteArraySet<>());
             liveManSetting.setChannels(new CopyOnWriteArraySet<>());
             liveManSetting.setServers(new CopyOnWriteArraySet<>());
-            liveManSetting.setOcrAppSecretDOS(new CopyOnWriteArraySet<>());
+            liveManSetting.setExternalAppSecretDOS(new CopyOnWriteArraySet<>());
             liveManSetting.setBannedKeywords(new String[0]);
             liveManSetting.setBannedYoutubeChannel(new String[0]);
             liveManSetting.setTempPath("liveManTemp");
             saveSetting(liveManSetting);
-        }
-        if (liveManSetting.getOcrAppSecretDOS().isEmpty()) {
-            OcrAppSecretDO ocrAppSecretDO = new OcrAppSecretDO();
-            ocrAppSecretDO.setType("baidu");
-            ocrAppSecretDO.setAppId("15842374");
-            ocrAppSecretDO.setAppKey("WGCvOWk4FgzjwqZd493z80WG");
-            ocrAppSecretDO.setSecretKey("mDZruSXZ8Xb20G4ekUzjusdKIq5gCeSU");
-            ocrAppSecretDO.setLimit(new AtomicInteger(500));
-            ocrAppSecretDO.setTotalLimit(500);
-            liveManSetting.getOcrAppSecretDOS().add(ocrAppSecretDO);
         }
         return liveManSetting;
     }
