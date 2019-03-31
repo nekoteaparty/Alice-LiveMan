@@ -226,17 +226,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
         @Override
         public void accept(List<TextLocation> textLocations, BufferedImage bufferedImage) {
-            Graphics2D graphics2D = bufferedImage.createGraphics();
-            graphics2D.setStroke(new BasicStroke(2));
-            for (TextLocation textLocation : textLocations) {
-                graphics2D.setColor(Color.BLUE);
-                graphics2D.draw(textLocation.getRectangle());
-            }
-            try {
-                ImageIO.write(bufferedImage, "png", new File("keyframe.png"));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            log.info("评论区识别[" + videoInfo.getVideoId() + "]:" + textLocations);
         }
     }
 
