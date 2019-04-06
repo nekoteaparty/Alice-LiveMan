@@ -44,9 +44,7 @@ import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
@@ -227,6 +225,29 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         @Override
         public void accept(List<TextLocation> textLocations, BufferedImage bufferedImage) {
             log.info("评论区识别[" + videoInfo.getVideoId() + "]:" + textLocations);
+            try {
+                String mediaTempPath = liveManSetting.getTempPath();
+                File easyDlDir = new File(mediaTempPath + "/easydl/");
+                easyDlDir.mkdirs();
+                long currentTimeMillis = System.currentTimeMillis();
+                ImageIO.write(bufferedImage, "jpg", new File(easyDlDir.toString() + "/" + currentTimeMillis + "_raw.jpg"));
+                Graphics2D graphics = bufferedImage.createGraphics();
+                graphics.setStroke(new BasicStroke(2));
+                graphics.setColor(Color.BLUE);
+                for (TextLocation textLocation : textLocations) {
+                    Rectangle rectangle = textLocation.getRectangle();
+                    graphics.draw(rectangle);
+                    graphics.drawString(textLocation.getScore() + "", (float) rectangle.getX() + 20, (float) rectangle.getY() + 20);
+                }
+                ImageIO.write(bufferedImage, "jpg", new File(easyDlDir.toString() + "/" + currentTimeMillis + "_rect.jpg"));
+                try (OutputStream os = new FileOutputStream(easyDlDir.toString() + "/" + currentTimeMillis + "_rect.txt")) {
+                    for (TextLocation textLocation : textLocations) {
+                        os.write((textLocation.toString() + "\n").getBytes());
+                    }
+                }
+            } catch (IOException e) {
+                log.error("处理评论区识别失败", e);
+            }
         }
     }
 

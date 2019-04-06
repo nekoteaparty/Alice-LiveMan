@@ -23,6 +23,7 @@ import java.awt.*;
 public class TextLocation {
     private Rectangle rectangle;
     private String    text;
+    private Double    score;
 
     public Rectangle getRectangle() {
         return rectangle;
@@ -38,5 +39,22 @@ public class TextLocation {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public Double getScore() {
+        return score;
+    }
+
+    public void setScore(Double score) {
+        this.score = score;
+    }
+
+    @Override
+    public String toString() {
+        return "TextLocation{" +
+                "rectangle=" + rectangle +
+                ", text='" + text + '\'' +
+                ", score=" + score +
+                '}';
     }
 }

@@ -70,9 +70,13 @@ public class ExternalAppSecretBOImpl implements ExternalAppSecretBO {
 
     @Override
     public void insert(ExternalAppSecretDO externalAppSecretDO) {
-        Date date = new Date();
-        externalAppSecretDO.setNextResumeTime(new Date(date.getYear(), date.getMonth(), date.getDate() + 1));
-        externalAppSecretDO.setLimit(externalAppSecretDO.getTotalLimit());
+        if (externalAppSecretDO.getNextResumeTime() == null) {
+            Date date = new Date();
+            externalAppSecretDO.setNextResumeTime(new Date(date.getYear(), date.getMonth(), date.getDate() + 1));
+        }
+        if (externalAppSecretDO.getLimit() == null) {
+            externalAppSecretDO.setLimit(externalAppSecretDO.getTotalLimit());
+        }
         try {
             liveManSetting.getExternalAppSecretDOS().add(externalAppSecretDO);
         } finally {
