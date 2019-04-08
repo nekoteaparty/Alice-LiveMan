@@ -52,6 +52,8 @@ public class RealityLiveService extends LiveService {
         JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
         JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
         streamerUsers.addAll(unofficialUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
+        JSONObject bangumiUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"3\"}", StandardCharsets.UTF_8));
+        streamerUsers.addAll(bangumiUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
         for (int i = 0; i < streamerUsers.size(); i++) {
             JSONObject streamerUser = streamerUsers.getJSONObject(i);
             streamerUsersMap.put(streamerUser.getString("nickname"), streamerUser);
