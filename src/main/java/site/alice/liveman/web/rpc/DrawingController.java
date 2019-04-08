@@ -172,7 +172,7 @@ public class DrawingController {
                         }
                     }
                     if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
+                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_RGB);
                         originalSizeImage.createGraphics().drawImage(image, 0, 0, sizes[0], sizes[1], null);
                         image = originalSizeImage;
                     }
