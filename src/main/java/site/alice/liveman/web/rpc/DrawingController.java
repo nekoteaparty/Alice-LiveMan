@@ -54,6 +54,7 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/screen/{videoId}")
     public void screen(@PathVariable("videoId") String videoId) {
+        videoId = videoId.replace("_low", "");
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -129,6 +130,7 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/mask/{videoId}")
     public void mask(@PathVariable("videoId") String videoId) {
+        videoId = videoId.replace("_low", "");
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -172,7 +174,7 @@ public class DrawingController {
                         }
                     }
                     if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
+                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_RGB);
                         originalSizeImage.createGraphics().drawImage(image, 0, 0, sizes[0], sizes[1], null);
                         image = originalSizeImage;
                     }

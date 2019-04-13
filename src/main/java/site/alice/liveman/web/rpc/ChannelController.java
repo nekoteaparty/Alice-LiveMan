@@ -107,6 +107,7 @@ public class ChannelController {
                 channel.setAutoBalance(channelInfo.isAutoBalance());
                 channel.setDefaultArea(channelInfo.getDefaultArea());
                 channel.setNeedRecord(channelInfo.isNeedRecord());
+                channel.setDefaultCropConf(channelInfo.getDefaultCropConf());
                 if (!StringUtils.isEmpty(channelInfo.getCookies())) {
                     channel.setCookies(channelInfo.getCookies());
                 }

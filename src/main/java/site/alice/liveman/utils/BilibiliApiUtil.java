@@ -73,11 +73,8 @@ public class BilibiliApiUtil {
             postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), broadcastRoomId) + csrfToken;
             String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), postAccount.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject jsonObject = JSONObject.parseObject(res);
-            if (!jsonObject.getString("msg").equals("succ")) {
+            if (jsonObject.getInteger("code") != 0) {
                 log.error("发送B站动态失败[postData=" + postData + "]" + res);
-                if (jsonObject.getInteger("code") == -6) {
-                    accountInfo.setDisable(true);
-                }
             }
         } catch (Exception ex) {
             log.error("发送B站动态失败[postData=" + postData + "]", ex);

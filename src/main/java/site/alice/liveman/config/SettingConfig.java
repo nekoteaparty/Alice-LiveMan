@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import site.alice.liveman.dataobject.ExternalAppSecretDO;
 import site.alice.liveman.model.LiveManSetting;
 
 import javax.crypto.Cipher;
@@ -39,6 +40,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Configuration
@@ -54,11 +56,15 @@ public class SettingConfig {
             if (liveManSetting.getServers() == null) {
                 liveManSetting.setServers(new CopyOnWriteArraySet<>());
             }
+            if (liveManSetting.getExternalAppSecretDOS() == null) {
+                liveManSetting.setExternalAppSecretDOS(new CopyOnWriteArraySet<>());
+            }
         } else {
             liveManSetting = new LiveManSetting();
             liveManSetting.setAccounts(new CopyOnWriteArraySet<>());
             liveManSetting.setChannels(new CopyOnWriteArraySet<>());
             liveManSetting.setServers(new CopyOnWriteArraySet<>());
+            liveManSetting.setExternalAppSecretDOS(new CopyOnWriteArraySet<>());
             liveManSetting.setBannedKeywords(new String[0]);
             liveManSetting.setBannedYoutubeChannel(new String[0]);
             liveManSetting.setTempPath("liveManTemp");
@@ -79,24 +85,26 @@ public class SettingConfig {
         }
     }
 
-    public synchronized void saveSetting(LiveManSetting liveManSetting) throws Exception {
-        new File("./keys/").mkdirs();
-        long keyTimestamp = System.currentTimeMillis();
-        String settingJson = JSON.toJSONString(liveManSetting);
-        byte[] data = settingJson.getBytes(StandardCharsets.UTF_8);
-        Cipher cipher = getCipher(keyTimestamp / 1000 + "", Cipher.ENCRYPT_MODE);
-        byte[] encodedData = cipher.doFinal(data);
-        File tempFile = new File(settingFile.toString() + ".tmp");
-        tempFile.getAbsoluteFile().getParentFile().mkdirs();
-        try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
-            IOUtils.write(encodedData, fileOutputStream);
+    public synchronized void saveSetting(LiveManSetting liveManSetting) throws RuntimeException {
+        try {
+            new File("./keys/").mkdirs();
+            long keyTimestamp = System.currentTimeMillis();
+            String settingJson = JSON.toJSONString(liveManSetting);
+            byte[] data = settingJson.getBytes(StandardCharsets.UTF_8);
+            Cipher cipher = getCipher(keyTimestamp / 1000 + "", Cipher.ENCRYPT_MODE);
+            byte[] encodedData = cipher.doFinal(data);
+            File tempFile = new File(settingFile.toString() + ".tmp");
+            tempFile.getAbsoluteFile().getParentFile().mkdirs();
+            try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
+                IOUtils.write(encodedData, fileOutputStream);
+            }
+            if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File("./keys/" + keyTimestamp + ".key").createNewFile()) {
+                settingFile.delete();
+                tempFile.renameTo(settingFile);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("配置文件保存失败", e);
         }
-        if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File("./keys/" + keyTimestamp + ".key").createNewFile()) {
-            settingFile.delete();
-            tempFile.renameTo(settingFile);
-            return;
-        }
-        throw new Exception("配置文件保存失败");
     }
 
     private Cipher getCipher(String key, int mode) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
