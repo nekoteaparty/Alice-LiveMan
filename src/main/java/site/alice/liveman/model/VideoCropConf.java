@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 public class VideoCropConf implements Serializable {
     private VideoBannedTypeEnum   videoBannedType = VideoBannedTypeEnum.NONE;
+    private boolean               autoBlur;
     private int                   blurSize;
     private TreeSet<CustomLayout> layouts;
     @JsonIgnore
@@ -77,6 +78,14 @@ public class VideoCropConf implements Serializable {
 
     public void setCachedBlurBytes(byte[] cachedBlurBytes) {
         this.cachedBlurBytes = cachedBlurBytes;
+    }
+
+    public boolean isAutoBlur() {
+        return autoBlur;
+    }
+
+    public void setAutoBlur(boolean autoBlur) {
+        this.autoBlur = autoBlur;
     }
 
     @Override

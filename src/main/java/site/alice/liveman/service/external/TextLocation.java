@@ -24,6 +24,7 @@ public class TextLocation {
     private Rectangle rectangle;
     private String    text;
     private Double    score;
+    private Long      lastHitTime;
 
     public Rectangle getRectangle() {
         return rectangle;
@@ -47,6 +48,14 @@ public class TextLocation {
 
     public void setScore(Double score) {
         this.score = score;
+    }
+
+    public Long getLastHitTime() {
+        return lastHitTime;
+    }
+
+    public void setLastHitTime(Long lastHitTime) {
+        this.lastHitTime = lastHitTime;
     }
 
     @Override
