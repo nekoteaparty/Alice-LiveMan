@@ -18,6 +18,7 @@
 package site.alice.liveman.service.live;
 
 import org.springframework.stereotype.Service;
+import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.VideoInfo;
@@ -31,6 +32,11 @@ public abstract class LiveService {
         VideoInfo videoInfo = getLiveVideoInfo(getLiveVideoInfoUrl(channelInfo), channelInfo, resolution);
         if (videoInfo != null) {
             videoInfo.setNeedRecord(channelInfo.isNeedRecord());
+            if (channelInfo.getDefaultCropConf().isAutoBlur()) {
+                videoInfo.getCropConf().setBlurSize(5);
+                videoInfo.getCropConf().setAutoBlur(true);
+                videoInfo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.CUSTOM_SCREEN);
+            }
             return MediaProxyManager.createProxy(videoInfo);
         } else {
             return null;

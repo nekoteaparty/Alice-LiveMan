@@ -18,14 +18,17 @@
 
 package site.alice.liveman.web.dataobject.vo;
 
+import site.alice.liveman.model.VideoCropConf;
+
 public class ChannelInfoVO {
-    private String  defaultAccountId;
-    private boolean autoBalance;
-    private String  dynamicPostAccountId;
-    private String  channelUrl;
-    private String  channelName;
-    private int[]   defaultArea;
-    private boolean needRecord;
+    private String        defaultAccountId;
+    private boolean       autoBalance;
+    private String        dynamicPostAccountId;
+    private String        channelUrl;
+    private String        channelName;
+    private int[]         defaultArea;
+    private boolean       needRecord;
+    private VideoCropConf defaultCropConf;
 
     public String getDefaultAccountId() {
         return defaultAccountId;
@@ -81,5 +84,13 @@ public class ChannelInfoVO {
 
     public void setNeedRecord(boolean needRecord) {
         this.needRecord = needRecord;
+    }
+
+    public VideoCropConf getDefaultCropConf() {
+        return defaultCropConf;
+    }
+
+    public void setDefaultCropConf(VideoCropConf defaultCropConf) {
+        this.defaultCropConf = defaultCropConf;
     }
 }
