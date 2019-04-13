@@ -40,6 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 public class RealityLiveService extends LiveService {
+    private static final String GET_FROM_VLID = "https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid";
+    public static final String LIST_STREAMER_OFFICIAL = "https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official";
+
     @Autowired
     private LiveManSetting          liveManSetting;
     private Map<String, JSONObject> streamerUsersMap = new ConcurrentHashMap<>(50);
@@ -47,12 +50,12 @@ public class RealityLiveService extends LiveService {
 
     private void refreshStreamUsers() throws IOException, URISyntaxException {
         log.info("刷新Reality用户列表...");
-        URI officialUsersUrl = new URI("https://user-prod-dot-vlive-prod.appspot.com/api/v1/streamer_users/list_streamer_official");
-        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
+        URI listStreamerUrl = new URI(LIST_STREAMER_OFFICIAL);
+        JSONObject officialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(listStreamerUrl, null, "{\"official\":\"1\"}", StandardCharsets.UTF_8));
         JSONArray streamerUsers = officialUsers.getJSONObject("payload").getJSONArray("StreamerUsers");
-        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
+        JSONObject unofficialUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(listStreamerUrl, null, "{\"official\":\"2\"}", StandardCharsets.UTF_8));
         streamerUsers.addAll(unofficialUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
-        JSONObject bangumiUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(officialUsersUrl, null, "{\"official\":\"3\"}", StandardCharsets.UTF_8));
+        JSONObject bangumiUsers = JSON.parseObject(HttpRequestUtil.downloadUrl(listStreamerUrl, null, "{\"official\":\"3\"}", StandardCharsets.UTF_8));
         streamerUsers.addAll(bangumiUsers.getJSONObject("payload").getJSONArray("StreamerUsers"));
         for (int i = 0; i < streamerUsers.size(); i++) {
             JSONObject streamerUser = streamerUsers.getJSONObject(i);
@@ -74,7 +77,7 @@ public class RealityLiveService extends LiveService {
         String nickname = videoInfoUrl.toString().replace("reality://", "");
         nickname = URLDecoder.decode(nickname, "utf-8");
         JSONObject streamUser = streamerUsersMap.get(nickname);
-        if (streamUser == null || lastRefreshTime + 60 * 60 * 1000 < System.currentTimeMillis()) {
+        if (streamUser == null && lastRefreshTime + 60 * 60 * 1000 < System.currentTimeMillis()) {
             refreshStreamUsers();
             streamUser = streamerUsersMap.get(nickname);
         }
@@ -82,7 +85,7 @@ public class RealityLiveService extends LiveService {
             log.warn(nickname + "的用户信息不存在，请核对！");
             return null;
         }
-        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI("https://media-prod-dot-vlive-prod.appspot.com/api/v1/media/get_from_vlid"), channelInfo != null ? channelInfo.getCookies() : null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
+        String liveDetailJson = HttpRequestUtil.downloadUrl(new URI(GET_FROM_VLID), channelInfo != null ? channelInfo.getCookies() : null, "{\"state\":30,\"vlive_id\":\"" + streamUser.getString("vlive_id") + "\"}", StandardCharsets.UTF_8);
         JSONObject liveDetailObj = JSON.parseObject(liveDetailJson);
         JSONArray lives = liveDetailObj.getJSONArray("payload");
         if (!lives.isEmpty()) {
@@ -100,6 +103,14 @@ public class RealityLiveService extends LiveService {
             }
             if (mediaUrl == null) {
                 mediaUrl = m3u8List[3];
+            }
+            // 尝试获取高清源（如果有）
+            try {
+                String highM3u8 = HttpRequestUtil.downloadUrl(m3u8ListUrl.resolve(mediaUrl.replace("_mid", "_high")), StandardCharsets.UTF_8);
+                if (highM3u8.contains("#EXTM3U")) {
+                    mediaUrl = mediaUrl.replace("_mid", "_high");
+                }
+            } catch (Exception ignore) {
             }
             return new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, m3u8ListUrl.resolve(mediaUrl), "m3u8");
         }
