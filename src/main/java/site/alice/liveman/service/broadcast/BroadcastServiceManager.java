@@ -236,9 +236,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     for (Iterator<TextLocation> oldIterator = textLocations.iterator(); oldIterator.hasNext(); ) {
                         TextLocation location = oldIterator.next();
                         Rectangle oldRectangle = new Rectangle(textLocation.getRectangle());
-                        oldRectangle.grow(20, 20); // 容差±30px
+                        oldRectangle.grow(20, 20); // 容差±20px
                         Rectangle newRectangle = new Rectangle(location.getRectangle());
-                        newRectangle.grow(20, 20); // 容差±30px
+                        newRectangle.grow(20, 20); // 容差±20px
                         if (oldRectangle.contains(location.getRectangle())) {
                             hasContains = true;
                             oldIterator.remove(); // 找到匹配的已有区域，从新增区域中删除
@@ -279,16 +279,16 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 if (mediaProxyTask != null) {
                     VideoInfo lowVideoInfo = mediaProxyTask.getVideoInfo();
                     if (lowVideoInfo != null) {
+                        lowVideoInfo.getCropConf().setLayouts(customLayouts);
+                        lowVideoInfo.getCropConf().setCachedBlurBytes(null);
                         if (lowVideoInfo.getCropConf().getBlurSize() != 5) {
+                            videoInfo.getCropConf().setBlurSize(5);
+                            lowVideoInfo.getCropConf().setBlurSize(5);
                             BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
                             if (broadcastTask != null) {
                                 ProcessUtil.killProcess(broadcastTask.pid);
                             }
-                            videoInfo.getCropConf().setBlurSize(5);
-                            lowVideoInfo.getCropConf().setBlurSize(5);
                         }
-                        lowVideoInfo.getCropConf().setLayouts(customLayouts);
-                        lowVideoInfo.getCropConf().setCachedBlurBytes(null);
                     }
                 }
             } catch (IOException e) {
