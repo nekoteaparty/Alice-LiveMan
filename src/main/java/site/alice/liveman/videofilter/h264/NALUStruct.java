@@ -18,13 +18,27 @@
 
 package site.alice.liveman.videofilter.h264;
 
-public class NALUStruct {
-    public int          startcodeprefix_len;
-    public int          len;
-    public int          max_size;
-    public int          forbidden_bit;
-    public NaluPriority nal_reference_idc = NaluPriority.OTHER;
-    public NaluType     nal_unit_type     = NaluType.OTHER;
-    public byte[]       buf;
-    public long         start_pos;
+import site.alice.liveman.videofilter.PayloadStruct;
+
+import java.util.Arrays;
+
+public class NALUStruct extends PayloadStruct {
+    public static final byte[] START_CODE0 = new byte[]{};
+    public static final byte[] START_CODE3 = new byte[]{0x00, 0x00, 0x01};
+    public static final byte[] START_CODE4 = new byte[]{0x00, 0x00, 0x00, 0x01};
+
+    public int          forbiddenBit;
+    public ReferenceIdc referenceIdc = ReferenceIdc.OTHER;
+    public UnitType     unitType     = UnitType.OTHER;
+
+    @Override
+    public String toString() {
+        return "NALUStruct{" +
+                "referenceIdc=" + referenceIdc +
+                ", unitType=" + unitType +
+                ", len=" + len +
+                ", startPos=" + startPos +
+                ", startCode=" + Arrays.toString(startCode) +
+                '}';
+    }
 }

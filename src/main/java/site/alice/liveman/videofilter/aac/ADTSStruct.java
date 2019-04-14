@@ -16,21 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.videofilter.h264;
+package site.alice.liveman.videofilter.aac;
 
-public enum NaluType {
-    NALU_TYPE_PADDING, // nothing
-    NALU_TYPE_SLICE,
-    NALU_TYPE_DPA,
-    NALU_TYPE_DPB,
-    NALU_TYPE_DPC,
-    NALU_TYPE_IDR,
-    NALU_TYPE_SEI,
-    NALU_TYPE_SPS,
-    NALU_TYPE_PPS,
-    NALU_TYPE_AUD,
-    NALU_TYPE_EOSEQ,
-    NALU_TYPE_EOSTREAM,
-    NALU_TYPE_FILL,
-    OTHER
+import site.alice.liveman.videofilter.PayloadStruct;
+
+import java.util.Arrays;
+
+public class ADTSStruct extends PayloadStruct {
+    public static final byte[] START_CODE = new byte[]{(byte) 0xff, (byte) 0xf0};
+
+    public ProfileEnum   profile;
+    public FrequenceEnum frequence;
+
+    public ADTSStruct() {
+        startCode = START_CODE;
+    }
+
+    @Override
+    public String toString() {
+        return "ADTSStruct{" +
+                "profile=" + profile +
+                ", frequence=" + frequence +
+                ", len=" + len +
+                ", startPos=" + startPos +
+                ", startCode=" + Arrays.toString(startCode) +
+                '}';
+    }
 }
