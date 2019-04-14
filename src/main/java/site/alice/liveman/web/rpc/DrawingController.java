@@ -159,7 +159,7 @@ public class DrawingController {
             try (OutputStream os = response.getOutputStream()) {
                 byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
                 if (cachedBlurBytes == null) {
-                    BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_RGB);
+                    BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_ARGB);
                     Graphics2D graphics = image.createGraphics();
                     Set<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
@@ -172,13 +172,15 @@ public class DrawingController {
                         }
                     }
                     if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_RGB);
+                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
                         originalSizeImage.createGraphics().drawImage(image, 0, 0, sizes[0], sizes[1], null);
                         image = originalSizeImage;
                     }
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    ImageIO.write(image, "jpg", bos);
-                    cachedBlurBytes = bos.toByteArray();
+                    PngEncoderB pngEncoderB = new PngEncoderB();
+                    pngEncoderB.setCompressionLevel(3);
+                    pngEncoderB.setEncodeAlpha(true);
+                    pngEncoderB.setImage(image);
+                    cachedBlurBytes = pngEncoderB.pngEncode();
                     cropConf.setCachedBlurBytes(cachedBlurBytes);
                 }
                 os.write(cachedBlurBytes);
