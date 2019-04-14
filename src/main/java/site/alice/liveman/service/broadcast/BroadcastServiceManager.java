@@ -273,14 +273,20 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     blurLayout.setHeight((int) (textLocation.getRectangle().getHeight() * scale));
                     customLayouts.add(blurLayout);
                 }
-                videoInfo.getCropConf().setBlurSize(5);
                 videoInfo.getCropConf().setLayouts(customLayouts);
                 videoInfo.getCropConf().setCachedBlurBytes(null);
                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId() + "_low");
                 if (mediaProxyTask != null) {
                     VideoInfo lowVideoInfo = mediaProxyTask.getVideoInfo();
                     if (lowVideoInfo != null) {
-                        lowVideoInfo.getCropConf().setBlurSize(5);
+                        if (lowVideoInfo.getCropConf().getBlurSize() != 5) {
+                            BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                            if (broadcastTask != null) {
+                                ProcessUtil.killProcess(broadcastTask.pid);
+                            }
+                            videoInfo.getCropConf().setBlurSize(5);
+                            lowVideoInfo.getCropConf().setBlurSize(5);
+                        }
                         lowVideoInfo.getCropConf().setLayouts(customLayouts);
                         lowVideoInfo.getCropConf().setCachedBlurBytes(null);
                     }
