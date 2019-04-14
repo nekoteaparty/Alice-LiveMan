@@ -276,6 +276,15 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 videoInfo.getCropConf().setBlurSize(5);
                 videoInfo.getCropConf().setLayouts(customLayouts);
                 videoInfo.getCropConf().setCachedBlurBytes(null);
+                MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId() + "_low");
+                if (mediaProxyTask != null) {
+                    VideoInfo lowVideoInfo = mediaProxyTask.getVideoInfo();
+                    if (lowVideoInfo != null) {
+                        lowVideoInfo.getCropConf().setBlurSize(5);
+                        lowVideoInfo.getCropConf().setLayouts(customLayouts);
+                        lowVideoInfo.getCropConf().setCachedBlurBytes(null);
+                    }
+                }
             } catch (IOException e) {
                 log.error("处理评论区识别失败", e);
             }
