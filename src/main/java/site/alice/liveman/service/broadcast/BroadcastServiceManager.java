@@ -273,6 +273,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     blurLayout.setHeight((int) (textLocation.getRectangle().getHeight() * scale));
                     customLayouts.add(blurLayout);
                 }
+                videoInfo.getCropConf().setBlurSize(5);
                 videoInfo.getCropConf().setLayouts(customLayouts);
                 videoInfo.getCropConf().setCachedBlurBytes(null);
             } catch (IOException e) {
