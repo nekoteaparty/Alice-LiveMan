@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.videofilter.h264;
+package site.alice.liveman.videofilter;
 
-public enum NaluPriority {
-    NALU_PRIORITY_DISPOSABLE,
-    NALU_PRIRITY_LOW,
-    NALU_PRIORITY_HIGH,
-    NALU_PRIORITY_HIGHEST,
-    OTHER
+public abstract class PayloadStruct {
+    public int    len;
+    public byte[] buf;
+    public long   startPos;
+    public byte[] startCode;
 }

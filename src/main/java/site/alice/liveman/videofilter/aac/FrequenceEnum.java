@@ -16,21 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.videofilter.h264;
+package site.alice.liveman.videofilter.aac;
 
-public enum NaluType {
-    NALU_TYPE_PADDING, // nothing
-    NALU_TYPE_SLICE,
-    NALU_TYPE_DPA,
-    NALU_TYPE_DPB,
-    NALU_TYPE_DPC,
-    NALU_TYPE_IDR,
-    NALU_TYPE_SEI,
-    NALU_TYPE_SPS,
-    NALU_TYPE_PPS,
-    NALU_TYPE_AUD,
-    NALU_TYPE_EOSEQ,
-    NALU_TYPE_EOSTREAM,
-    NALU_TYPE_FILL,
-    OTHER
+public enum FrequenceEnum {
+    F96000Hz, F88200Hz, F64000Hz, F48000Hz, F44100Hz, F32000Hz, F24000Hz, F22050Hz, F16000Hz, F12000Hz, F11025Hz, F8000Hz
 }

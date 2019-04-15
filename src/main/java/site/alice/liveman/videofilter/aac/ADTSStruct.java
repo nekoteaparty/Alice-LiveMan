@@ -16,26 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.videofilter.h264;
+package site.alice.liveman.videofilter.aac;
 
 import site.alice.liveman.videofilter.PayloadStruct;
 
 import java.util.Arrays;
 
-public class NALUStruct extends PayloadStruct {
-    public static final byte[] START_CODE0 = new byte[]{};
-    public static final byte[] START_CODE3 = new byte[]{0x00, 0x00, 0x01};
-    public static final byte[] START_CODE4 = new byte[]{0x00, 0x00, 0x00, 0x01};
+public class ADTSStruct extends PayloadStruct {
 
-    public int          forbiddenBit;
-    public ReferenceIdc referenceIdc = ReferenceIdc.OTHER;
-    public UnitType     unitType     = UnitType.OTHER;
+    public ProfileEnum   profile;
+    public FrequenceEnum frequence;
+
+    public ADTSStruct(byte[] startCode) {
+        this.startCode = startCode;
+    }
 
     @Override
     public String toString() {
-        return "NALUStruct{" +
-                "referenceIdc=" + referenceIdc +
-                ", unitType=" + unitType +
+        return "ADTSStruct{" +
+                "profile=" + profile +
+                ", frequence=" + frequence +
                 ", len=" + len +
                 ", startPos=" + startPos +
                 ", startCode=" + Arrays.toString(startCode) +
