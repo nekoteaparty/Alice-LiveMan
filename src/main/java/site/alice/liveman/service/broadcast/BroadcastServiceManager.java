@@ -218,7 +218,13 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             try {
                 File easyDlDir = new File("./easydl/");
                 easyDlDir.mkdirs();
-                String dashFileName = videoInfo.getVideoId() + "_" + System.currentTimeMillis() / 600000;
+                String dashFileName;
+                if (textLocations.size() > 1) {
+                    // 可能是误识别，保存这次的识别记录
+                    dashFileName = videoInfo.getVideoId() + "_" + System.currentTimeMillis();
+                } else {
+                    dashFileName = videoInfo.getVideoId() + "_" + System.currentTimeMillis() / 600000;
+                }
                 ImageIO.write(bufferedImage, "jpg", new File(easyDlDir + "/" + dashFileName + "_raw.jpg"));
                 try (OutputStream os = new FileOutputStream(easyDlDir + "/" + dashFileName + "_rect.txt")) {
                     for (TextLocation textLocation : textLocations) {
