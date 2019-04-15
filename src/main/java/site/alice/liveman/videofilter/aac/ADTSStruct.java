@@ -23,13 +23,12 @@ import site.alice.liveman.videofilter.PayloadStruct;
 import java.util.Arrays;
 
 public class ADTSStruct extends PayloadStruct {
-    public static final byte[] START_CODE = new byte[]{(byte) 0xff, (byte) 0xf0};
 
     public ProfileEnum   profile;
     public FrequenceEnum frequence;
 
-    public ADTSStruct() {
-        startCode = START_CODE;
+    public ADTSStruct(byte[] startCode) {
+        this.startCode = startCode;
     }
 
     @Override

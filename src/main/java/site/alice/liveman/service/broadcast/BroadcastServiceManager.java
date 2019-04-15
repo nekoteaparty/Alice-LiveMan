@@ -232,16 +232,19 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 // 清理已有区域
                 for (Iterator<TextLocation> iterator = videoInfo.getTextLocations().iterator(); iterator.hasNext(); ) {
                     TextLocation textLocation = iterator.next();
+                    if (textLocation.getLastHitTime() == null) {
+                        textLocation.setLastHitTime(System.currentTimeMillis());
+                    }
                     boolean hasContains = false;
-                    for (Iterator<TextLocation> oldIterator = textLocations.iterator(); oldIterator.hasNext(); ) {
-                        TextLocation location = oldIterator.next();
+                    for (Iterator<TextLocation> newIterator = textLocations.iterator(); newIterator.hasNext(); ) {
+                        TextLocation location = newIterator.next();
                         Rectangle oldRectangle = new Rectangle(textLocation.getRectangle());
                         oldRectangle.grow(20, 20); // 容差±20px
                         Rectangle newRectangle = new Rectangle(location.getRectangle());
                         newRectangle.grow(20, 20); // 容差±20px
                         if (oldRectangle.contains(location.getRectangle())) {
                             hasContains = true;
-                            oldIterator.remove(); // 找到匹配的已有区域，从新增区域中删除
+                            newIterator.remove(); // 找到匹配的已有区域，从新增区域中删除
                             textLocation.getRectangle().add(location.getRectangle());
                             if (newRectangle.contains(textLocation.getRectangle())) {
                                 textLocation.setLastHitTime(System.currentTimeMillis());
