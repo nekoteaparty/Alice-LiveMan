@@ -361,7 +361,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 @Override
                 public void run() {
                     try {
-                        if (videoInfo.getCropConf().isAutoBlur()) {
+                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
                             MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                             if (mediaProxyTask != null) {
                                 aliceCommentTextLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumer(videoInfo));
