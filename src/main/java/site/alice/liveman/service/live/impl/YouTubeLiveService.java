@@ -42,11 +42,7 @@ import java.util.regex.Pattern;
 @Service
 public class YouTubeLiveService extends LiveService {
 
-    @Autowired
-    private              LiveManSetting liveManSetting;
-    private static final String         LIVE_VIDEO_SUFFIX   = "/videos?view=2&flow=grid";
     private static final String         GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
-    private static final Pattern        initDataJsonPattern = Pattern.compile("window\\[\"ytInitialData\"] = (.+?);\n");
     private static final Pattern        hlsvpPattern        = Pattern.compile("\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\"");
     private static final Pattern        videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
     private static final Pattern        videoIdPattern      = Pattern.compile("/id/(.+?)/");
@@ -54,37 +50,7 @@ public class YouTubeLiveService extends LiveService {
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
-        String channelUrl = channelInfo.getChannelUrl();
-        URI url = new URI(channelUrl + LIVE_VIDEO_SUFFIX);
-        String resHtml = HttpRequestUtil.downloadUrl(url, channelInfo != null ? channelInfo.getCookies() : null, Collections.emptyMap(), StandardCharsets.UTF_8);
-        Matcher matcher = initDataJsonPattern.matcher(resHtml);
-        if (matcher.find()) {
-            String initDataJson = matcher.group(1);
-            JSONObject jsonObject = JSON.parseObject(initDataJson);
-            JSONArray tabs = jsonObject.getJSONObject("contents").getJSONObject("twoColumnBrowseResultsRenderer").getJSONArray("tabs");
-            JSONArray gridVideoRender = null;
-            for (Object tab : tabs) {
-                JSONObject tabObject = (JSONObject) tab;
-                JSONObject tabRenderer = tabObject.getJSONObject("tabRenderer");
-                if (tabRenderer != null && tabRenderer.getBoolean("selected")) {
-                    gridVideoRender = tabRenderer.getJSONObject("content").getJSONObject("sectionListRenderer").getJSONArray("contents").getJSONObject(0).getJSONObject("itemSectionRenderer").getJSONArray("contents").getJSONObject(0).getJSONObject("gridRenderer").getJSONArray("items");
-                    break;
-                }
-            }
-            String videoId = null;
-            if (gridVideoRender != null) {
-                for (Object reader : gridVideoRender) {
-                    JSONObject readerObject = (JSONObject) reader;
-                    if (readerObject.toJSONString().contains("BADGE_STYLE_TYPE_LIVE_NOW")) {
-                        videoId = readerObject.getJSONObject("gridVideoRenderer").getString("videoId");
-                        return new URI(GET_VIDEO_INFO_URL + videoId);
-                    }
-                }
-            }
-        } else {
-            throw new RuntimeException("没有找到InitData[" + url + "]");
-        }
-        return null;
+        return new URI(channelInfo.getChannelUrl() + "/").resolve("live");
     }
 
     @Override
