@@ -42,11 +42,11 @@ import java.util.regex.Pattern;
 @Service
 public class YouTubeLiveService extends LiveService {
 
-    private static final String         GET_VIDEO_INFO_URL  = "https://www.youtube.com/watch?v=";
-    private static final Pattern        hlsvpPattern        = Pattern.compile("\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\"");
-    private static final Pattern        videoTitlePattern   = Pattern.compile("\"title\":\"(.+?)\"");
-    private static final Pattern        videoIdPattern      = Pattern.compile("/id/(.+?)/");
-    private static final Pattern        browseIdPattern     = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
+    private static final String  GET_VIDEO_INFO_URL = "https://www.youtube.com/watch?v=";
+    private static final Pattern hlsvpPattern       = Pattern.compile("\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\"");
+    private static final Pattern videoTitlePattern  = Pattern.compile("\"title\":\"(.+?)\"");
+    private static final Pattern videoIdPattern     = Pattern.compile("/id/(.+?)/");
+    private static final Pattern browseIdPattern    = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
@@ -103,11 +103,10 @@ public class YouTubeLiveService extends LiveService {
             videoInfo.setResolution(streamInfo.getResolution());
             videoInfo.setFrameRate(streamInfo.getFrameRate());
             return videoInfo;
-        } else if (videoInfoRes.contains("LIVE_STREAM_OFFLINE")) {
-            return null;
-        } else {
-            throw new RuntimeException("没有找到InitData[" + GET_VIDEO_INFO_URL + videoId + "]");
+        } else if (!videoInfoRes.contains("ytInitialData")) {
+            throw new RuntimeException("没有找到InitData[" + videoInfoUrl + "]");
         }
+        return null;
     }
 
     @Override
