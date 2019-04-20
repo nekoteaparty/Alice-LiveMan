@@ -21,14 +21,13 @@ package site.alice.liveman.web.rpc;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.customlayout.CustomLayout;
-import site.alice.liveman.customlayout.impl.BlurLayout;
+import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
@@ -48,6 +47,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -178,9 +178,10 @@ public class BroadcastController {
             }
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
                 int blurLayoutCount = 0;
+                Collections.sort(cropConf.getLayouts());
                 for (CustomLayout layout : cropConf.getLayouts()) {
                     layout.setVideoInfo(videoInfo);
-                    if (layout instanceof BlurLayout) {
+                    if (layout instanceof RectangleBlurLayout) {
                         blurLayoutCount++;
                     }
                 }

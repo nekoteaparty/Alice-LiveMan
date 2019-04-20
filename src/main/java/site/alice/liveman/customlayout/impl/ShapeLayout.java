@@ -18,12 +18,12 @@
 
 package site.alice.liveman.customlayout.impl;
 
-import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.DrawingLayout;
 
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class ShapeLayout extends CustomLayout {
+public class ShapeLayout extends DrawingLayout {
 
     private float  opacity;
     private float  radiusPercentW;

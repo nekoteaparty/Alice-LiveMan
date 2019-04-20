@@ -16,16 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.customlayout.impl;
+package site.alice.liveman.customlayout;
 
-import site.alice.liveman.customlayout.CustomLayout;
-
-import java.awt.*;
-
-public class BlurLayout extends CustomLayout {
-    @Override
-    public void paintLayout(Graphics2D g) throws Exception {
-        g.setColor(Color.WHITE);
-        g.fillRect(x, y, width, height);
-    }
+public abstract class BlurLayout extends CustomLayout {
 }

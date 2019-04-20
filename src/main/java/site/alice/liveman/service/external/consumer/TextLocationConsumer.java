@@ -16,22 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.utils;
+package site.alice.liveman.service.external.consumer;
 
+import site.alice.liveman.service.external.TextLocation;
 
-import java.util.Map;
-import java.util.concurrent.*;
+import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.function.BiConsumer;
 
-public class ThreadPoolUtil {
+public interface TextLocationConsumer extends BiConsumer<List<TextLocation>, BufferedImage> {
 
-    private static final ThreadPoolExecutor          cachedThreadPool    = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-    private static final ScheduledThreadPoolExecutor scheduledThreadPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(50);
-
-    public static void execute(Runnable runnable) {
-        cachedThreadPool.execute(runnable);
-    }
-
-    public static ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return scheduledThreadPool.schedule(command, delay, unit);
-    }
+    @Override
+    void accept(List<TextLocation> textLocations, BufferedImage bufferedImage);
 }

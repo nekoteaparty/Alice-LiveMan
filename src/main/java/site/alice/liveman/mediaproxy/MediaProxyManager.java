@@ -47,12 +47,6 @@ public class MediaProxyManager implements ApplicationContextAware {
     private static       String                        tempPath;
     private static final String                        targetUrlFormat      = "http://" + getIpAddress() + ":8080/mediaProxy/%s/%s";
     private static       ApplicationContext            applicationContext;
-    private static       VideoFilterService            videoFilterService;
-
-    @Autowired
-    public void setVideoFilterService(VideoFilterService videoFilterService) {
-        MediaProxyManager.videoFilterService = videoFilterService;
-    }
 
     public static String getTempPath() {
         return tempPath;
@@ -71,7 +65,6 @@ public class MediaProxyManager implements ApplicationContextAware {
             videoInfo.setArea(channelInfo.getDefaultArea());
         }
         videoInfo.setMediaProxyUrl(mediaProxyTask.getTargetUrl());
-        videoFilterService.doFilter(videoInfo);
         runProxy(mediaProxyTask);
         return mediaProxyTask;
     }

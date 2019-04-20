@@ -25,6 +25,8 @@ import org.springframework.stereotype.Component;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager;
+import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.utils.DynamicAreaUtil;
 
 import java.io.File;
@@ -56,10 +58,6 @@ public class BiliBannedKeywordFilter implements VideoFilter {
                 }
             }
         }
-        if (bannedKeyword == null) {
-            return true;
-        }
-        videoInfo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.FULL_SCREEN);
-        return true;
+        return bannedKeyword == null;
     }
 }

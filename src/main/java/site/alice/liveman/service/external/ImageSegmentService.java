@@ -16,22 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.utils;
+package site.alice.liveman.service.external;
 
+import site.alice.liveman.service.external.consumer.ImageSegmentConsumer;
 
-import java.util.Map;
-import java.util.concurrent.*;
+import java.awt.image.BufferedImage;
 
-public class ThreadPoolUtil {
+public interface ImageSegmentService {
 
-    private static final ThreadPoolExecutor          cachedThreadPool    = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-    private static final ScheduledThreadPoolExecutor scheduledThreadPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(50);
+    void imageSegment(BufferedImage image, ImageSegmentConsumer consumer);
 
-    public static void execute(Runnable runnable) {
-        cachedThreadPool.execute(runnable);
-    }
-
-    public static ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return scheduledThreadPool.schedule(command, delay, unit);
-    }
 }

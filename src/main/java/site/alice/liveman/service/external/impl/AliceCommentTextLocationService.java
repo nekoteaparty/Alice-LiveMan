@@ -31,6 +31,7 @@ import site.alice.liveman.dataobject.ExternalAppSecretDO;
 import site.alice.liveman.service.external.ExternalServiceType;
 import site.alice.liveman.service.external.TextLocation;
 import site.alice.liveman.service.external.TextLocationService;
+import site.alice.liveman.service.external.consumer.TextLocationConsumer;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -48,7 +49,7 @@ public class AliceCommentTextLocationService implements TextLocationService {
     private ExternalAppSecretBO externalAppSecretBO;
 
     @Override
-    public void requireTextLocation(BufferedImage image, BiConsumer<List<TextLocation>, BufferedImage> callback) {
+    public void requireTextLocation(BufferedImage image, TextLocationConsumer consumer) {
         try {
             ExternalAppSecretDO ocrAppSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.BAIDU_API);
             EDLAliceAipClient client = new EDLAliceAipClient(ocrAppSecret.getAppId(), ocrAppSecret.getAppKey(), ocrAppSecret.getSecretKey());
@@ -65,7 +66,7 @@ public class AliceCommentTextLocationService implements TextLocationService {
                     textLocation.setScore(result.getDouble("score"));
                     textLocations.add(textLocation);
                 }
-                callback.accept(textLocations, image);
+                consumer.accept(textLocations, image);
             } else {
                 log.error("请求EastDL接口失败:" + verifyResult);
             }

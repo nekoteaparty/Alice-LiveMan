@@ -33,12 +33,13 @@ public class VideoFilterService implements ApplicationContextAware {
 
     private List<VideoFilter> videoFilterList = new ArrayList<>();
 
-    public void doFilter(VideoInfo videoInfo) {
+    public boolean doFilter(VideoInfo videoInfo) {
         for (VideoFilter videoFilter : videoFilterList) {
             if (!videoFilter.doFilter(videoInfo)) {
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     @Override

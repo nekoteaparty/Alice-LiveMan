@@ -16,22 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.utils;
+package site.alice.liveman.customlayout.impl;
 
+import site.alice.liveman.customlayout.BlurLayout;
 
-import java.util.Map;
-import java.util.concurrent.*;
+import java.awt.*;
 
-public class ThreadPoolUtil {
-
-    private static final ThreadPoolExecutor          cachedThreadPool    = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-    private static final ScheduledThreadPoolExecutor scheduledThreadPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(50);
-
-    public static void execute(Runnable runnable) {
-        cachedThreadPool.execute(runnable);
-    }
-
-    public static ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return scheduledThreadPool.schedule(command, delay, unit);
+public class RectangleBlurLayout extends BlurLayout {
+    @Override
+    public void paintLayout(Graphics2D g) throws Exception {
+        g.setColor(Color.WHITE);
+        g.fillRect(x, y, width, height);
     }
 }
