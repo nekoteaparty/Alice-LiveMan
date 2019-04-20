@@ -40,8 +40,6 @@ import java.util.UUID;
 @Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
-    @Autowired
-    private           LiveManSetting       liveManSetting;
     private           String               videoId;
     private           URI                  sourceUrl;
     private           URI                  targetUrl;
@@ -49,6 +47,8 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     private           List<MediaProxyTask> parentProxyTasks;
     private transient Thread               runThread;
     private volatile  Boolean              isTerminated;
+    private           long                 lastKeyFrameTime;
+    private           BufferedImage        cachedKeyFrame;
 
     public String getVideoId() {
         return videoId;
@@ -87,12 +87,17 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     }
 
     public BufferedImage getKeyFrame() {
+        if (System.currentTimeMillis() - lastKeyFrameTime < 5000) {
+            return cachedKeyFrame;
+        }
         String fileName = UUID.randomUUID() + ".png";
         String keyFrameCmdLine = FfmpegUtil.buildKeyFrameCmdLine(targetUrl.toString(), fileName);
         long process = ProcessUtil.createProcess(keyFrameCmdLine, getVideoId() + "_KeyFrame");
         try {
             if (ProcessUtil.waitProcess(process, 10000)) {
-                return ImageIO.read(new File(fileName));
+                lastKeyFrameTime = System.currentTimeMillis();
+                cachedKeyFrame = ImageIO.read(new File(fileName));
+                return cachedKeyFrame;
             } else {
                 ProcessUtil.killProcess(process);
                 log.error("获取[" + targetUrl + "]关键帧超时");

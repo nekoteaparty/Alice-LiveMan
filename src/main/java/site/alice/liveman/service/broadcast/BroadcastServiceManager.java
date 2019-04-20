@@ -272,32 +272,32 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     } catch (Throwable e) {
                         log.error("requireTextLocation failed", e);
                         if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 1, TimeUnit.SECONDS);
+                            ThreadPoolUtil.schedule(this, 2, TimeUnit.SECONDS);
                         }
                     }
                 }
             }, 10, TimeUnit.SECONDS);
-            ThreadPoolUtil.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
-                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
-                            if (mediaProxyTask != null) {
-                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
-                            }
-                        }
-                        if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
-                        }
-                    } catch (Throwable e) {
-                        log.error("requireTextLocation failed", e);
-                        if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 1, TimeUnit.SECONDS);
-                        }
-                    }
-                }
-            }, 10, TimeUnit.SECONDS);
+//            ThreadPoolUtil.schedule(new Runnable() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
+//                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+//                            if (mediaProxyTask != null) {
+//                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
+//                            }
+//                        }
+//                        if (!terminate) {
+//                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
+//                        }
+//                    } catch (Throwable e) {
+//                        log.error("requireTextLocation failed", e);
+//                        if (!terminate) {
+//                            ThreadPoolUtil.schedule(this, 1, TimeUnit.SECONDS);
+//                        }
+//                    }
+//                }
+//            }, 10, TimeUnit.SECONDS);
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
@@ -392,6 +392,12 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         fis.skip(logFile.length() - 1024);
                                         List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
                                         // 最多向上读取10行日志
+                                        int expiredCount = 0;
+                                        for (String logLine : logLines) {
+                                            if (logLine.contains("segments ahead, expired from playlists")) {
+                                                expiredCount++;
+                                            }
+                                        }
                                         for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
                                             Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
                                             if (matcher.find()) {
@@ -400,7 +406,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                                 break;
                                             }
                                         }
-                                        if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
+                                        if (expiredCount >= 2) {
+                                            log.warn("发现多个m3u8序列过期日志，终止推流进程[pid:" + pid + ", expiredCount:" + expiredCount + ", logFile:\"" + logFile + "\"]...");
+                                            ProcessUtil.killProcess(pid);
+                                        } else if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
                                             log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
                                             ProcessUtil.killProcess(pid);
                                         } else if (health > 0 && health < 94) {

@@ -37,6 +37,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -68,9 +69,9 @@ public class AliceCommentTextLocationService implements TextLocationService {
                 }
                 consumer.accept(textLocations, image);
             } else {
-                log.error("请求EastDL接口失败:" + verifyResult);
+                throw new RuntimeException("请求EastDL接口失败:" + verifyResult);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
