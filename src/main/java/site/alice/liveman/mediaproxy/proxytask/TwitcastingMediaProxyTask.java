@@ -18,6 +18,7 @@
 package site.alice.liveman.mediaproxy.proxytask;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 
 import javax.websocket.*;
@@ -144,13 +145,7 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
     }
 
     @Override
-    protected void terminateTask() {
-        if (session != null && session.isOpen()) {
-            try {
-                session.close();
-            } catch (IOException ignored) {
-
-            }
-        }
+    protected void afterTerminate() {
+        IOUtils.closeQuietly(session);
     }
 }

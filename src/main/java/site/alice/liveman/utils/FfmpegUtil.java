@@ -32,10 +32,10 @@ import site.alice.liveman.service.BroadcastServerService;
 
 import java.io.File;
 
-@Component
 @Slf4j
+@Component
 public class FfmpegUtil {
-
+    @Autowired
     private static       LiveManSetting liveManSetting;
     private static final String         CUSTOM_SCREEN_URL = "http://" + MediaProxyManager.getIpAddress() + ":8080/api/drawing/screen/%s";
     private static final String         BOXBLUR_MASK_URL  = "http://" + MediaProxyManager.getIpAddress() + ":8080/api/drawing/mask/%s";

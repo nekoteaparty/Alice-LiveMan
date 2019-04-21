@@ -22,10 +22,12 @@ import org.springframework.stereotype.Component;
 import site.alice.liveman.mediaproxy.proxytask.M3u8MediaProxyTask;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 @Component
 public class M3u8MediaProxy implements MediaProxy {
@@ -45,7 +47,14 @@ public class M3u8MediaProxy implements MediaProxy {
     @Override
     public void requestHandler(String videoId) {
         try {
-            response.sendRedirect("/mediaProxy/temp/m3u8/" + videoId + "/index.m3u8");
+            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
+            if (mediaProxyTask instanceof M3u8MediaProxyTask) {
+                M3u8MediaProxyTask m3u8MediaProxyTask = (M3u8MediaProxyTask) mediaProxyTask;
+                response.setContentType("application/vnd.apple.mpegurl");
+                try (ServletOutputStream outputStream = response.getOutputStream()) {
+                    outputStream.write(m3u8MediaProxyTask.createM3U8File().getBytes(StandardCharsets.UTF_8));
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

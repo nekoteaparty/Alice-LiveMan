@@ -46,6 +46,7 @@ import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
@@ -107,15 +108,39 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
             @Override
             public void onProxyStop(MediaProxyEvent e) {
-                VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
+                final VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
                 if (videoInfo != null) {
                     if (videoInfo.getChannelInfo() == null) {
                         return;
                     }
-                    BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                    final BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
                     if (broadcastTask != null) {
                         AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                         if (broadcastAccount != null) {
+                            if (!broadcastTask.isTerminate()) {
+                                ThreadPoolUtil.schedule(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            log.info("检查节目[" + videoInfo.getVideoInfoUrl() + "]是否仍然在直播中...");
+                                            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoInfo.getVideoInfoUrl().toString()).getLiveVideoInfo(videoInfo.getVideoInfoUrl(), videoInfo.getChannelInfo(), liveManSetting.getDefaultResolution());
+                                            if (liveVideoInfo == null) {
+                                                log.info("节目[" + videoInfo.getVideoInfoUrl() + "]当前已停止直播！");
+                                            } else {
+                                                log.info("节目[" + videoInfo.getVideoInfoUrl() + "]当前依然在直播中！");
+                                                liveVideoInfo.setArea(videoInfo.getArea());
+                                                liveVideoInfo.setCropConf(videoInfo.getCropConf());
+                                                liveVideoInfo.setAudioBanned(videoInfo.isAudioBanned());
+                                                liveVideoInfo.setNeedRecord(videoInfo.isNeedRecord());
+                                                liveVideoInfo.setVertical(videoInfo.isVertical());
+                                                createSingleBroadcastTask(liveVideoInfo, broadcastAccount);
+                                            }
+                                        } catch (Throwable e) {
+                                            log.info("节目[" + videoInfo.getVideoInfoUrl() + "]中断自动恢复操作失败", e);
+                                        }
+                                    }
+                                }, 2, TimeUnit.SECONDS);
+                            }
                             broadcastAccount.removeCurrentVideo(videoInfo);
                             videoInfo.removeBroadcastTask(broadcastTask);
                             broadcastTask.terminateTask();
@@ -481,6 +506,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             this.health = health;
         }
 
+        public boolean isTerminate() {
+            return terminate;
+        }
+
         public boolean terminateTask() {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
@@ -501,7 +530,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
 
         public synchronized void waitForTerminate() {
-
         }
     }
 

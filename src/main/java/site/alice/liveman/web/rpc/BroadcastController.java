@@ -245,7 +245,7 @@ public class BroadcastController {
     @RequestMapping("/terminateTask.json")
     public ActionResult terminateTask(String videoId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
-        log.info("terminateTask()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        log.info("afterTerminate()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
         if (!account.isAdmin()) {
             return ActionResult.getErrorResult("没有权限！");
         }
@@ -253,6 +253,11 @@ public class BroadcastController {
         if (mediaProxyTask == null) {
             log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
             return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
+        }
+        BroadcastTask broadcastTask = mediaProxyTask.getVideoInfo().getBroadcastTask();
+        if (broadcastTask != null) {
+            broadcastTask.terminateTask();
+            broadcastTask.waitForTerminate();
         }
         mediaProxyTask.terminate();
         mediaProxyTask.waitForTerminate();

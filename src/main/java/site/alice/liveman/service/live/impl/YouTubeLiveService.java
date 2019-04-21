@@ -17,28 +17,25 @@
  */
 package site.alice.liveman.service.live.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.model.ChannelInfo;
-import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveService;
 import site.alice.liveman.utils.HttpRequestUtil;
 import site.alice.liveman.utils.M3u8Util;
 import site.alice.liveman.utils.M3u8Util.StreamInfo;
 
-import java.net.*;
+import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 public class YouTubeLiveService extends LiveService {
 
@@ -66,6 +63,10 @@ public class YouTubeLiveService extends LiveService {
         String description = "";
         String videoId = "";
         if (hlsvpMatcher.find()) {
+            if (!videoInfoRes.contains("\"isLive\":true")) {
+                log.info("节目[" + videoInfoUrl + "]已停止直播(isLive=false)");
+                return null;
+            }
             String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
             Matcher videoIdMatcher = videoIdPattern.matcher(hlsvpUrl);
             if (videoIdMatcher.find()) {

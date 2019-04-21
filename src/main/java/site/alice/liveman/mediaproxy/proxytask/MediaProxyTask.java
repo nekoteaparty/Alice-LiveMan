@@ -18,37 +18,30 @@
 package site.alice.liveman.mediaproxy.proxytask;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.task.TaskTimeoutException;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
-import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.Serializable;
-import java.net.Proxy;
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
-    private           String               videoId;
-    private           URI                  sourceUrl;
-    private           URI                  targetUrl;
-    private           VideoInfo            videoInfo;
-    private           List<MediaProxyTask> parentProxyTasks;
-    private transient Thread               runThread;
-    private volatile  Boolean              isTerminated;
-    private           long                 lastKeyFrameTime;
-    private           BufferedImage        cachedKeyFrame;
+    private           String        videoId;
+    private           URI           sourceUrl;
+    private           URI           targetUrl;
+    private           VideoInfo     videoInfo;
+    private transient Thread        runThread;
+    private volatile  Boolean       terminated;
+    private           long          lastKeyFrameTime;
+    private           BufferedImage cachedKeyFrame;
 
     public String getVideoId() {
         return videoId;
@@ -83,7 +76,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
     }
 
     public Boolean getTerminated() {
-        return isTerminated;
+        return terminated;
     }
 
     public BufferedImage getKeyFrame() {
@@ -117,7 +110,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
 
     @Override
     public synchronized void run() {
-        isTerminated = false;
+        terminated = false;
         try {
             runThread = Thread.currentThread();
             log.info(getVideoId() + "代理任务启动@" + runThread.getName());
@@ -125,20 +118,20 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         } catch (Throwable e) {
             log.error(getVideoId() + "代理任务异常退出", e);
         } finally {
-            isTerminated = true;
-            terminateTask();
+            terminated = true;
             MediaProxyManager.removeProxy(this);
-            // 将自身从代理列表中移除
-            if (parentProxyTasks != null) {
-                parentProxyTasks.remove(this);
-            }
             log.info(getVideoId() + "代理任务终止@" + runThread.getName());
+            afterTerminate();
         }
     }
 
     public void terminate() {
         log.info("开始终止" + getVideoId() + "代理任务@" + runThread.getName());
-        isTerminated = true;
+        beforeTerminate();
+        terminated = true;
+    }
+
+    protected void beforeTerminate() {
     }
 
     public synchronized void waitForTerminate() {
@@ -146,17 +139,11 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
 
     protected abstract void runTask() throws Exception;
 
-    protected abstract void terminateTask();
+    protected void afterTerminate() {
+    }
 
     protected Thread getRunThread() {
         return runThread;
     }
 
-    public List<MediaProxyTask> getParentProxyTasks() {
-        return parentProxyTasks;
-    }
-
-    public void setParentProxyTasks(List<MediaProxyTask> parentProxyTasks) {
-        this.parentProxyTasks = parentProxyTasks;
-    }
 }

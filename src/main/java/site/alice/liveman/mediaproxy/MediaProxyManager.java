@@ -23,13 +23,13 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.ChannelInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.VideoInfo;
-import site.alice.liveman.service.VideoFilterService;
 import site.alice.liveman.utils.ThreadPoolUtil;
 
 import java.net.Inet4Address;
@@ -37,8 +37,10 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.URI;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+@Component
 public class MediaProxyManager implements ApplicationContextAware {
     private static final Logger                        LOGGER               = LoggerFactory.getLogger(MediaProxyManager.class);
     private static final Map<String, MediaProxyTask>   executedProxyTaskMap = new ConcurrentHashMap<>();
@@ -76,7 +78,7 @@ public class MediaProxyManager implements ApplicationContextAware {
                 MediaProxyTask mediaProxyTask = metaProxy.createProxyTask(videoInfo.getVideoId(), sourceUrl);
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(mediaProxyTask);
                 String proxyName = metaProxyEntry.getKey().replace("MediaProxy", "");
-                String targetUrl = String.format(targetUrlFormat, proxyName, videoInfo.getVideoUnionId());
+                String targetUrl = String.format(targetUrlFormat, proxyName, videoInfo.getVideoId());
                 mediaProxyTask.setTargetUrl(new URI(targetUrl));
                 return mediaProxyTask;
             }

@@ -21,6 +21,7 @@ package site.alice.liveman.mediaproxy.proxytask;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import site.alice.liveman.utils.HttpRequestUtil;
 
@@ -58,14 +59,7 @@ public class NicoLiveMediaProxyTask extends M3u8MediaProxyTask {
             }
             super.runTask();
         } finally {
-            terminate();
-            if (session != null) {
-                try {
-                    session.close();
-                } catch (IOException ignored) {
-
-                }
-            }
+            IOUtils.closeQuietly(session);
         }
     }
 
