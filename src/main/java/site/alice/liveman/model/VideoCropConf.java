@@ -25,19 +25,22 @@ import site.alice.liveman.jenum.VideoBannedTypeEnum;
 
 import java.io.Serializable;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class VideoCropConf implements Serializable {
-    private VideoBannedTypeEnum   videoBannedType = VideoBannedTypeEnum.NONE;
-    private boolean               autoBlur;
-    private int                   blurSize;
-    private TreeSet<CustomLayout> layouts;
+    private VideoBannedTypeEnum                videoBannedType = VideoBannedTypeEnum.NONE;
+    private boolean                            autoBlur;
+    private int                                blurSize;
+    private CopyOnWriteArrayList<CustomLayout> layouts;
     @JsonIgnore
-    private byte[]                cachedDrawBytes;
+    private byte[]                             cachedDrawBytes;
     @JsonIgnore
-    private byte[]                cachedBlurBytes;
+    private byte[]                             cachedBlurBytes;
 
     public VideoCropConf() {
-        layouts = new TreeSet<>();
+        layouts = new CopyOnWriteArrayList<>();
     }
 
     public VideoBannedTypeEnum getVideoBannedType() {
@@ -56,11 +59,11 @@ public class VideoCropConf implements Serializable {
         this.blurSize = blurSize;
     }
 
-    public TreeSet<CustomLayout> getLayouts() {
+    public CopyOnWriteArrayList<CustomLayout> getLayouts() {
         return layouts;
     }
 
-    public void setLayouts(TreeSet<CustomLayout> layouts) {
+    public void setLayouts(CopyOnWriteArrayList<CustomLayout> layouts) {
         this.layouts = layouts;
     }
 

@@ -29,9 +29,7 @@ import java.net.URI;
 
 
 @Component
-public class NicoLiveMediaProxy implements MediaProxy {
-    @Autowired
-    private HttpServletResponse response;
+public class NicoLiveMediaProxy extends M3u8MediaProxy {
 
     @Override
     public boolean isMatch(URI url, String requestFormat) {
@@ -41,14 +39,5 @@ public class NicoLiveMediaProxy implements MediaProxy {
     @Override
     public MediaProxyTask createProxyTask(String videoId, URI sourceUrl) {
         return new NicoLiveMediaProxyTask(videoId, sourceUrl);
-    }
-
-    @Override
-    public void requestHandler(String videoId) {
-        try {
-            response.sendRedirect("/mediaProxy/temp/m3u8/" + videoId + "/index.m3u8");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

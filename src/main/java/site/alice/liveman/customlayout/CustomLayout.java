@@ -20,10 +20,7 @@ package site.alice.liveman.customlayout;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import site.alice.liveman.customlayout.impl.BlurLayout;
-import site.alice.liveman.customlayout.impl.DanmakuLayout;
-import site.alice.liveman.customlayout.impl.ImageLayout;
-import site.alice.liveman.customlayout.impl.ShapeLayout;
+import site.alice.liveman.customlayout.impl.*;
 import site.alice.liveman.model.VideoInfo;
 
 import javax.validation.constraints.NotNull;
@@ -33,7 +30,8 @@ import java.awt.*;
 @JsonSubTypes({@JsonSubTypes.Type(value = DanmakuLayout.class, name = "DanmakuLayout"),
                @JsonSubTypes.Type(value = ImageLayout.class, name = "ImageLayout"),
                @JsonSubTypes.Type(value = ShapeLayout.class, name = "ShapeLayout"),
-               @JsonSubTypes.Type(value = BlurLayout.class, name = "BlurLayout")})
+               @JsonSubTypes.Type(value = RectangleBlurLayout.class, name = "RectangleBlurLayout"),
+               @JsonSubTypes.Type(value = ImageSegmentBlurLayout.class, name = "ImageSegmentBlurLayout")})
 public abstract class CustomLayout implements Comparable<CustomLayout> {
     protected VideoInfo videoInfo;
     protected int       index;

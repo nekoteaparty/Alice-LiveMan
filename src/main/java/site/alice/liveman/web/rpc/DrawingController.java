@@ -27,23 +27,21 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import site.alice.liveman.customlayout.CustomLayout;
-import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.customlayout.impl.BrowserLayout;
+import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
 
-import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Controller
@@ -86,10 +84,10 @@ public class DrawingController {
                 BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D graphics = image.createGraphics();
                 graphics.setBackground(new Color(0, 0, 0, 0));
-                Set<CustomLayout> customLayoutList = cropConf.getLayouts();
+                List<CustomLayout> customLayoutList = cropConf.getLayouts();
                 if (CollectionUtils.isNotEmpty(customLayoutList)) {
                     for (CustomLayout customLayout : customLayoutList) {
-                        if (customLayout instanceof BlurLayout) {
+                        if (customLayout instanceof RectangleBlurLayout) {
                             continue;
                         }
                         if (customLayout instanceof BrowserLayout) {
@@ -161,9 +159,9 @@ public class DrawingController {
                 if (cachedBlurBytes == null) {
                     BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_ARGB);
                     Graphics2D graphics = image.createGraphics();
-                    Set<CustomLayout> customLayoutList = cropConf.getLayouts();
+                    List<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
-                        if (customLayout instanceof BlurLayout) {
+                        if (customLayout instanceof RectangleBlurLayout) {
                             try {
                                 customLayout.paintLayout(graphics);
                             } catch (Exception e) {

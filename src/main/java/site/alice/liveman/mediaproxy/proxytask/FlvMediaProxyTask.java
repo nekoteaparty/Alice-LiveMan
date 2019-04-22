@@ -57,14 +57,9 @@ public class FlvMediaProxyTask extends MediaProxyTask {
     }
 
     @Override
-    public void terminate() {
-        super.terminate();
+    protected void beforeTerminate() {
         if (httpGet != null) {
             httpGet.abort();
         }
-    }
-
-    @Override
-    protected void terminateTask() {
     }
 }

@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class M3u8MediaProxyTask extends MediaProxyTask {
 
-    protected static final int                         MAX_RETRY_COUNT = 60;
+    protected static final int                         MAX_RETRY_COUNT = 30;
     private                BlockingDeque<M3u8SeqInfo>  downloadDeque   = new LinkedBlockingDeque<>();
     private                ConcurrentLinkedQueue<File> seqFileQueue    = new ConcurrentLinkedQueue<>();
     protected              AtomicInteger               retryCount      = new AtomicInteger(0);
@@ -90,11 +90,6 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                                     createM3U8File();
                                 }
                             }
-                        }
-
-                        @Override
-                        protected void terminateTask() {
-
                         }
                     });
                 }
@@ -158,17 +153,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                     }
                 }
             }
-
-
-            @Override
-            protected void terminateTask() {
-
-            }
         };
     }
 
     @Override
-    public void terminateTask() {
+    public void afterTerminate() {
         downloadTask.waitForTerminate();
     }
 
@@ -280,10 +269,8 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
         }
     }
 
-    private void createM3U8File() {
+    public String createM3U8File() {
         VideoInfo videoInfo = getVideoInfo();
-        File m3u8Path = new File(MediaProxyManager.getTempPath() + "/m3u8/" + videoInfo.getVideoUnionId() + "/");
-        m3u8Path.mkdirs();
         StringBuilder sb = new StringBuilder();
         for (File seqFile : seqFileQueue) {
             if (sb.length() == 0) {
@@ -294,16 +281,8 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                         "#EXT-X-DISCONTINUITY-SEQUENCE:1\n");
             }
             sb.append("#EXTINF:1.0,\n");
-            sb.append(seqFile.getName()).append("\n");
+            sb.append("/mediaProxy/temp/m3u8/" + videoInfo.getVideoUnionId() + "/" + seqFile.getName()).append("\n");
         }
-        File m3u8FileTemp = new File(m3u8Path + "/index.m3u8.tmp");
-        try {
-            FileUtils.write(m3u8FileTemp, sb);
-            File m3u8File = new File(m3u8Path + "/index.m3u8");
-            m3u8File.delete();
-            m3u8FileTemp.renameTo(m3u8File);
-        } catch (IOException e) {
-            log.error("M3U8序列文件写入失败", e);
-        }
+        return sb.toString();
     }
 }

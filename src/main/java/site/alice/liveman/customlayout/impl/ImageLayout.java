@@ -19,7 +19,7 @@
 package site.alice.liveman.customlayout.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.DrawingLayout;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.Base64;
 
 @Slf4j
-public class ImageLayout extends CustomLayout {
+public class ImageLayout extends DrawingLayout {
 
     private String src;
     private float  opacity;

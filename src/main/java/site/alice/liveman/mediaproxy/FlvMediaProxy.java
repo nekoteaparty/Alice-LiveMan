@@ -53,7 +53,7 @@ public class FlvMediaProxy implements MediaProxy {
     public void requestHandler(String videoId) throws Exception {
         MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
         if (mediaProxyTask != null) {
-            File flvFilePath = new File(MediaProxyManager.getTempPath() + "/flv/" + videoId + "/");
+            File flvFilePath = new File(MediaProxyManager.getTempPath() + "/flv/" + mediaProxyTask.getVideoInfo().getVideoUnionId() + "/");
             File[] flvFiles = flvFilePath.listFiles();
             if (flvFiles != null && flvFiles.length > 0) {
                 Arrays.sort(flvFiles, new Comparator<File>() {

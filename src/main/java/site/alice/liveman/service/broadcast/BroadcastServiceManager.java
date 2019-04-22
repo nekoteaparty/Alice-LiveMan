@@ -25,8 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-import site.alice.liveman.customlayout.CustomLayout;
-import site.alice.liveman.customlayout.impl.BlurLayout;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -35,8 +33,11 @@ import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.*;
 import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.MediaHistoryService;
+import site.alice.liveman.service.VideoFilterService;
+import site.alice.liveman.service.external.ImageSegmentService;
+import site.alice.liveman.service.external.consumer.impl.ImageSegmentConsumerImpl;
+import site.alice.liveman.service.external.consumer.impl.TextLocationConsumerImpl;
 import site.alice.liveman.service.live.LiveServiceFactory;
-import site.alice.liveman.service.external.TextLocation;
 import site.alice.liveman.service.external.TextLocationService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
@@ -44,15 +45,12 @@ import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,7 +69,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
     @Autowired
     private BroadcastServerService        broadcastServerService;
     @Autowired
-    private TextLocationService           aliceCommentTextLocationService;
+    private TextLocationService           textLocationService;
+    @Autowired
+    private ImageSegmentService           imageSegmentService;
+    @Autowired
+    private VideoFilterService            videoFilterService;
 
     @PostConstruct
     public void init() {
@@ -106,15 +108,39 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
             @Override
             public void onProxyStop(MediaProxyEvent e) {
-                VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
+                final VideoInfo videoInfo = e.getMediaProxyTask().getVideoInfo();
                 if (videoInfo != null) {
                     if (videoInfo.getChannelInfo() == null) {
                         return;
                     }
-                    BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+                    final BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
                     if (broadcastTask != null) {
                         AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
                         if (broadcastAccount != null) {
+                            if (!broadcastTask.isTerminate()) {
+                                ThreadPoolUtil.schedule(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            log.info("检查节目[" + videoInfo.getVideoInfoUrl() + "]是否仍然在直播中...");
+                                            VideoInfo liveVideoInfo = liveServiceFactory.getLiveService(videoInfo.getVideoInfoUrl().toString()).getLiveVideoInfo(videoInfo.getVideoInfoUrl(), videoInfo.getChannelInfo(), liveManSetting.getDefaultResolution());
+                                            if (liveVideoInfo == null) {
+                                                log.info("节目[" + videoInfo.getVideoInfoUrl() + "]当前已停止直播！");
+                                            } else {
+                                                log.info("节目[" + videoInfo.getVideoInfoUrl() + "]当前依然在直播中！");
+                                                liveVideoInfo.setArea(videoInfo.getArea());
+                                                liveVideoInfo.setCropConf(videoInfo.getCropConf());
+                                                liveVideoInfo.setAudioBanned(videoInfo.isAudioBanned());
+                                                liveVideoInfo.setNeedRecord(videoInfo.isNeedRecord());
+                                                liveVideoInfo.setVertical(videoInfo.isVertical());
+                                                createSingleBroadcastTask(liveVideoInfo, broadcastAccount);
+                                            }
+                                        } catch (Throwable e) {
+                                            log.info("节目[" + videoInfo.getVideoInfoUrl() + "]中断自动恢复操作失败", e);
+                                        }
+                                    }
+                                }, 2, TimeUnit.SECONDS);
+                            }
                             broadcastAccount.removeCurrentVideo(videoInfo);
                             videoInfo.removeBroadcastTask(broadcastTask);
                             broadcastTask.terminateTask();
@@ -204,108 +230,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         throw new BeanDefinitionStoreException("没有找到可以推流到[" + accountSite + "]的BroadcastService");
     }
 
-    public class TextLocationConsumer implements BiConsumer<List<TextLocation>, BufferedImage> {
-
-        private VideoInfo videoInfo;
-
-        public TextLocationConsumer(VideoInfo videoInfo) {
-            this.videoInfo = videoInfo;
-        }
-
-        @Override
-        public void accept(List<TextLocation> textLocations, BufferedImage bufferedImage) {
-            log.info("评论区识别[" + videoInfo.getVideoId() + "]:" + textLocations);
-            try {
-                File easyDlDir = new File("./easydl/");
-                easyDlDir.mkdirs();
-                String dashFileName;
-                if (textLocations.size() > 1) {
-                    // 可能是误识别，保存这次的识别记录
-                    dashFileName = videoInfo.getVideoId() + "_" + System.currentTimeMillis();
-                } else {
-                    dashFileName = videoInfo.getVideoId() + "_" + System.currentTimeMillis() / 600000;
-                }
-                ImageIO.write(bufferedImage, "jpg", new File(easyDlDir + "/" + dashFileName + "_raw.jpg"));
-                try (OutputStream os = new FileOutputStream(easyDlDir + "/" + dashFileName + "_rect.txt")) {
-                    for (TextLocation textLocation : textLocations) {
-                        os.write((textLocation.toString() + "\n").getBytes());
-                    }
-                }
-                textLocations.removeIf(textLocation -> textLocation.getScore() < 0.5);
-                if (videoInfo.getTextLocations() == null) {
-                    videoInfo.setTextLocations(new ArrayList<>(textLocations));
-                }
-                // 清理已有区域
-                for (Iterator<TextLocation> iterator = videoInfo.getTextLocations().iterator(); iterator.hasNext(); ) {
-                    TextLocation textLocation = iterator.next();
-                    if (textLocation.getLastHitTime() == null) {
-                        textLocation.setLastHitTime(System.currentTimeMillis());
-                    }
-                    boolean hasContains = false;
-                    for (Iterator<TextLocation> newIterator = textLocations.iterator(); newIterator.hasNext(); ) {
-                        TextLocation location = newIterator.next();
-                        Rectangle oldRectangle = new Rectangle(textLocation.getRectangle());
-                        oldRectangle.grow(20, 20); // 容差±20px
-                        Rectangle newRectangle = new Rectangle(location.getRectangle());
-                        newRectangle.grow(20, 20); // 容差±20px
-                        if (oldRectangle.contains(location.getRectangle())) {
-                            hasContains = true;
-                            newIterator.remove(); // 找到匹配的已有区域，从新增区域中删除
-                            textLocation.getRectangle().add(location.getRectangle());
-                            if (newRectangle.contains(textLocation.getRectangle())) {
-                                textLocation.setLastHitTime(System.currentTimeMillis());
-                            } else if (System.currentTimeMillis() - textLocation.getLastHitTime() > 30000) {
-                                // 评论区没有改变位置，但是被缩小
-                                textLocation.getRectangle().setBounds(location.getRectangle());
-                            }
-                        }
-                    }
-                    if (!hasContains && System.currentTimeMillis() - textLocation.getLastHitTime() > 30000) {
-                        // 如果某个区域超过30秒没有被命中，则淘汰
-                        iterator.remove();
-                    }
-                }
-
-                // 新增加的区域
-                videoInfo.getTextLocations().addAll(textLocations);
-
-                // 设置新的自定义渲染层
-                double scale = 720.0 / bufferedImage.getHeight();
-                TreeSet<CustomLayout> customLayouts = new TreeSet<>(videoInfo.getCropConf().getLayouts());
-                customLayouts.removeIf(customLayout -> customLayout instanceof BlurLayout);
-                for (TextLocation textLocation : videoInfo.getTextLocations()) {
-                    BlurLayout blurLayout = new BlurLayout();
-                    blurLayout.setVideoInfo(videoInfo);
-                    blurLayout.setX((int) (textLocation.getRectangle().getX() * scale));
-                    blurLayout.setY((int) (textLocation.getRectangle().getY() * scale));
-                    blurLayout.setWidth((int) (textLocation.getRectangle().getWidth() * scale));
-                    blurLayout.setHeight((int) (textLocation.getRectangle().getHeight() * scale));
-                    customLayouts.add(blurLayout);
-                }
-                videoInfo.getCropConf().setLayouts(customLayouts);
-                videoInfo.getCropConf().setCachedBlurBytes(null);
-                MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId() + "_low");
-                if (mediaProxyTask != null) {
-                    VideoInfo lowVideoInfo = mediaProxyTask.getVideoInfo();
-                    if (lowVideoInfo != null) {
-                        lowVideoInfo.getCropConf().setLayouts(customLayouts);
-                        lowVideoInfo.getCropConf().setCachedBlurBytes(null);
-                        if (lowVideoInfo.getCropConf().getBlurSize() != 5) {
-                            videoInfo.getCropConf().setBlurSize(5);
-                            lowVideoInfo.getCropConf().setBlurSize(5);
-                            BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
-                            if (broadcastTask != null) {
-                                ProcessUtil.killProcess(broadcastTask.pid);
-                            }
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                log.error("处理评论区识别失败", e);
-            }
-        }
-    }
-
     public class BroadcastTask implements Runnable {
 
         private Pattern     logSpeedPattern = Pattern.compile("speed=([0-9\\.\\s]+)x");
@@ -364,36 +288,63 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
                             MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                             if (mediaProxyTask != null) {
-                                aliceCommentTextLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumer(videoInfo));
+                                textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumerImpl(videoInfo));
                             }
                         }
-                    } catch (Throwable e) {
-                        log.error("requireTextLocation failed", e);
-                    } finally {
                         if (!terminate) {
                             ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
                         }
+                    } catch (Throwable e) {
+                        log.error("requireTextLocation failed", e);
+                        if (!terminate) {
+                            ThreadPoolUtil.schedule(this, 2, TimeUnit.SECONDS);
+                        }
                     }
                 }
-            }, 15, TimeUnit.SECONDS);
+            }, 10, TimeUnit.SECONDS);
+//            ThreadPoolUtil.schedule(new Runnable() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
+//                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+//                            if (mediaProxyTask != null) {
+//                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
+//                            }
+//                        }
+//                        if (!terminate) {
+//                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
+//                        }
+//                    } catch (Throwable e) {
+//                        log.error("requireTextLocation failed", e);
+//                        if (!terminate) {
+//                            ThreadPoolUtil.schedule(this, 1, TimeUnit.SECONDS);
+//                        }
+//                    }
+//                }
+//            }, 10, TimeUnit.SECONDS);
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
                     if (!singleTask) {
-                        broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
-                        if (broadcastAccount == null) {
-                            Thread.sleep(5000);
-                            continue;
-                        }
-                        MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoInfo.getVideoId());
-                        if (mediaHistory == null || !mediaHistory.isPostDynamic()) {
-                            bilibiliApiUtil.postDynamic(broadcastAccount);
-                            if (mediaHistory != null) {
-                                mediaHistory.setPostDynamic(true);
+                        if (videoFilterService.doFilter(videoInfo)) {
+                            broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
+                            if (broadcastAccount == null) {
+                                Thread.sleep(5000);
+                                continue;
                             }
+                            MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoInfo.getVideoId());
+                            if (mediaHistory == null || !mediaHistory.isPostDynamic()) {
+                                bilibiliApiUtil.postDynamic(broadcastAccount);
+                                if (mediaHistory != null) {
+                                    mediaHistory.setPostDynamic(true);
+                                }
+                            }
+                        } else {
+                            terminateTask();
                         }
                     }
-                    while (broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
+                    while (broadcastAccount != null && broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
                         VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
                         VideoInfo lowVideoInfo = null;
                         try {
@@ -466,6 +417,12 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         fis.skip(logFile.length() - 1024);
                                         List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
                                         // 最多向上读取10行日志
+                                        int expiredCount = 0;
+                                        for (String logLine : logLines) {
+                                            if (logLine.contains("segments ahead, expired from playlists")) {
+                                                expiredCount++;
+                                            }
+                                        }
                                         for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
                                             Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
                                             if (matcher.find()) {
@@ -474,7 +431,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                                 break;
                                             }
                                         }
-                                        if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
+                                        if (expiredCount >= 2) {
+                                            log.warn("发现多个m3u8序列过期日志，终止推流进程[pid:" + pid + ", expiredCount:" + expiredCount + ", logFile:\"" + logFile + "\"]...");
+                                            ProcessUtil.killProcess(pid);
+                                        } else if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
                                             log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
                                             ProcessUtil.killProcess(pid);
                                         } else if (health > 0 && health < 94) {
@@ -546,6 +506,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
             this.health = health;
         }
 
+        public boolean isTerminate() {
+            return terminate;
+        }
+
         public boolean terminateTask() {
             if (broadcastAccount != null) {
                 log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
@@ -566,7 +530,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
 
         public synchronized void waitForTerminate() {
-
         }
     }
 

@@ -15,17 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package site.alice.liveman.config;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import site.alice.liveman.mediaproxy.MediaProxyManager;
+package site.alice.liveman.service.external;
 
-@Configuration
-public class MediaProxyConfig {
+import site.alice.liveman.service.external.consumer.ImageSegmentConsumer;
 
-    @Bean
-    public MediaProxyManager getMediaProxyManager() {
-        return new MediaProxyManager();
-    }
+import java.awt.image.BufferedImage;
+
+public interface ImageSegmentService {
+
+    void imageSegment(BufferedImage image, ImageSegmentConsumer consumer);
+
 }

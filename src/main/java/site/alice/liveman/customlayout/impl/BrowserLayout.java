@@ -19,8 +19,7 @@
 package site.alice.liveman.customlayout.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import site.alice.liveman.customlayout.CustomLayout;
-import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.customlayout.DrawingLayout;
 import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.utils.ThreadPoolUtil;
 
@@ -31,7 +30,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Scanner;
@@ -39,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class BrowserLayout extends CustomLayout {
+public class BrowserLayout extends DrawingLayout {
 
     private AtomicReference<BufferedImage> imageRef = new AtomicReference<>();
     private URL                            url;
