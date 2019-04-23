@@ -142,9 +142,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 }, 2, TimeUnit.SECONDS);
                             }
                             broadcastAccount.removeCurrentVideo(videoInfo);
-                            videoInfo.removeBroadcastTask(broadcastTask);
-                            broadcastTask.terminateTask();
                         }
+                        videoInfo.removeBroadcastTask(broadcastTask);
+                        broadcastTask.terminateTask();
                     }
                 }
             }
@@ -493,6 +493,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 } catch (InterruptedException ignore) {
                 }
             }
+            log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
+            terminate = true;
             if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                 log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
             }
@@ -511,8 +513,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         }
 
         public boolean terminateTask() {
+            log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]...");
             if (broadcastAccount != null) {
-                log.info("强制终止节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + broadcastAccount.getRoomId() + "]");
                 ThreadPoolUtil.schedule(() -> {
                     if (broadcastAccount.getCurrentVideo() == null) {
                         getBroadcastService(broadcastAccount.getAccountSite()).stopBroadcast(broadcastAccount, true);
