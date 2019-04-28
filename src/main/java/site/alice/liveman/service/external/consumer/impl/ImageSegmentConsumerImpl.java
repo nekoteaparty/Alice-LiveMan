@@ -62,8 +62,9 @@ public class ImageSegmentConsumerImpl implements ImageSegmentConsumer {
                     lowVideoInfo.getCropConf().setCachedBlurBytes(null);
                 }
             }
+            log.info("Accepted image segment[videoId=" + videoInfo.getVideoId() + "]");
         } catch (Throwable e) {
-            log.error("处理图像分割失败", e);
+            log.error("处理图像分割失败[videoId=" + videoInfo.getVideoId() + "]", e);
         }
     }
 }

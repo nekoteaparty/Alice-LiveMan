@@ -23,6 +23,7 @@ import com.baidu.aip.http.AipRequest;
 import com.baidu.aip.http.EBodyFormat;
 import com.baidu.aip.util.Base64Util;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.log4j.LogManager;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -82,6 +83,7 @@ public class AliceCommentTextLocationService implements TextLocationService {
 
         protected EDLAliceAipClient(String appId, String apiKey, String secretKey) {
             super(appId, apiKey, secretKey);
+            LogManager.resetConfiguration();
         }
 
         public JSONObject aliceComment(byte[] image) {

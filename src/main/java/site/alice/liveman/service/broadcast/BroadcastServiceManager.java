@@ -35,21 +35,22 @@ import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.MediaHistoryService;
 import site.alice.liveman.service.VideoFilterService;
 import site.alice.liveman.service.external.ImageSegmentService;
+import site.alice.liveman.service.external.TextLocationService;
 import site.alice.liveman.service.external.consumer.impl.ImageSegmentConsumerImpl;
 import site.alice.liveman.service.external.consumer.impl.TextLocationConsumerImpl;
 import site.alice.liveman.service.live.LiveServiceFactory;
-import site.alice.liveman.service.external.TextLocationService;
 import site.alice.liveman.utils.BilibiliApiUtil;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
 import site.alice.liveman.utils.ThreadPoolUtil;
 
 import javax.annotation.PostConstruct;
-import java.io.*;
-import java.net.URI;
+import java.io.File;
+import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -291,38 +292,32 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumerImpl(videoInfo));
                             }
                         }
-                        if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
-                        }
                     } catch (Throwable e) {
                         log.error("requireTextLocation failed", e);
-                        if (!terminate) {
-                            ThreadPoolUtil.schedule(this, 2, TimeUnit.SECONDS);
-                        }
+                    }
+                    if (!terminate) {
+                        ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
                     }
                 }
             }, 10, TimeUnit.SECONDS);
-//            ThreadPoolUtil.schedule(new Runnable() {
-//                @Override
-//                public void run() {
-//                    try {
-//                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
-//                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
-//                            if (mediaProxyTask != null) {
-//                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
-//                            }
-//                        }
-//                        if (!terminate) {
-//                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
-//                        }
-//                    } catch (Throwable e) {
-//                        log.error("requireTextLocation failed", e);
-//                        if (!terminate) {
-//                            ThreadPoolUtil.schedule(this, 1, TimeUnit.SECONDS);
-//                        }
-//                    }
-//                }
-//            }, 10, TimeUnit.SECONDS);
+            ThreadPoolUtil.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
+                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+                            if (mediaProxyTask != null) {
+                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
+                            }
+                        }
+                    } catch (Throwable e) {
+                        log.error("requireImageSegment failed", e);
+                    }
+                    if (!terminate) {
+                        ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
+                    }
+                }
+            }, 10, TimeUnit.SECONDS);
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
                 try {
