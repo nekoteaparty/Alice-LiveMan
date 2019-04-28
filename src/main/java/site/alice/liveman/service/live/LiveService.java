@@ -37,6 +37,7 @@ public abstract class LiveService {
                 videoInfo.getCropConf().setAutoBlur(true);
                 videoInfo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.CUSTOM_SCREEN);
             }
+            videoInfo.getCropConf().setAutoImageSegment(channelInfo.getDefaultCropConf().isAutoImageSegment());
             return MediaProxyManager.createProxy(videoInfo);
         } else {
             return null;

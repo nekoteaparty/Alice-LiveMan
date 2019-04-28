@@ -32,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class VideoCropConf implements Serializable {
     private VideoBannedTypeEnum                videoBannedType = VideoBannedTypeEnum.NONE;
     private boolean                            autoBlur;
+    private boolean                            autoImageSegment;
     private int                                blurSize;
     private CopyOnWriteArrayList<CustomLayout> layouts;
     @JsonIgnore
@@ -89,6 +90,14 @@ public class VideoCropConf implements Serializable {
 
     public void setAutoBlur(boolean autoBlur) {
         this.autoBlur = autoBlur;
+    }
+
+    public boolean isAutoImageSegment() {
+        return autoImageSegment;
+    }
+
+    public void setAutoImageSegment(boolean autoImageSegment) {
+        this.autoImageSegment = autoImageSegment;
     }
 
     @Override
