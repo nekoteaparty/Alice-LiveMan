@@ -26,8 +26,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import site.alice.liveman.customlayout.BlurLayout;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.customlayout.impl.BrowserLayout;
+import site.alice.liveman.customlayout.impl.ImageSegmentBlurLayout;
 import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
@@ -87,7 +89,7 @@ public class DrawingController {
                 List<CustomLayout> customLayoutList = cropConf.getLayouts();
                 if (CollectionUtils.isNotEmpty(customLayoutList)) {
                     for (CustomLayout customLayout : customLayoutList) {
-                        if (customLayout instanceof RectangleBlurLayout) {
+                        if (customLayout instanceof BlurLayout) {
                             continue;
                         }
                         if (customLayout instanceof BrowserLayout) {
@@ -162,6 +164,15 @@ public class DrawingController {
                     List<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
                         if (customLayout instanceof RectangleBlurLayout) {
+                            try {
+                                customLayout.paintLayout(graphics);
+                            } catch (Exception e) {
+                                log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                            }
+                        }
+                    }
+                    for (CustomLayout customLayout : customLayoutList) {
+                        if (customLayout instanceof ImageSegmentBlurLayout) {
                             try {
                                 customLayout.paintLayout(graphics);
                             } catch (Exception e) {
