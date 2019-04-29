@@ -69,11 +69,13 @@ public class TextLocationConsumerImpl implements TextLocationConsumer {
                 }
             }
             textLocations.removeIf(textLocation -> textLocation.getScore() < 0.5);
-            if (videoInfo.getTextLocations() == null) {
-                videoInfo.setTextLocations(new ArrayList<>(textLocations));
+            List<TextLocation> videoInfoTextLocations = videoInfo.getTextLocations();
+            if (videoInfoTextLocations == null) {
+                videoInfoTextLocations = new ArrayList<>(textLocations);
+                videoInfo.setTextLocations(videoInfoTextLocations);
             }
             // 清理已有区域
-            for (Iterator<TextLocation> iterator = videoInfo.getTextLocations().iterator(); iterator.hasNext(); ) {
+            for (Iterator<TextLocation> iterator = videoInfoTextLocations.iterator(); iterator.hasNext(); ) {
                 TextLocation textLocation = iterator.next();
                 if (textLocation.getLastHitTime() == null) {
                     textLocation.setLastHitTime(System.currentTimeMillis());
@@ -91,26 +93,26 @@ public class TextLocationConsumerImpl implements TextLocationConsumer {
                         textLocation.getRectangle().add(location.getRectangle());
                         if (newRectangle.contains(textLocation.getRectangle())) {
                             textLocation.setLastHitTime(System.currentTimeMillis());
-                        } else if (System.currentTimeMillis() - textLocation.getLastHitTime() > 30000) {
+                        } else if (System.currentTimeMillis() - textLocation.getLastHitTime() > 60000) {
                             // 评论区没有改变位置，但是被缩小
                             textLocation.getRectangle().setBounds(location.getRectangle());
                         }
                     }
                 }
-                if (!hasContains && System.currentTimeMillis() - textLocation.getLastHitTime() > 30000) {
+                if (!hasContains && System.currentTimeMillis() - textLocation.getLastHitTime() > 60000) {
                     // 如果某个区域超过30秒没有被命中，则淘汰
                     iterator.remove();
                 }
             }
 
             // 新增加的区域
-            videoInfo.getTextLocations().addAll(textLocations);
+            videoInfoTextLocations.addAll(textLocations);
 
             // 设置新的自定义渲染层
             double scale = 720.0 / bufferedImage.getHeight();
             CopyOnWriteArrayList<CustomLayout> customLayouts = videoInfo.getCropConf().getLayouts();
             customLayouts.removeIf(customLayout -> customLayout instanceof RectangleBlurLayout);
-            for (TextLocation textLocation : videoInfo.getTextLocations()) {
+            for (TextLocation textLocation : videoInfoTextLocations) {
                 RectangleBlurLayout rectangleBlurLayout = new RectangleBlurLayout();
                 rectangleBlurLayout.setVideoInfo(videoInfo);
                 rectangleBlurLayout.setX((int) (textLocation.getRectangle().getX() * scale));
