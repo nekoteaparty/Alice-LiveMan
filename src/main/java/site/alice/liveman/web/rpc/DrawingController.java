@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import site.alice.liveman.customlayout.BlurLayout;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.customlayout.impl.BrowserLayout;
+import site.alice.liveman.customlayout.impl.ImageSegmentBlurLayout;
 import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
@@ -162,7 +163,16 @@ public class DrawingController {
                     Graphics2D graphics = image.createGraphics();
                     List<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
-                        if (customLayout instanceof BlurLayout) {
+                        if (customLayout instanceof RectangleBlurLayout) {
+                            try {
+                                customLayout.paintLayout(graphics);
+                            } catch (Exception e) {
+                                log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
+                            }
+                        }
+                    }
+                    for (CustomLayout customLayout : customLayoutList) {
+                        if (customLayout instanceof ImageSegmentBlurLayout) {
                             try {
                                 customLayout.paintLayout(graphics);
                             } catch (Exception e) {
