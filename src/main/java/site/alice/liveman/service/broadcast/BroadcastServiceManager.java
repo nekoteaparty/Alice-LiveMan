@@ -184,7 +184,16 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                 throw e;
             }
         } else {
-            throw new RuntimeException("无法创建转播任务，直播间已被节目[" + broadcastAccount.getCurrentVideo().getTitle() + "]占用！");
+            VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
+            if (currentVideo != null) {
+                BroadcastTask broadcastTask = currentVideo.getBroadcastTask();
+                if (broadcastTask != null && !broadcastTask.isTerminate()) {
+                    throw new RuntimeException("无法创建转播任务，直播间已被节目[" + currentVideo.getTitle() + "]占用！");
+                }
+                log.info("直播间[roomId=" + broadcastAccount.getRoomId() + "]当前正在被占用的节目[" + currentVideo.getVideoId() + "]已不存在，清除CurrentVideo标记！");
+                broadcastAccount.removeCurrentVideo(currentVideo);
+            }
+            return createSingleBroadcastTask(videoInfo, broadcastAccount);
         }
     }
 
@@ -269,229 +278,232 @@ public class BroadcastServiceManager implements ApplicationContextAware {
 
         @Override
         public synchronized void run() {
-            // 任务第一次启动时尝试用默认的转播账号进行一次转播
-            if (!singleTask) {
-                ChannelInfo channelInfo = videoInfo.getChannelInfo();
-                if (channelInfo != null) {
-                    String defaultAccountId = channelInfo.getDefaultAccountId();
-                    if (defaultAccountId != null) {
-                        AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
-                        if (accountInfo != null) {
-                            accountInfo.setDisable(false);
+            try {
+                // 任务第一次启动时尝试用默认的转播账号进行一次转播
+                if (!singleTask) {
+                    ChannelInfo channelInfo = videoInfo.getChannelInfo();
+                    if (channelInfo != null) {
+                        String defaultAccountId = channelInfo.getDefaultAccountId();
+                        if (defaultAccountId != null) {
+                            AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
+                            if (accountInfo != null) {
+                                accountInfo.setDisable(false);
+                            }
                         }
                     }
                 }
-            }
-            ThreadPoolUtil.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
-                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
-                            if (mediaProxyTask != null) {
-                                textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumerImpl(videoInfo));
-                            }
-                        }
-                    } catch (Throwable e) {
-                        log.error("requireTextLocation failed", e);
-                    }
-                    if (!terminate) {
-                        ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
-                    }
-                }
-            }, 10, TimeUnit.SECONDS);
-            ThreadPoolUtil.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
-                            MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
-                            if (mediaProxyTask != null) {
-                                imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
-                            }
-                        }
-                    } catch (Throwable e) {
-                        log.error("requireImageSegment failed", e);
-                    }
-                    if (!terminate) {
-                        ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
-                    }
-                }
-            }, 10, TimeUnit.SECONDS);
-            Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
-            while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
-                try {
-                    if (!singleTask) {
-                        if (videoFilterService.doFilter(videoInfo)) {
-                            broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
-                            if (broadcastAccount == null) {
-                                Thread.sleep(5000);
-                                continue;
-                            }
-                            MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoInfo.getVideoId());
-                            if (mediaHistory == null || !mediaHistory.isPostDynamic()) {
-                                bilibiliApiUtil.postDynamic(broadcastAccount);
-                                if (mediaHistory != null) {
-                                    mediaHistory.setPostDynamic(true);
-                                }
-                            }
-                        } else {
-                            terminateTask();
-                        }
-                    }
-                    while (broadcastAccount != null && broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
-                        VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
-                        VideoInfo lowVideoInfo = null;
+                ThreadPoolUtil.schedule(new Runnable() {
+                    @Override
+                    public void run() {
                         try {
-                            BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
-                            String broadcastAddress = broadcastService.getBroadcastAddress(broadcastAccount);
-                            if (broadcastAccount.isAutoRoomTitle()) {
-                                broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
-                            }
-                            String ffmpegCmdLine;
-                            // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
-                            switch (currentVideo.getCropConf().getVideoBannedType()) {
-                                case CUSTOM_SCREEN: {
-                                    if (broadcastAccount.isVip()) {
-                                        MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
-                                        if (mediaProxyTask != null) {
-                                            lowVideoInfo = mediaProxyTask.getVideoInfo();
-                                        } else {
-                                            lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), currentVideo.getChannelInfo(), "720");
-                                            if (lowVideoInfo == null) {
-                                                throw new RuntimeException("获取低清晰度视频源信息失败");
-                                            }
-                                            lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
-                                            MediaProxyManager.createProxy(lowVideoInfo);
-                                        }
-                                        lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
-                                        lowVideoInfo.setCropConf(currentVideo.getCropConf());
-                                        ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
-                                        // pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
-                                        pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
-                                        break;
-                                    } else {
-                                        currentVideo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.NONE);
-                                    }
-                                }
-                                default: {
-                                    // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
-                                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
-                                    if (mediaProxyTask != null) {
-                                        mediaProxyTask.terminate();
-                                        mediaProxyTask.waitForTerminate();
-                                    }
-                                    ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
-                                    pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
-                                }
-                            }
-                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "]");
-                            // 等待进程退出或者任务结束
-                            lastHitTime = 0;
-                            lowHealthCount = 0;
-                            health = 0;
-                            lastLogLength = 0;
-                            while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
-                                ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
-                                if (aliceProcess == null) {
-                                    continue;
-                                }
-                                File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
-                                if (logFile != null && logFile.length() > 1024) {
-                                    if (lastLogLength != logFile.length()) {
-                                        lastLogLength = logFile.length();
-                                        lastLogTime = System.nanoTime();
-                                    }
-                                    long dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastLogTime);
-                                    if (dt > 10000) {
-                                        log.warn("持续" + dt + "毫秒没有推流日志输出，终止推流进程...[pid:" + pid + ", logFile:\"" + logFile + "\"]");
-                                        ProcessUtil.killProcess(pid);
-                                        continue;
-                                    }
-                                    try (FileInputStream fis = new FileInputStream(logFile)) {
-                                        fis.skip(logFile.length() - 1024);
-                                        List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
-                                        // 最多向上读取10行日志
-                                        int expiredCount = 0;
-                                        for (String logLine : logLines) {
-                                            if (logLine.contains("segments ahead, expired from playlists")) {
-                                                expiredCount++;
-                                            }
-                                        }
-                                        for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
-                                            Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
-                                            if (matcher.find()) {
-                                                health = Float.parseFloat(matcher.group(1).trim()) * 100;
-                                                lastHitTime = System.nanoTime();
-                                                break;
-                                            }
-                                        }
-                                        if (expiredCount >= 2) {
-                                            log.warn("发现多个m3u8序列过期日志，终止推流进程[pid:" + pid + ", expiredCount:" + expiredCount + ", logFile:\"" + logFile + "\"]...");
-                                            ProcessUtil.killProcess(pid);
-                                        } else if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
-                                            log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
-                                            ProcessUtil.killProcess(pid);
-                                        } else if (health > 0 && health < 94) {
-                                            if (lowHealthCount++ < 15) {
-                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次！[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
-                                            } else {
-                                                log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次，终止推流进程...[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
-                                                ProcessUtil.killProcess(pid);
-                                            }
-                                        } else if (health > 102) {
-                                            log.warn("当前推流健康度异常，终止推流进程[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]...");
-                                            ProcessUtil.killProcess(pid);
-                                        }
-                                    } catch (Exception e) {
-                                        log.error("读取推流进程日志文件时出错[pid:" + pid + ", logFile:\"" + logFile + "\"]", e);
-                                    }
+                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
+                                MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+                                if (mediaProxyTask != null) {
+                                    textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumerImpl(videoInfo));
                                 }
                             }
                         } catch (Throwable e) {
-                            log.error("startBroadcast failed", e);
-                        } finally {
-                            // 杀死进程
-                            ProcessUtil.killProcess(pid);
-                            if (lowVideoInfo != null) {
-                                broadcastServerService.releaseServer(lowVideoInfo);
-                            }
-                            log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
+                            log.error("requireTextLocation failed", e);
                         }
+                        if (!terminate) {
+                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
+                        }
+                    }
+                }, 10, TimeUnit.SECONDS);
+                ThreadPoolUtil.schedule(new Runnable() {
+                    @Override
+                    public void run() {
                         try {
-                            if (!terminate) {
-                                Thread.sleep(1000);
+                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
+                                MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
+                                if (mediaProxyTask != null) {
+                                    imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
+                                }
                             }
-                        } catch (InterruptedException ignore) {
+                        } catch (Throwable e) {
+                            log.error("requireImageSegment failed", e);
+                        }
+                        if (!terminate) {
+                            ThreadPoolUtil.schedule(this, 10, TimeUnit.SECONDS);
                         }
                     }
-                    // 终止推流时自动终止创建的低清晰度媒体代理任务
-                    MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
-                    if (mediaProxyTask != null) {
-                        mediaProxyTask.terminate();
-                        // 这里需要等待任务停止
-                        mediaProxyTask.waitForTerminate();
+                }, 10, TimeUnit.SECONDS);
+                Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
+                while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate) {
+                    try {
+                        if (!singleTask) {
+                            if (videoFilterService.doFilter(videoInfo)) {
+                                broadcastAccount = BroadcastServiceManager.this.getBroadcastAccount(videoInfo);
+                                if (broadcastAccount == null) {
+                                    Thread.sleep(5000);
+                                    continue;
+                                }
+                                MediaHistory mediaHistory = mediaHistoryService.getMediaHistory(videoInfo.getVideoId());
+                                if (mediaHistory == null || !mediaHistory.isPostDynamic()) {
+                                    bilibiliApiUtil.postDynamic(broadcastAccount);
+                                    if (mediaHistory != null) {
+                                        mediaHistory.setPostDynamic(true);
+                                    }
+                                }
+                            } else {
+                                terminateTask();
+                            }
+                        }
+                        while (broadcastAccount != null && broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
+                            VideoInfo currentVideo = broadcastAccount.getCurrentVideo();
+                            VideoInfo lowVideoInfo = null;
+                            try {
+                                BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
+                                String broadcastAddress = broadcastService.getBroadcastAddress(broadcastAccount);
+                                if (broadcastAccount.isAutoRoomTitle()) {
+                                    broadcastService.setBroadcastSetting(broadcastAccount, videoInfo.getTitle(), null);
+                                }
+                                String ffmpegCmdLine;
+                                // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
+                                switch (currentVideo.getCropConf().getVideoBannedType()) {
+                                    case CUSTOM_SCREEN: {
+                                        if (broadcastAccount.isVip()) {
+                                            MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(currentVideo.getVideoId() + "_low");
+                                            if (mediaProxyTask != null) {
+                                                lowVideoInfo = mediaProxyTask.getVideoInfo();
+                                            } else {
+                                                lowVideoInfo = liveServiceFactory.getLiveService(currentVideo.getVideoInfoUrl().toString()).getLiveVideoInfo(currentVideo.getVideoInfoUrl(), currentVideo.getChannelInfo(), "720");
+                                                if (lowVideoInfo == null) {
+                                                    throw new RuntimeException("获取低清晰度视频源信息失败");
+                                                }
+                                                lowVideoInfo.setVideoId(currentVideo.getVideoId() + "_low");
+                                                MediaProxyManager.createProxy(lowVideoInfo);
+                                            }
+                                            lowVideoInfo.setAudioBanned(currentVideo.isAudioBanned());
+                                            lowVideoInfo.setCropConf(currentVideo.getCropConf());
+                                            ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
+                                            // pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
+                                            pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, currentVideo.getVideoId());
+                                            break;
+                                        } else {
+                                            currentVideo.getCropConf().setVideoBannedType(VideoBannedTypeEnum.NONE);
+                                        }
+                                    }
+                                    default: {
+                                        // 如果不是区域打码了自动终止创建的低清晰度媒体代理任务
+                                        MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                                        if (mediaProxyTask != null) {
+                                            mediaProxyTask.terminate();
+                                            mediaProxyTask.waitForTerminate();
+                                        }
+                                        ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(currentVideo, broadcastAddress);
+                                        pid = ProcessUtil.createProcess(ffmpegCmdLine, currentVideo.getVideoId());
+                                    }
+                                }
+                                log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已启动[PID:" + pid + "]");
+                                // 等待进程退出或者任务结束
+                                lastHitTime = 0;
+                                lowHealthCount = 0;
+                                health = 0;
+                                lastLogLength = 0;
+                                while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
+                                    ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
+                                    if (aliceProcess == null) {
+                                        continue;
+                                    }
+                                    File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
+                                    if (logFile != null && logFile.length() > 1024) {
+                                        if (lastLogLength != logFile.length()) {
+                                            lastLogLength = logFile.length();
+                                            lastLogTime = System.nanoTime();
+                                        }
+                                        long dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastLogTime);
+                                        if (dt > 10000) {
+                                            log.warn("持续" + dt + "毫秒没有推流日志输出，终止推流进程...[pid:" + pid + ", logFile:\"" + logFile + "\"]");
+                                            ProcessUtil.killProcess(pid);
+                                            continue;
+                                        }
+                                        try (FileInputStream fis = new FileInputStream(logFile)) {
+                                            fis.skip(logFile.length() - 1024);
+                                            List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
+                                            // 最多向上读取10行日志
+                                            int expiredCount = 0;
+                                            for (String logLine : logLines) {
+                                                if (logLine.contains("segments ahead, expired from playlists")) {
+                                                    expiredCount++;
+                                                }
+                                            }
+                                            for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
+                                                Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
+                                                if (matcher.find()) {
+                                                    health = Float.parseFloat(matcher.group(1).trim()) * 100;
+                                                    lastHitTime = System.nanoTime();
+                                                    break;
+                                                }
+                                            }
+                                            if (expiredCount >= 2) {
+                                                log.warn("发现多个m3u8序列过期日志，终止推流进程[pid:" + pid + ", expiredCount:" + expiredCount + ", logFile:\"" + logFile + "\"]...");
+                                                ProcessUtil.killProcess(pid);
+                                            } else if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
+                                                log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
+                                                ProcessUtil.killProcess(pid);
+                                            } else if (health > 0 && health < 94) {
+                                                if (lowHealthCount++ < 15) {
+                                                    log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次！[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                                } else {
+                                                    log.warn("当前推流健康度过低，该情况已经持续" + lowHealthCount + "次，终止推流进程...[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]");
+                                                    ProcessUtil.killProcess(pid);
+                                                }
+                                            } else if (health > 102) {
+                                                log.warn("当前推流健康度异常，终止推流进程[pid:" + pid + ", health:" + health + ", logFile:\"" + logFile + "\"]...");
+                                                ProcessUtil.killProcess(pid);
+                                            }
+                                        } catch (Exception e) {
+                                            log.error("读取推流进程日志文件时出错[pid:" + pid + ", logFile:\"" + logFile + "\"]", e);
+                                        }
+                                    }
+                                }
+                            } catch (Throwable e) {
+                                log.error("startBroadcast failed", e);
+                            } finally {
+                                // 杀死进程
+                                ProcessUtil.killProcess(pid);
+                                if (lowVideoInfo != null) {
+                                    broadcastServerService.releaseServer(lowVideoInfo);
+                                }
+                                log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + currentVideo.getVideoId() + "]推流进程已终止PID:" + pid);
+                            }
+                            try {
+                                if (!terminate) {
+                                    Thread.sleep(1000);
+                                }
+                            } catch (InterruptedException ignore) {
+                            }
+                        }
+                        // 终止推流时自动终止创建的低清晰度媒体代理任务
+                        MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoInfo.getVideoId() + "_low");
+                        if (mediaProxyTask != null) {
+                            mediaProxyTask.terminate();
+                            // 这里需要等待任务停止
+                            mediaProxyTask.waitForTerminate();
+                        }
+                        broadcastAccount.removeCurrentVideo(videoInfo);
+                        if (broadcastAccount.isDisable() && singleTask) {
+                            log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
+                            terminate = true;
+                            break;
+                        }
+                    } catch (Throwable e) {
+                        log.error("startBroadcast failed", e);
                     }
-                    broadcastAccount.removeCurrentVideo(videoInfo);
-                    if (broadcastAccount.isDisable() && singleTask) {
-                        log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
-                        terminate = true;
-                        break;
+                    try {
+                        if (!terminate) {
+                            Thread.sleep(1000);
+                        }
+                    } catch (InterruptedException ignore) {
                     }
-                } catch (Throwable e) {
-                    log.error("startBroadcast failed", e);
                 }
-                try {
-                    if (!terminate) {
-                        Thread.sleep(1000);
-                    }
-                } catch (InterruptedException ignore) {
+                log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
+                if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
+                    log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
                 }
-            }
-            log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
-            terminate = true;
-            if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
-                log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
+            } finally {
+                terminate = true;
             }
         }
 

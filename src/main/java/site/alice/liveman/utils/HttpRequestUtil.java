@@ -91,8 +91,8 @@ public class HttpRequestUtil {
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
         connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 5, TimeUnit.MINUTES);
-        connectionManager.setMaxTotal(200);
-        connectionManager.setDefaultMaxPerRoute(20);
+        connectionManager.setMaxTotal(1000);
+        connectionManager.setDefaultMaxPerRoute(50);
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
     }
 
