@@ -60,7 +60,6 @@ public class BroadcastServerController {
             ServerVO serverVO = new ServerVO();
             serverVO.setAddress(server.getAddress());
             serverVO.setRemark(server.getRemark());
-            serverVO.setResolution(server.getResolution());
             VideoInfo currentVideo = server.getCurrentVideo();
             if (currentVideo != null) {
                 serverVO.setVideoId(currentVideo.getVideoId());

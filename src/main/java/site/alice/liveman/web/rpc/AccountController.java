@@ -82,26 +82,6 @@ public class AccountController {
         return ActionResult.getSuccessResult(null);
     }
 
-    @RequestMapping("/toggleVip.json")
-    public ActionResult toggleVip(String accountId) {
-        AccountInfo account = (AccountInfo) session.getAttribute("account");
-        if (!account.isAdmin()) {
-            return ActionResult.getErrorResult("没有权限！");
-        }
-        AccountInfo byAccountId = liveManSetting.findByAccountId(accountId);
-        if (byAccountId == null) {
-            return ActionResult.getErrorResult("此账号不存在");
-        }
-        byAccountId.setVip(!byAccountId.isVip());
-        try {
-            settingConfig.saveSetting(liveManSetting);
-        } catch (Exception e) {
-            log.error("保存系统配置信息失败", e);
-            return ActionResult.getErrorResult("系统内部错误，请联系管理员");
-        }
-        return ActionResult.getSuccessResult(null);
-    }
-
     @RequestMapping("/removeAccount.json")
     public ActionResult removeAccount(String accountId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");

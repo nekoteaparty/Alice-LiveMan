@@ -19,16 +19,18 @@
 package site.alice.liveman.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.ServerInfo;
+import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.external.DynamicServerService;
 import site.alice.liveman.utils.ProcessUtil;
-import site.alice.liveman.web.dataobject.ActionResult;
 
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
@@ -38,12 +40,19 @@ import java.util.stream.Collectors;
 public class BroadcastServerService {
 
     @Autowired
-    private LiveManSetting liveManSetting;
+    private LiveManSetting       liveManSetting;
     @Autowired
-    private SettingConfig  settingConfig;
+    private SettingConfig        settingConfig;
+    @Autowired
+    private DynamicServerService dynamicServerService;
 
     public ServerInfo getAvailableServer(VideoInfo videoInfo) {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
+        Collection<ServerInfo> subtract = CollectionUtils.subtract(dynamicServerService.list(), servers);
+        for (ServerInfo serverInfo : subtract) {
+            log.info("发现新的服务器资源 " + serverInfo);
+            addServer(serverInfo);
+        }
         List<ServerInfo> availableServers = servers.stream().filter(server -> server.getCurrentVideo() == null).collect(Collectors.toList());
         while (!availableServers.isEmpty()) {
             ServerInfo serverInfo = availableServers.get((int) (Math.random() * availableServers.size()));
@@ -54,10 +63,17 @@ public class BroadcastServerService {
                 availableServers.remove(serverInfo);
             }
         }
+        VideoCropConf cropConf = videoInfo.getCropConf();
+        ServerInfo serverInfo = dynamicServerService.create(cropConf.getBroadcastResolution().getPerformance());
+        if (serverInfo != null) {
+            addServer(serverInfo);
+            return serverInfo;
+        }
         throw new RuntimeException("没有找到空闲的转播服务器!");
     }
 
-    public void addServer(ServerInfo serverInfo) throws Exception {
+    public void addServer(ServerInfo serverInfo) {
+        log.info("addServer " + serverInfo);
         installServer(serverInfo);
         liveManSetting.getServers().add(serverInfo);
         settingConfig.saveSetting(liveManSetting);

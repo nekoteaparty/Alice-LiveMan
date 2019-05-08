@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.bo.ExternalAppSecretBO;
 import site.alice.liveman.dataobject.ExternalAppSecretDO;
-import site.alice.liveman.service.external.ExternalServiceType;
+import site.alice.liveman.jenum.ExternalServiceType;
 import site.alice.liveman.service.external.TextLocation;
 import site.alice.liveman.service.external.TextLocationService;
 import site.alice.liveman.service.external.consumer.TextLocationConsumer;
@@ -41,7 +41,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 @Slf4j
 @Service

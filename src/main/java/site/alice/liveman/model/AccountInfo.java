@@ -20,26 +20,39 @@ package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AccountInfo implements Comparable<AccountInfo> {
 
-    private String                     accountId;
-    private String                     accountSite;
-    private String                     cookies;
-    private String                     nickname;
-    private String                     description;
-    private String                     roomId;
-    private String                     uid;
-    private boolean                    joinAutoBalance;
-    private boolean                    admin;
-    private boolean                    vip;
-    private boolean                    disable;
-    private boolean                    postBiliDynamic;
-    private boolean                    autoRoomTitle;
+    private String                           accountId;
+    private String                           accountSite;
+    private String                           cookies;
+    private String                           nickname;
+    private String                           description;
+    private String                           roomId;
+    private String                           uid;
+    private boolean                          joinAutoBalance;
+    private boolean                          admin;
+    private boolean                          disable;
+    private boolean                          postBiliDynamic;
+    private boolean                          autoRoomTitle;
+    private AtomicLong                       point;
+    private ConcurrentHashMap<Integer, Long> billTimeMap;
+    private CopyOnWriteArrayList<BillRecord> billRecords;
     @JSONField(serialize = false)
-    private AtomicReference<VideoInfo> currentVideo = new AtomicReference<>();
+    private AtomicReference<VideoInfo>       currentVideo = new AtomicReference<>();
+
+    public AccountInfo() {
+        point = new AtomicLong();
+        billTimeMap = new ConcurrentHashMap<>();
+        billRecords = new CopyOnWriteArrayList<>();
+    }
 
     public String getAccountId() {
         return accountId;
@@ -117,20 +130,41 @@ public class AccountInfo implements Comparable<AccountInfo> {
         this.admin = admin;
     }
 
-    public boolean isVip() {
-        return vip;
-    }
-
-    public void setVip(boolean vip) {
-        this.vip = vip;
-    }
-
     public boolean isDisable() {
         return disable;
     }
 
     public void setDisable(boolean disable) {
         this.disable = disable;
+    }
+
+    public Long getPoint() {
+        return point.get();
+    }
+
+    public long changePoint(long delta, String remark) {
+        BillRecord billRecord = new BillRecord(delta, remark);
+        billRecords.add(0, billRecord);
+        if (billRecords.size() > 100) {
+            billRecords = new CopyOnWriteArrayList<>(billRecords.subList(0, 100));
+        }
+        return this.point.addAndGet(delta);
+    }
+
+    public ConcurrentHashMap<Integer, Long> getBillTimeMap() {
+        return billTimeMap;
+    }
+
+    public void setBillTimeMap(ConcurrentHashMap<Integer, Long> billTimeMap) {
+        this.billTimeMap = billTimeMap;
+    }
+
+    public CopyOnWriteArrayList<BillRecord> getBillRecords() {
+        return billRecords;
+    }
+
+    public void setBillRecords(CopyOnWriteArrayList<BillRecord> billRecords) {
+        this.billRecords = billRecords;
     }
 
     public boolean isPostBiliDynamic() {

@@ -39,7 +39,8 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<ChannelInfo>         channels;
     private CopyOnWriteArraySet<ServerInfo>          servers;
     private CopyOnWriteArraySet<ExternalAppSecretDO> externalAppSecretDOS;
-    private Boolean                                  preReEncode = false;
+    private int[]                                    serverPoints = {0, 7, 30};
+    private Boolean                                  preReEncode  = false;
     private Proxy                                    proxy;
 
     public String[] getBannedYoutubeChannel() {
@@ -120,6 +121,14 @@ public class LiveManSetting {
 
     public void setOneDriveClientSecret(String oneDriveClientSecret) {
         this.oneDriveClientSecret = oneDriveClientSecret;
+    }
+
+    public int[] getServerPoints() {
+        return serverPoints;
+    }
+
+    public void setServerPoints(int[] serverPoints) {
+        this.serverPoints = serverPoints;
     }
 
     public String getOneDriveToken() {

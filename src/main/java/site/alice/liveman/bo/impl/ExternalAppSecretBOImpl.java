@@ -27,7 +27,7 @@ import site.alice.liveman.bo.ExternalAppSecretBO;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.dataobject.ExternalAppSecretDO;
 import site.alice.liveman.model.LiveManSetting;
-import site.alice.liveman.service.external.ExternalServiceType;
+import site.alice.liveman.jenum.ExternalServiceType;
 
 import java.util.ArrayList;
 import java.util.Date;
