@@ -182,6 +182,11 @@ public class BroadcastController {
         VideoCropConf _cropConf = videoInfo.getCropConf();
         if (cropConf != null) {
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                if (cropConf.getBroadcastResolution() != _cropConf.getBroadcastResolution() && broadcastTask != null) {
+                    if (broadcastTask.getHealth() == -1) {
+                        return ActionResult.getErrorResult("转播服务器正在初始化中，无法修改转播分辨率！");
+                    }
+                }
                 int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
                 if (broadcastAccount != null && broadcastAccount.getPoint() < serverPoint) {
                     return ActionResult.getErrorResult("账户积分不足[当前可用余额：" + broadcastAccount.getPoint() + ", 需要积分(" + cropConf.getBroadcastResolution() + ")：" + serverPoint + "]");

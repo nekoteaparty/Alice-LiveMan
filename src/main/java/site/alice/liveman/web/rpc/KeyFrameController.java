@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask.KeyFrame;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
@@ -50,10 +51,10 @@ public class KeyFrameController {
             Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
             MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
             if (mediaProxyTask != null) {
-                BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
+                KeyFrame keyFrame = mediaProxyTask.getKeyFrame();
                 if (keyFrame != null) {
                     BufferedImage scaledKeyFrame = new BufferedImage((int) (keyFrame.getWidth() * (720.0 / keyFrame.getHeight())), 720, BufferedImage.TYPE_INT_RGB);
-                    scaledKeyFrame.createGraphics().drawImage(keyFrame, 0, 0, scaledKeyFrame.getWidth(), scaledKeyFrame.getHeight(), null);
+                    scaledKeyFrame.createGraphics().drawImage(keyFrame.getFrameImage(), 0, 0, scaledKeyFrame.getWidth(), scaledKeyFrame.getHeight(), null);
                     ImageIO.write(scaledKeyFrame, "jpg", response.getOutputStream());
                 }
             }

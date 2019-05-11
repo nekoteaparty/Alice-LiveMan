@@ -32,8 +32,10 @@ import site.alice.liveman.customlayout.impl.BrowserLayout;
 import site.alice.liveman.customlayout.impl.ImageSegmentBlurLayout;
 import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask.KeyFrame;
 import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
 
@@ -67,7 +69,7 @@ public class DrawingController {
         }
         String resolution = videoInfo.getResolution();
         if (resolution == null) {
-            BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
+            KeyFrame keyFrame = mediaProxyTask.getKeyFrame();
             if (keyFrame != null) {
                 resolution = keyFrame.getWidth() + "x" + keyFrame.getHeight();
                 videoInfo.setResolution(resolution);
@@ -77,8 +79,12 @@ public class DrawingController {
                 return;
             }
         }
-        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         VideoCropConf cropConf = videoInfo.getCropConf();
+        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
+        VideoResolutionEnum broadcastResolution = cropConf.getBroadcastResolution();
+        double scale = (double) broadcastResolution.getResolution() / Math.min(sizes[0], sizes[1]);
+        int width = (int) (Math.round(sizes[0] * scale / 2) * 2);
+        int height = (int) (Math.round(sizes[1] * scale / 2) * 2);
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             byte[] cachedDrawBytes = cropConf.getCachedDrawBytes();
             if (cachedDrawBytes == null) {
@@ -103,9 +109,9 @@ public class DrawingController {
                     }
                 }
                 if (sizes[1] != 720) {
-                    BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
+                    BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
                     Graphics2D originalSizeImageGraphics = originalSizeImage.createGraphics();
-                    originalSizeImageGraphics.drawImage(image.getScaledInstance(sizes[0], sizes[1], Image.SCALE_SMOOTH), 0, 0, null);
+                    originalSizeImageGraphics.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), 0, 0, null);
                     image = originalSizeImage;
                 }
                 PngEncoderB pngEncoderB = new PngEncoderB();
@@ -143,7 +149,7 @@ public class DrawingController {
         String resolution = videoInfo.getResolution();
         if (resolution == null) {
             log.info("未知媒体分辨率[videoId=" + videoId + "]，尝试获取...");
-            BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
+            KeyFrame keyFrame = mediaProxyTask.getKeyFrame();
             if (keyFrame != null) {
                 resolution = keyFrame.getWidth() + "x" + keyFrame.getHeight();
                 videoInfo.setResolution(resolution);
@@ -153,13 +159,17 @@ public class DrawingController {
                 return;
             }
         }
-        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         VideoCropConf cropConf = videoInfo.getCropConf();
+        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
+        VideoResolutionEnum broadcastResolution = cropConf.getBroadcastResolution();
+        double scale = (double) broadcastResolution.getResolution() / Math.min(sizes[0], sizes[1]);
+        int width = (int) (Math.round(sizes[0] * scale / 2) * 2);
+        int height = (int) (Math.round(sizes[1] * scale / 2) * 2);
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             try (OutputStream os = response.getOutputStream()) {
                 byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
                 if (cachedBlurBytes == null) {
-                    BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_ARGB);
+                    BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
                     Graphics2D graphics = image.createGraphics();
                     List<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
@@ -181,8 +191,8 @@ public class DrawingController {
                         }
                     }
                     if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
-                        originalSizeImage.createGraphics().drawImage(image, 0, 0, sizes[0], sizes[1], null);
+                        BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                        originalSizeImage.createGraphics().drawImage(image, 0, 0, width, height, null);
                         image = originalSizeImage;
                     }
                     PngEncoderB pngEncoderB = new PngEncoderB();

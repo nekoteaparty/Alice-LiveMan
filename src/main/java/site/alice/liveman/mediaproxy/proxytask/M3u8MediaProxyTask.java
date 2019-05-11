@@ -65,7 +65,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
             @Override
             protected void runTask() throws InterruptedException {
                 VideoInfo mediaVideoInfo = M3u8MediaProxyTask.this.getVideoInfo();
-                boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") &&
+                boolean needLowFrameRate = liveManSetting.getPreReEncode() && mediaVideoInfo.getVideoId().endsWith("_low") && mediaVideoInfo.getCropConf().getBroadcastResolution().getFrameRate() == 30 &&
                         (mediaVideoInfo.getFrameRate() != null && mediaVideoInfo.getFrameRate() > 30 ||
                                 mediaVideoInfo.getResolution() != null && Arrays.stream(mediaVideoInfo.getResolution().split("x")).mapToLong(Long::parseLong).sum() > (1280 + 720));
                 log.info("videoId=" + mediaVideoInfo.getVideoId() + ", fps=" + mediaVideoInfo.getFrameRate() + ", resolution=" + mediaVideoInfo.getResolution() + ", needLowFrameRate=" + needLowFrameRate);
@@ -116,6 +116,11 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                         return;
                     }
                 }
+            }
+
+            @Override
+            protected void afterTerminate() {
+                M3u8MediaProxyTask.this.terminate();
             }
 
             private void downloadSeqFile(M3u8SeqInfo m3u8SeqInfo) {
@@ -272,16 +277,20 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
     public String createM3U8File() {
         VideoInfo videoInfo = getVideoInfo();
         StringBuilder sb = new StringBuilder();
-        for (File seqFile : seqFileQueue) {
-            if (sb.length() == 0) {
-                sb.append("#EXTM3U\n" +
-                        "#EXT-X-VERSION:3\n" +
-                        "#EXT-X-TARGETDURATION:2\n" +
-                        "#EXT-X-MEDIA-SEQUENCE:" + Integer.parseInt(FilenameUtils.getBaseName(seqFile.getName())) + "\n" +
-                        "#EXT-X-DISCONTINUITY-SEQUENCE:1\n");
+        if (seqFileQueue.isEmpty()) {
+            log.warn("节目[" + videoInfo.getVideoUnionId() + "]的m3u8序列为空!");
+        } else {
+            for (File seqFile : seqFileQueue) {
+                if (sb.length() == 0) {
+                    sb.append("#EXTM3U\n" +
+                            "#EXT-X-VERSION:3\n" +
+                            "#EXT-X-TARGETDURATION:2\n" +
+                            "#EXT-X-MEDIA-SEQUENCE:" + Integer.parseInt(FilenameUtils.getBaseName(seqFile.getName())) + "\n" +
+                            "#EXT-X-DISCONTINUITY-SEQUENCE:1\n");
+                }
+                sb.append("#EXTINF:1.0,\n");
+                sb.append("/mediaProxy/temp/m3u8/" + videoInfo.getVideoUnionId() + "/" + seqFile.getName()).append("\n");
             }
-            sb.append("#EXTINF:1.0,\n");
-            sb.append("/mediaProxy/temp/m3u8/" + videoInfo.getVideoUnionId() + "/" + seqFile.getName()).append("\n");
         }
         return sb.toString();
     }

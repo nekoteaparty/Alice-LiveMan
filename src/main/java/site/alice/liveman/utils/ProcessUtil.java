@@ -46,6 +46,9 @@ public class ProcessUtil {
     }
 
     public static long createProcess(String cmdLine, String videoId) {
+        if (cmdLine == null) {
+            return 0;
+        }
         String[] args = cmdLine.split("\t");
         for (int i = 0; i < args.length; i++) {
             if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
@@ -57,6 +60,9 @@ public class ProcessUtil {
 
     public static long createProcess(String[] args, String videoId) {
         try {
+            if (args == null) {
+                return 0;
+            }
             ProcessBuilder processBuilder = new ProcessBuilder();
             processBuilder.command(args);
             if (videoId != null) {

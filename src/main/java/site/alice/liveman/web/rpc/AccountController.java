@@ -19,6 +19,8 @@
 package site.alice.liveman.web.rpc;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,13 +30,15 @@ import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
+import site.alice.liveman.utils.SecurityUtils;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.AccountInfoVO;
 
 import javax.servlet.http.HttpSession;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -58,6 +62,17 @@ public class AccountController {
             accountInfoVOList.add(accountInfoVO);
         }
         return ActionResult.getSuccessResult(accountInfoVOList);
+    }
+
+    @RequestMapping("/info.json")
+    public ActionResult info() {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        AccountInfoVO accountInfoVO = new AccountInfoVO();
+        BeanUtils.copyProperties(account, accountInfoVO);
+        if (liveManSetting.findByAccountId(account.getAccountId()) != null) {
+            accountInfoVO.setSaved(true);
+        }
+        return ActionResult.getSuccessResult(accountInfoVO);
     }
 
     @RequestMapping("/addAccount.json")
@@ -111,6 +126,47 @@ public class AccountController {
             return ActionResult.getErrorResult("系统内部错误，请联系管理员");
         }
         return ActionResult.getSuccessResult(null);
+    }
+
+    @RequestMapping("/useCard.json")
+    public synchronized ActionResult<Integer> useCard(String cards) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        if (liveManSetting.findByAccountId(account.getAccountId()) == null) {
+            return ActionResult.getErrorResult("请先前往[账户管理]菜单保存账号!");
+        }
+        int totalPoint = 0;
+        try {
+            File usedcardFile = new File("usedcard.txt");
+            List<String> usedCardLine = Collections.emptyList();
+            if (usedcardFile.exists()) {
+                usedCardLine = IOUtils.readLines(new FileInputStream(usedcardFile), "utf-8");
+            } else {
+                usedcardFile.createNewFile();
+            }
+            Set<String> cardLines = new HashSet<>(Arrays.asList(cards.split("\n")));
+            for (String cardLine : cardLines) {
+                cardLine = cardLine.trim();
+                if (StringUtils.isNotEmpty(cardLine) && !usedCardLine.contains(cardLine)) {
+                    try {
+                        String decodeCardLine = SecurityUtils.aesDecrypt(cardLine);
+                        String[] cardInfo = decodeCardLine.split("\\|");
+                        int point = Integer.parseInt(cardInfo[0]);
+                        account.changePoint(point, "卡号充值");
+                        totalPoint += point;
+                        log.info("账户[roomId=" + account.getRoomId() + "]卡号[" + cardLine + "]充值[" + decodeCardLine + "]");
+                        IOUtils.write(cardLine + "\n", new FileOutputStream(usedcardFile, true), "utf-8");
+                        settingConfig.saveSetting(liveManSetting);
+                    } catch (Throwable e) {
+                        log.error("账户充值发生错误[roomId=" + account.getRoomId() + ", cardLine=" + cardLine + "]", e);
+                        return ActionResult.getErrorResult("处理卡号[" + cardLine + "]时出现错误，请检查卡号是否正确。");
+                    }
+                }
+            }
+            return ActionResult.getSuccessResult(totalPoint);
+        } catch (Throwable e) {
+            log.error("账户充值未知错误[roomId=" + account.getRoomId() + ", cards=" + cards + "]", e);
+            return ActionResult.getErrorResult("操作失败，请联系管理员!");
+        }
     }
 
     @RequestMapping("/editAccount.json")

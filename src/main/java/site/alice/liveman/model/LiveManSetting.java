@@ -39,6 +39,8 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<ChannelInfo>         channels;
     private CopyOnWriteArraySet<ServerInfo>          servers;
     private CopyOnWriteArraySet<ExternalAppSecretDO> externalAppSecretDOS;
+    private String                                   encodeKey;
+    private String                                   apShopUrl;
     private int[]                                    serverPoints = {0, 7, 30};
     private Boolean                                  preReEncode  = false;
     private Proxy                                    proxy;
@@ -147,6 +149,14 @@ public class LiveManSetting {
         this.preReEncode = preReEncode;
     }
 
+    public String getEncodeKey() {
+        return encodeKey;
+    }
+
+    public void setEncodeKey(String encodeKey) {
+        this.encodeKey = encodeKey;
+    }
+
     @JSONField(serialize = false)
     public Proxy getProxy() {
         return proxy;
@@ -178,6 +188,14 @@ public class LiveManSetting {
             }
         }
         return null;
+    }
+
+    public String getApShopUrl() {
+        return apShopUrl;
+    }
+
+    public void setApShopUrl(String apShopUrl) {
+        this.apShopUrl = apShopUrl;
     }
 
     public CopyOnWriteArraySet<ServerInfo> getServers() {

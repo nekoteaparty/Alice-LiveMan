@@ -18,30 +18,38 @@
 package site.alice.liveman.mediaproxy.proxytask;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.live.LiveServiceFactory;
 import site.alice.liveman.utils.FfmpegUtil;
 import site.alice.liveman.utils.ProcessUtil;
+import site.alice.liveman.utils.ProcessUtil.AliceProcess;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public abstract class MediaProxyTask implements Runnable, Serializable {
 
-    private           String        videoId;
-    private           URI           sourceUrl;
-    private           URI           targetUrl;
-    private           VideoInfo     videoInfo;
-    private transient Thread        runThread;
-    private volatile  Boolean       terminated;
-    private           long          lastKeyFrameTime;
-    private           BufferedImage cachedKeyFrame;
+    private static final Pattern FPS_PATTERN = Pattern.compile(", ([0-9]+) fps");
+
+    private           String    videoId;
+    private           URI       sourceUrl;
+    private           URI       targetUrl;
+    private           VideoInfo videoInfo;
+    private transient Thread    runThread;
+    private volatile  Boolean   terminated;
+    private           long      lastKeyFrameTime;
+    private           KeyFrame  cachedKeyFrame;
 
     public String getVideoId() {
         return videoId;
@@ -79,7 +87,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return terminated;
     }
 
-    public BufferedImage getKeyFrame() {
+    public KeyFrame getKeyFrame() {
         if (System.currentTimeMillis() - lastKeyFrameTime < 5000) {
             return cachedKeyFrame;
         }
@@ -87,9 +95,17 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         String keyFrameCmdLine = FfmpegUtil.buildKeyFrameCmdLine(targetUrl.toString(), fileName);
         long process = ProcessUtil.createProcess(keyFrameCmdLine, getVideoId() + "_KeyFrame");
         try {
+            AliceProcess aliceProcess = ProcessUtil.getAliceProcess(process);
             if (ProcessUtil.waitProcess(process, 10000)) {
+                Integer fps = null;
+                File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
+                String logData = IOUtils.toString(new FileInputStream(logFile));
+                Matcher matcher = FPS_PATTERN.matcher(logData);
+                if (matcher.find()) {
+                    fps = Integer.parseInt(matcher.group(1));
+                }
                 lastKeyFrameTime = System.currentTimeMillis();
-                cachedKeyFrame = ImageIO.read(new File(fileName));
+                cachedKeyFrame = new KeyFrame(fps, ImageIO.read(new File(fileName)));
                 return cachedKeyFrame;
             } else {
                 ProcessUtil.killProcess(process);
@@ -146,4 +162,52 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return runThread;
     }
 
+
+    public static class KeyFrame {
+        private Integer       fps;
+        private Integer       width;
+        private Integer       height;
+        private BufferedImage frameImage;
+
+        public KeyFrame(Integer fps, BufferedImage frameImage) {
+            this.fps = fps;
+            this.frameImage = frameImage;
+            if (frameImage != null) {
+                this.width = frameImage.getWidth();
+                this.height = frameImage.getHeight();
+            }
+        }
+
+        public Integer getFps() {
+            return fps;
+        }
+
+        public void setFps(Integer fps) {
+            this.fps = fps;
+        }
+
+        public Integer getWidth() {
+            return width;
+        }
+
+        public void setWidth(Integer width) {
+            this.width = width;
+        }
+
+        public Integer getHeight() {
+            return height;
+        }
+
+        public void setHeight(Integer height) {
+            this.height = height;
+        }
+
+        public BufferedImage getFrameImage() {
+            return frameImage;
+        }
+
+        public void setFrameImage(BufferedImage frameImage) {
+            this.frameImage = frameImage;
+        }
+    }
 }

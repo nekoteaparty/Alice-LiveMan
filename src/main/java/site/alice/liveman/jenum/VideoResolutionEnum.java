@@ -19,23 +19,23 @@
 package site.alice.liveman.jenum;
 
 public enum VideoResolutionEnum {
-    R1080F60("1080P", 60.0, 2), R1080F30("1080P", 30.0, 2), R720F60("720P", 60.0, 2), R720F30("720P", 30.0, 1), R480("480P", 30.0, 1), R360("360P", 30.0, 2), OTHER("unknown", 0.0, 1);
+    R1080F60(1080, 60, 2), R1080F30(1080, 30, 2), R720F60(720, 60, 2), R720F30(720, 30, 1), R480F30(480, 30, 1);
 
-    private String resolution;
-    private Double frameRate;
-    private int    performance;
+    private Integer resolution;
+    private Integer frameRate;
+    private int     performance;
 
-    VideoResolutionEnum(String resolution, Double frameRate, int performance) {
+    VideoResolutionEnum(Integer resolution, Integer frameRate, int performance) {
         this.resolution = resolution;
         this.frameRate = frameRate;
         this.performance = performance;
     }
 
-    public String getResolution() {
+    public Integer getResolution() {
         return resolution;
     }
 
-    public Double getFrameRate() {
+    public Integer getFrameRate() {
         return frameRate;
     }
 

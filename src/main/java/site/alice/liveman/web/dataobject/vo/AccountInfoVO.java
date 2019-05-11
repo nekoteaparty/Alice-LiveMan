@@ -24,13 +24,13 @@ public class AccountInfoVO {
     private String  nickname;
     private String  description;
     private String  roomId;
-    private boolean vip;
     private boolean joinAutoBalance;
     private boolean admin;
     private boolean saved;
     private boolean disable;
     private boolean postBiliDynamic;
     private boolean autoRoomTitle;
+    private long    point;
 
     public String getAccountId() {
         return accountId;
@@ -120,11 +120,11 @@ public class AccountInfoVO {
         this.autoRoomTitle = autoRoomTitle;
     }
 
-    public boolean isVip() {
-        return vip;
+    public long getPoint() {
+        return point;
     }
 
-    public void setVip(boolean vip) {
-        this.vip = vip;
+    public void setPoint(long point) {
+        this.point = point;
     }
 }

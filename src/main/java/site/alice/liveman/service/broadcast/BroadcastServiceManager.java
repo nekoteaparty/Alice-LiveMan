@@ -292,15 +292,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         }
                     }
                 }
-                final VideoCropConf cropConf = videoInfo.getCropConf();
                 ThreadPoolUtil.schedule(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && cropConf.isAutoBlur()) {
+                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
                                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                                 if (mediaProxyTask != null) {
-                                    textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame(), new TextLocationConsumerImpl(videoInfo));
+                                    textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame().getFrameImage(), new TextLocationConsumerImpl(videoInfo));
                                 }
                             }
                         } catch (Throwable e) {
@@ -315,10 +314,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     @Override
                     public void run() {
                         try {
-                            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && cropConf.isAutoImageSegment()) {
+                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
                                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                                 if (mediaProxyTask != null) {
-                                    imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame(), new ImageSegmentConsumerImpl(videoInfo));
+                                    imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame().getFrameImage(), new ImageSegmentConsumerImpl(videoInfo));
                                 }
                             }
                         } catch (Throwable e) {
@@ -350,7 +349,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 terminateTask();
                             }
                         }
-                        while (broadcastAccount != null && broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
+                        while (executedProxyTaskMap.containsKey(videoInfo.getVideoId()) && !terminate && broadcastAccount != null && broadcastAccount.getCurrentVideo() == videoInfo && !broadcastAccount.isDisable()) {
                             VideoInfo lowVideoInfo = null;
                             try {
                                 BroadcastService broadcastService = getBroadcastService(broadcastAccount.getAccountSite());
@@ -362,7 +361,8 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
                                 switch (videoInfo.getCropConf().getVideoBannedType()) {
                                     case CUSTOM_SCREEN: {
-                                        int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
+                                        health = -1;
+                                        int serverPoint = liveManSetting.getServerPoints()[videoInfo.getCropConf().getBroadcastResolution().getPerformance()];
                                         if (broadcastAccount.getPoint() < serverPoint) {
                                             terminateTask();
                                             throw new RuntimeException("账户积分不足[roomId=" + broadcastAccount.getRoomId() + ", point=" + broadcastAccount.getPoint() + ", need=" + serverPoint + "]");
@@ -371,7 +371,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         if (mediaProxyTask != null) {
                                             lowVideoInfo = mediaProxyTask.getVideoInfo();
                                         } else {
-                                            lowVideoInfo = liveServiceFactory.getLiveService(videoInfo.getVideoInfoUrl().toString()).getLiveVideoInfo(videoInfo.getVideoInfoUrl(), videoInfo.getChannelInfo(), cropConf.getBroadcastResolution().getResolution());
+                                            lowVideoInfo = liveServiceFactory.getLiveService(videoInfo.getVideoInfoUrl().toString()).getLiveVideoInfo(videoInfo.getVideoInfoUrl(), videoInfo.getChannelInfo(), videoInfo.getCropConf().getBroadcastResolution().getResolution() + "");
                                             if (lowVideoInfo == null) {
                                                 throw new RuntimeException("获取低清晰度视频源信息失败");
                                             }
@@ -382,7 +382,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         lowVideoInfo.setCropConf(videoInfo.getCropConf());
                                         ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                                         // pid = ProcessUtil.createProcess(ffmpegCmdLine, videoInfo.getVideoId());
-                                        pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(lowVideoInfo), true, videoInfo.getVideoId());
+                                        pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(videoInfo), true, videoInfo.getVideoId());
                                         break;
                                     }
                                     default: {
@@ -423,13 +423,12 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                             fis.skip(logFile.length() - 1024);
                                             List<String> logLines = IOUtils.readLines(fis, StandardCharsets.UTF_8);
                                             // 最多向上读取10行日志
-                                            int expiredCount = 0;
-                                            for (String logLine : logLines) {
-                                                if (logLine.contains("segments ahead, expired from playlists")) {
-                                                    expiredCount++;
-                                                }
-                                            }
                                             for (int i = logLines.size() - 1; i >= Math.max(0, logLines.size() - 10); i--) {
+                                                if (logLines.get(i).contains("segments ahead, expired from playlists")) {
+                                                    log.warn("发现m3u8序列过期日志，终止推流进程[pid:" + pid + ", logFile:\"" + logFile + "\"]...");
+                                                    ProcessUtil.killProcess(pid);
+                                                    break;
+                                                }
                                                 Matcher matcher = logSpeedPattern.matcher(logLines.get(i));
                                                 if (matcher.find()) {
                                                     health = Float.parseFloat(matcher.group(1).trim()) * 100;
@@ -437,10 +436,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                                     break;
                                                 }
                                             }
-                                            if (expiredCount >= 2) {
-                                                log.warn("发现多个m3u8序列过期日志，终止推流进程[pid:" + pid + ", expiredCount:" + expiredCount + ", logFile:\"" + logFile + "\"]...");
-                                                ProcessUtil.killProcess(pid);
-                                            } else if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
+                                            if (lastHitTime > 0 && TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastHitTime) > 10000) {
                                                 log.warn("超过10秒无法获取当前推流健康度，终止推流进程[pid:" + pid + ", lastHitTime:" + lastHitTime + ", logFile:\"" + logFile + "\"]...");
                                                 ProcessUtil.killProcess(pid);
                                             } else if (health > 0 && health < 94) {
