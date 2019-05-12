@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.AccountInfo;
+import site.alice.liveman.model.BillRecord;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
 import site.alice.liveman.utils.SecurityUtils;
@@ -39,6 +40,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @RestController
@@ -54,14 +56,35 @@ public class AccountController {
 
     @RequestMapping("/accountList.json")
     public ActionResult<List<AccountInfoVO>> accountList() {
+        AccountInfo currentAccount = (AccountInfo) session.getAttribute("account");
         Set<AccountInfo> accounts = liveManSetting.getAccounts();
         List<AccountInfoVO> accountInfoVOList = new ArrayList<>();
         for (AccountInfo account : accounts) {
             AccountInfoVO accountInfoVO = new AccountInfoVO();
             BeanUtils.copyProperties(account, accountInfoVO);
+            // 如果不是管理员，不展示其他账号的AP点数
+            if (!currentAccount.isAdmin()) {
+                accountInfoVO.setPoint(-1);
+            }
             accountInfoVOList.add(accountInfoVO);
         }
         return ActionResult.getSuccessResult(accountInfoVOList);
+    }
+
+    @RequestMapping("/billList.json")
+    public ActionResult<List<BillRecord>> billList(String accountId) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        if (account.isAdmin()) {
+            if (StringUtils.isNotEmpty(accountId)) {
+                AccountInfo byAccountId = liveManSetting.findByAccountId(accountId);
+                if (byAccountId != null) {
+                    return ActionResult.getSuccessResult(byAccountId.getBillRecords());
+                } else {
+                    return ActionResult.getErrorResult("找不到指定账户[" + accountId + "]的用户信息");
+                }
+            }
+        }
+        return ActionResult.getSuccessResult(account.getBillRecords());
     }
 
     @RequestMapping("/info.json")
@@ -72,6 +95,7 @@ public class AccountController {
         if (liveManSetting.findByAccountId(account.getAccountId()) != null) {
             accountInfoVO.setSaved(true);
         }
+        accountInfoVO.setBillTimeMap(new HashMap<>(account.getBillTimeMap()));
         return ActionResult.getSuccessResult(accountInfoVO);
     }
 
@@ -103,6 +127,9 @@ public class AccountController {
         AccountInfo byAccountId = liveManSetting.findByAccountId(accountId);
         if (byAccountId != null) {
             if (byAccountId.getAccountId().equals(account.getAccountId()) || account.isAdmin()) {
+                if (byAccountId.getPoint() != 0) {
+                    return ActionResult.getErrorResult("账户AP点数非零，无法删除！");
+                }
                 if (byAccountId.getCurrentVideo() != null) {
                     BroadcastServiceManager.BroadcastTask broadcastTask = byAccountId.getCurrentVideo().getBroadcastTask();
                     if (broadcastTask != null) {
@@ -167,6 +194,19 @@ public class AccountController {
             log.error("账户充值未知错误[roomId=" + account.getRoomId() + ", cards=" + cards + "]", e);
             return ActionResult.getErrorResult("操作失败，请联系管理员!");
         }
+    }
+
+    @RequestMapping("/apPointChange.json")
+    public ActionResult apPointChange(String accountId, int point) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        log.info("apPointChange() operator=" + account.getAccountId() + ", accountId=" + accountId + ", point=" + point);
+        if (!account.isAdmin()) {
+            return ActionResult.getErrorResult("权限不足");
+        }
+        AccountInfo byAccountId = liveManSetting.findByAccountId(accountId);
+        long result = byAccountId.changePoint(point, "管理员操作");
+        settingConfig.saveSetting(liveManSetting);
+        return ActionResult.getSuccessResult("账户[" + byAccountId.getAccountId() + "]当前AP点数为:" + result);
     }
 
     @RequestMapping("/editAccount.json")

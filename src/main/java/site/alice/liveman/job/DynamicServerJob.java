@@ -19,6 +19,7 @@
 package site.alice.liveman.job;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,10 +29,12 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.model.ServerInfo;
 import site.alice.liveman.model.VideoInfo;
+import site.alice.liveman.service.BroadcastServerService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.service.external.DynamicServerService;
 
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,11 +45,30 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class DynamicServerJob {
 
     @Autowired
-    private SettingConfig        settingConfig;
+    private SettingConfig          settingConfig;
     @Autowired
-    private LiveManSetting       liveManSetting;
+    private LiveManSetting         liveManSetting;
     @Autowired
-    private DynamicServerService dynamicServerService;
+    private DynamicServerService   dynamicServerService;
+    @Autowired
+    private BroadcastServerService broadcastServerService;
+
+    @Scheduled(cron = "0 0/1 * * * ?")
+    public void serverScanner() {
+        CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
+        Collection<ServerInfo> subtract = CollectionUtils.subtract(dynamicServerService.list(), servers);
+        for (ServerInfo serverInfo : subtract) {
+            // 检查是否可以连接
+            try {
+                log.info("发现新的服务器资源 " + serverInfo);
+                if (broadcastServerService.testServer(serverInfo)) {
+                    serverInfo.setAvailable(true);
+                    broadcastServerService.addAndInstallServer(serverInfo);
+                }
+            } catch (Exception ignore) {
+            }
+        }
+    }
 
     @Scheduled(cron = "0/5 * * * * ?")
     public void destroyServerJob() {

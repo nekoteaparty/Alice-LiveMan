@@ -90,7 +90,7 @@ public class HttpRequestUtil {
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
-        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 1, TimeUnit.MINUTES);
+        connectionManager = new PoolingHttpClientConnectionManager(reg);
         connectionManager.setMaxTotal(1000);
         connectionManager.setDefaultMaxPerRoute(50);
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
@@ -242,7 +242,7 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             tempFile.getParentFile().mkdirs();
-            byte[] buffer = new byte[40960];
+            byte[] buffer = new byte[10240];
             long setLastModifiedTime = System.nanoTime();
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 int readCount = -1;

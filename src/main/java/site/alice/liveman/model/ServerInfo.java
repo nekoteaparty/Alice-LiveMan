@@ -33,6 +33,7 @@ public class ServerInfo {
     private int                        performance;
     private ExternalServiceType        externalServiceType;
     private String                     remark;
+    private boolean                    available;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo> currentVideo = new AtomicReference<>();
 
@@ -110,6 +111,14 @@ public class ServerInfo {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 
     @Override

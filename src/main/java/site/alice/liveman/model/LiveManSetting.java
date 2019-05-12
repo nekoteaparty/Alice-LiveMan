@@ -190,6 +190,18 @@ public class LiveManSetting {
         return null;
     }
 
+    public AccountInfo findByRoomId(String roomId) {
+        if (roomId == null) {
+            return null;
+        }
+        for (AccountInfo account : accounts) {
+            if (roomId.equals(account.getRoomId())) {
+                return account;
+            }
+        }
+        return null;
+    }
+
     public String getApShopUrl() {
         return apShopUrl;
     }

@@ -20,9 +20,8 @@ package site.alice.liveman.service.external.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jcraft.jsch.Session;
-import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.bo.ExternalAppSecretBO;
@@ -31,7 +30,6 @@ import site.alice.liveman.jenum.ExternalServiceType;
 import site.alice.liveman.model.ServerInfo;
 import site.alice.liveman.service.external.DynamicServerService;
 import site.alice.liveman.utils.HttpRequestUtil;
-import site.alice.liveman.utils.JschSshUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
@@ -71,7 +68,7 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
             JSONObject listMap = JSON.parseObject(listJSON);
             for (String subId : listMap.keySet()) {
                 JSONObject subData = listMap.getJSONObject(subId);
-                if (subData.getString("status").equals("active") && SERVER_LABEL.equals(subData.getString("label"))) {
+                if (SERVER_LABEL.equals(subData.getString("label"))) {
                     ServerInfo serverInfo = new ServerInfo();
                     serverInfo.setAddress(subData.getString("main_ip"));
                     serverInfo.setPassword(subData.getString("default_password"));
@@ -79,14 +76,58 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
                     serverInfo.setUsername("root");
                     serverInfo.setRemark("VULTR_" + subData.getString("SUBID"));
                     serverInfo.setPerformance(subData.getInteger("vcpu_count"));
-                    serverInfo.setExternalServiceType(ExternalServiceType.VULTR_API);
                     serverInfo.setDateCreated(subData.getDate("date_created").getTime());
+                    serverInfo.setExternalServiceType(ExternalServiceType.VULTR_API);
                     list.add(serverInfo);
                 }
             }
             return list;
         } catch (Throwable e) {
             log.error("request /v1/server/list failed", e);
+        }
+        return null;
+    }
+
+    @Override
+    public ServerInfo create(int performance) {
+        try {
+            ExternalAppSecretDO appSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.VULTR_API);
+            Map<String, String> requestProperties = new HashMap<>();
+            requestProperties.put("API-Key", appSecret.getAppKey());
+            String subData = HttpRequestUtil.downloadUrl(URI.create(API_SERVER_CREATE), null, "DCID=" + DCID + "&VPSPLANID=" + PLANIDS[performance] + "&OSID=" + OSID + "&label=" + SERVER_LABEL, requestProperties, StandardCharsets.UTF_8);
+            JSONObject data = JSON.parseObject(subData);
+            String SUBID = data.getString("SUBID");
+            int retry = 0;
+            while (retry++ < 120) {
+                List<ServerInfo> list = list();
+                for (ServerInfo serverInfo : list) {
+                    if (serverInfo.getRemark().equals("VULTR_" + SUBID)) {
+                        return serverInfo;
+                    }
+                }
+                log.info("waiting for SUBID=" + SUBID + " server created..." + retry);
+                Thread.sleep(1000);
+            }
+            throw new TimeoutException("wait server active over 120 times![SUBID=" + SUBID + "]");
+        } catch (Throwable e) {
+            log.error("create server failed", e);
+        }
+        return null;
+    }
+
+    @Override
+    public ServerInfo update(ServerInfo serverInfo) {
+        List<ServerInfo> list = list();
+        for (ServerInfo server : list) {
+            if (server.getRemark().equals(serverInfo.getRemark())) {
+                serverInfo.setAddress(server.getAddress());
+                serverInfo.setPassword(server.getPassword());
+                serverInfo.setPort(server.getPort());
+                serverInfo.setUsername(server.getUsername());
+                serverInfo.setPerformance(server.getPerformance());
+                serverInfo.setDateCreated(server.getDateCreated());
+                return serverInfo;
+            }
         }
         return null;
     }
@@ -105,42 +146,5 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
                 log.error("request /v1/server/destroy failed", e);
             }
         }
-    }
-
-    @Override
-    public ServerInfo create(int performance) {
-        try {
-            long startTime = System.nanoTime();
-            ExternalAppSecretDO appSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.VULTR_API);
-            Map<String, String> requestProperties = new HashMap<>();
-            requestProperties.put("API-Key", appSecret.getAppKey());
-            String subData = HttpRequestUtil.downloadUrl(URI.create(API_SERVER_CREATE), null, "DCID=" + DCID + "&VPSPLANID=" + PLANIDS[performance] + "&OSID=" + OSID + "&label=" + SERVER_LABEL, requestProperties, StandardCharsets.UTF_8);
-            JSONObject data = JSON.parseObject(subData);
-            String SUBID = data.getString("SUBID");
-            int retry = 0;
-            while (retry++ < 60) {
-                List<ServerInfo> list = list();
-                for (ServerInfo serverInfo : list) {
-                    if (serverInfo.getRemark().equals("VULTR_" + SUBID)) {
-                        JschSshUtil jschSshUtil = new JschSshUtil(serverInfo.getUsername(), serverInfo.getPassword(), serverInfo.getAddress());
-                        try {
-                            Session session = jschSshUtil.openSession();
-                            session.disconnect();
-                            log.info("VULTR_" + SUBID + " is ready with " + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime) + " seconds");
-                            return serverInfo;
-                        } catch (Throwable e) {
-                            log.info("Connect to SUBID=" + SUBID + " server failed:" + e.getMessage());
-                        }
-                        break;
-                    }
-                }
-                log.info("waiting for SUBID=" + SUBID + " server ready..." + retry);
-                Thread.sleep(1000);
-            }
-            throw new TimeoutException("wait server active over 60 times![SUBID=" + SUBID + "]");
-        } catch (Throwable e) {
-            log.error("create server failed", e);
-        }
-        return null;
     }
 }

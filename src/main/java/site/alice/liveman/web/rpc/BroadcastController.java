@@ -181,11 +181,10 @@ public class BroadcastController {
         }
         VideoCropConf _cropConf = videoInfo.getCropConf();
         if (cropConf != null) {
+            boolean needRestart = false;
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
                 if (cropConf.getBroadcastResolution() != _cropConf.getBroadcastResolution() && broadcastTask != null) {
-                    if (broadcastTask.getHealth() == -1) {
-                        return ActionResult.getErrorResult("转播服务器正在初始化中，无法修改转播分辨率！");
-                    }
+                    needRestart = true;
                 }
                 int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
                 if (broadcastAccount != null && broadcastAccount.getPoint() < serverPoint) {
@@ -217,7 +216,10 @@ public class BroadcastController {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
             }
-            if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
+            if (needRestart) {
+                stopTask(videoId);
+                adoptTask(videoId);
+            } else if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
                 ProcessUtil.killProcess(broadcastTask.getPid());
             }
         }
@@ -259,7 +261,7 @@ public class BroadcastController {
     @RequestMapping("/terminateTask.json")
     public ActionResult terminateTask(String videoId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
-        log.info("afterTerminate()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        log.info("terminateTask()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
         if (!account.isAdmin()) {
             return ActionResult.getErrorResult("没有权限！");
         }

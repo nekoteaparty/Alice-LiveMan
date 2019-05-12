@@ -81,6 +81,9 @@ public class ProcessUtil {
 
     public static long createRemoteProcess(String cmdLine, ServerInfo remoteServer, boolean terminalMode, String videoId) {
         try {
+            if (cmdLine == null) {
+                return 0;
+            }
             cmdLine = cmdLine.replaceAll("\t", " ");
             ProcessBuilder processBuilder = createRemoteProcessBuilder(remoteServer, cmdLine, terminalMode);
             if (videoId != null) {

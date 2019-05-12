@@ -56,6 +56,7 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/screen/{videoId}")
     public void screen(@PathVariable("videoId") String videoId) {
+        log.info("screen:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -108,12 +109,12 @@ public class DrawingController {
                         }
                     }
                 }
-                if (sizes[1] != 720) {
-                    BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D originalSizeImageGraphics = originalSizeImage.createGraphics();
-                    originalSizeImageGraphics.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), 0, 0, null);
-                    image = originalSizeImage;
-                }
+//                if (sizes[1] != 720) {
+//                    BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+//                    Graphics2D originalSizeImageGraphics = originalSizeImage.createGraphics();
+//                    originalSizeImageGraphics.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), 0, 0, null);
+//                    image = originalSizeImage;
+//                }
                 PngEncoderB pngEncoderB = new PngEncoderB();
                 pngEncoderB.setCompressionLevel(3);
                 pngEncoderB.setEncodeAlpha(true);
@@ -135,6 +136,7 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/mask/{videoId}")
     public void mask(@PathVariable("videoId") String videoId) {
+        log.info("mask:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -169,7 +171,7 @@ public class DrawingController {
             try (OutputStream os = response.getOutputStream()) {
                 byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
                 if (cachedBlurBytes == null) {
-                    BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                    BufferedImage image = new BufferedImage((int) (sizes[0] * (720.0 / sizes[1])), 720, BufferedImage.TYPE_INT_ARGB);
                     Graphics2D graphics = image.createGraphics();
                     List<CustomLayout> customLayoutList = cropConf.getLayouts();
                     for (CustomLayout customLayout : customLayoutList) {
@@ -190,11 +192,11 @@ public class DrawingController {
                             }
                         }
                     }
-                    if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                        originalSizeImage.createGraphics().drawImage(image, 0, 0, width, height, null);
-                        image = originalSizeImage;
-                    }
+//                    if (sizes[1] != 720) {
+//                        BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+//                        originalSizeImage.createGraphics().drawImage(image, 0, 0, width, height, null);
+//                        image = originalSizeImage;
+//                    }
                     PngEncoderB pngEncoderB = new PngEncoderB();
                     pngEncoderB.setCompressionLevel(3);
                     pngEncoderB.setEncodeAlpha(true);

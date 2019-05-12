@@ -73,9 +73,10 @@ public class LoginController {
             broadcastService.getBroadcastRoomId(accountInfo);
             AccountInfoVO accountInfoVO = new AccountInfoVO();
             AccountInfo byAccountId;
-            if ((byAccountId = liveManSetting.findByAccountId(accountInfo.getAccountId())) != null) {
+            if ((byAccountId = liveManSetting.findByRoomId(accountInfo.getRoomId())) != null) {
                 // 更新新的Cookies
                 byAccountId.setCookies(accountInfo.getCookies());
+                byAccountId.setAccountId(accountInfo.getAccountId());
                 byAccountId.setDisable(false);
                 accountInfo = byAccountId;
                 accountInfoVO.setSaved(true);

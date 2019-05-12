@@ -18,6 +18,7 @@
 package site.alice.liveman.service.broadcast;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
@@ -359,6 +360,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 }
                                 String ffmpegCmdLine;
                                 // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
+                                pid = 0;
                                 switch (videoInfo.getCropConf().getVideoBannedType()) {
                                     case CUSTOM_SCREEN: {
                                         health = -1;
@@ -382,7 +384,12 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         lowVideoInfo.setCropConf(videoInfo.getCropConf());
                                         ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                                         // pid = ProcessUtil.createProcess(ffmpegCmdLine, videoInfo.getVideoId());
-                                        pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, broadcastServerService.getAvailableServer(videoInfo), true, videoInfo.getVideoId());
+                                        ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
+                                        if (availableServer != null) {
+                                            pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, availableServer, true, videoInfo.getVideoId());
+                                        } else {
+                                            continue;
+                                        }
                                         break;
                                     }
                                     default: {
@@ -391,6 +398,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         if (mediaProxyTask != null) {
                                             mediaProxyTask.terminate();
                                             mediaProxyTask.waitForTerminate();
+                                            FileUtils.deleteQuietly(new File(mediaProxyTask.getTempPath()));
                                         }
                                         ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(videoInfo, broadcastAddress);
                                         pid = ProcessUtil.createProcess(ffmpegCmdLine, videoInfo.getVideoId());
@@ -458,12 +466,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             } catch (Throwable e) {
                                 log.error("startBroadcast failed", e);
                             } finally {
-                                // 杀死进程
-                                ProcessUtil.killProcess(pid);
                                 if (lowVideoInfo != null) {
-                                    broadcastServerService.releaseServer(lowVideoInfo);
+                                    broadcastServerService.releaseServer(videoInfo);
                                 }
-                                log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + videoInfo.getVideoId() + "]推流进程已终止PID:" + pid);
+                                // 杀死进程
+                                if (pid != 0) {
+                                    ProcessUtil.killProcess(pid);
+                                    log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + videoInfo.getVideoId() + "]推流进程已终止PID:" + pid);
+                                }
                             }
                             try {
                                 if (!terminate) {
@@ -478,6 +488,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             mediaProxyTask.terminate();
                             // 这里需要等待任务停止
                             mediaProxyTask.waitForTerminate();
+                            FileUtils.deleteQuietly(new File(mediaProxyTask.getTempPath()));
                         }
                         broadcastAccount.removeCurrentVideo(videoInfo);
                         if (broadcastAccount.isDisable() && singleTask) {

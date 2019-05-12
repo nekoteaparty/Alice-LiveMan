@@ -104,8 +104,8 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
                 if (matcher.find()) {
                     fps = Integer.parseInt(matcher.group(1));
                 }
-                lastKeyFrameTime = System.currentTimeMillis();
                 cachedKeyFrame = new KeyFrame(fps, ImageIO.read(new File(fileName)));
+                lastKeyFrameTime = System.currentTimeMillis();
                 return cachedKeyFrame;
             } else {
                 ProcessUtil.killProcess(process);
@@ -135,9 +135,9 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
             log.error(getVideoId() + "代理任务异常退出", e);
         } finally {
             terminated = true;
+            afterTerminate();
             MediaProxyManager.removeProxy(this);
             log.info(getVideoId() + "代理任务终止@" + runThread.getName());
-            afterTerminate();
         }
     }
 
@@ -162,6 +162,7 @@ public abstract class MediaProxyTask implements Runnable, Serializable {
         return runThread;
     }
 
+    public abstract String getTempPath();
 
     public static class KeyFrame {
         private Integer       fps;

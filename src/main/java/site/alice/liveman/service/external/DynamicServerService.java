@@ -30,4 +30,5 @@ public interface DynamicServerService {
 
     ServerInfo create(int performance);
 
+    ServerInfo update(ServerInfo serverInfo);
 }
