@@ -115,7 +115,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
                         downloadSeqFile(m3u8SeqInfo);
                         long dt = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
                         if (dt >= 1000) {
-                            log.warn("警告:下载[videoId=" + getVideoInfo().getVideoUnionId() + "]seq文件时间过长[耗时:" + dt + "毫秒, 文件地址:" + m3u8SeqInfo.getSeqUrl() + "]");
+                            log.warn("警告:下载[videoId=" + M3u8MediaProxyTask.this.getVideoInfo().getVideoUnionId() + "]seq文件时间过长[耗时:" + dt + "毫秒, 文件地址:" + m3u8SeqInfo.getSeqUrl() + "]");
                         }
                         if (needLowFrameRate) {
                             long process = ProcessUtil.createProcess(FfmpegUtil.buildToLowFrameRateCmdLine(m3u8SeqInfo.getSeqFile(), dictSeqFile), getVideoId() + "_LOW-FRAME-RATE");

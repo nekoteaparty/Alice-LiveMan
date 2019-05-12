@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
 import site.alice.liveman.model.*;
@@ -297,7 +298,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     @Override
                     public void run() {
                         try {
-                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
+                            if (broadcastAccount != null && videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoBlur()) {
                                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                                 if (mediaProxyTask != null) {
                                     textLocationService.requireTextLocation(mediaProxyTask.getKeyFrame().getFrameImage(), new TextLocationConsumerImpl(videoInfo));
@@ -315,7 +316,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     @Override
                     public void run() {
                         try {
-                            if (videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
+                            if (broadcastAccount != null && videoInfo.getCropConf().getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && videoInfo.getCropConf().isAutoImageSegment()) {
                                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                                 if (mediaProxyTask != null) {
                                     imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame().getFrameImage(), new ImageSegmentConsumerImpl(videoInfo));
@@ -364,6 +365,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 switch (videoInfo.getCropConf().getVideoBannedType()) {
                                     case CUSTOM_SCREEN: {
                                         health = -1;
+                                        if (videoInfo.getCropConf().getBroadcastResolution() == null) {
+                                            // 设置账号默认的转播分辨率
+                                            videoInfo.getCropConf().setBroadcastResolution(broadcastAccount.getBroadcastResolution());
+                                        }
+                                        if (videoInfo.getCropConf().getBroadcastResolution() == null) {
+                                            // 如果没有设置账户默认转播分辨率，则设置为720P/30FPS
+                                            videoInfo.getCropConf().setBroadcastResolution(VideoResolutionEnum.R720F30);
+                                        }
                                         int serverPoint = liveManSetting.getServerPoints()[videoInfo.getCropConf().getBroadcastResolution().getPerformance()];
                                         if (broadcastAccount.getPoint() < serverPoint) {
                                             terminateTask();

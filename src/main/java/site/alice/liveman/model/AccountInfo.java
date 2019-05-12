@@ -19,6 +19,7 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private AtomicLong                       point;
     private ConcurrentHashMap<Integer, Long> billTimeMap;
     private CopyOnWriteArrayList<BillRecord> billRecords;
+    private VideoResolutionEnum              broadcastResolution;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo>       currentVideo = new AtomicReference<>();
 
@@ -193,6 +195,14 @@ public class AccountInfo implements Comparable<AccountInfo> {
 
     public void setUid(String uid) {
         this.uid = uid;
+    }
+
+    public VideoResolutionEnum getBroadcastResolution() {
+        return broadcastResolution;
+    }
+
+    public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
+        this.broadcastResolution = broadcastResolution;
     }
 
     @Override
