@@ -82,10 +82,6 @@ public class DrawingController {
         }
         VideoCropConf cropConf = videoInfo.getCropConf();
         int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
-        VideoResolutionEnum broadcastResolution = cropConf.getBroadcastResolution();
-        double scale = (double) broadcastResolution.getResolution() / Math.min(sizes[0], sizes[1]);
-        int width = (int) (Math.round(sizes[0] * scale / 2) * 2);
-        int height = (int) (Math.round(sizes[1] * scale / 2) * 2);
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             byte[] cachedDrawBytes = cropConf.getCachedDrawBytes();
             if (cachedDrawBytes == null) {
@@ -109,12 +105,6 @@ public class DrawingController {
                         }
                     }
                 }
-//                if (sizes[1] != 720) {
-//                    BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-//                    Graphics2D originalSizeImageGraphics = originalSizeImage.createGraphics();
-//                    originalSizeImageGraphics.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), 0, 0, null);
-//                    image = originalSizeImage;
-//                }
                 PngEncoderB pngEncoderB = new PngEncoderB();
                 pngEncoderB.setCompressionLevel(3);
                 pngEncoderB.setEncodeAlpha(true);
@@ -163,10 +153,6 @@ public class DrawingController {
         }
         VideoCropConf cropConf = videoInfo.getCropConf();
         int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
-        VideoResolutionEnum broadcastResolution = cropConf.getBroadcastResolution();
-        double scale = (double) broadcastResolution.getResolution() / Math.min(sizes[0], sizes[1]);
-        int width = (int) (Math.round(sizes[0] * scale / 2) * 2);
-        int height = (int) (Math.round(sizes[1] * scale / 2) * 2);
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             try (OutputStream os = response.getOutputStream()) {
                 byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
@@ -192,11 +178,6 @@ public class DrawingController {
                             }
                         }
                     }
-//                    if (sizes[1] != 720) {
-//                        BufferedImage originalSizeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-//                        originalSizeImage.createGraphics().drawImage(image, 0, 0, width, height, null);
-//                        image = originalSizeImage;
-//                    }
                     PngEncoderB pngEncoderB = new PngEncoderB();
                     pngEncoderB.setCompressionLevel(3);
                     pngEncoderB.setEncodeAlpha(true);
