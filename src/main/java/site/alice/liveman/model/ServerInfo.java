@@ -137,7 +137,10 @@ public class ServerInfo {
     @Override
     public String toString() {
         return "ServerInfo{" +
-                "address='" + address + '\'' +
+                "port=" + port +
+                ", address='" + address + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
                 ", dateCreated=" + dateCreated +
                 ", performance=" + performance +
                 ", externalServiceType=" + externalServiceType +

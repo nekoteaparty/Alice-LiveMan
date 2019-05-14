@@ -19,13 +19,25 @@
 package site.alice.liveman.utils;
 
 import com.jcraft.jsch.*;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
+import site.alice.liveman.model.ServerInfo;
 
+import java.io.*;
+import java.util.Arrays;
 import java.util.Properties;
 
-public class JschSshUtil {
-    private String username;
-    private String password;
-    private String host;
+@Slf4j
+public class JschSshUtil implements Closeable {
+    private String  username;
+    private String  password;
+    private String  host;
+    private Integer port;
+    private Session session;
+
+    private InputStream  in;
+    private OutputStream out;
+    private OutputStream err;
 
     public String getUsername() {
         return username;
@@ -51,10 +63,43 @@ public class JschSshUtil {
         this.host = host;
     }
 
-    public JschSshUtil(String username, String password, String host) {
-        this.username = username;
-        this.password = password;
-        this.host = host;
+    public Integer getPort() {
+        return port;
+    }
+
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+
+    public JschSshUtil(ServerInfo serverInfo) {
+        this.username = serverInfo.getUsername();
+        this.password = serverInfo.getPassword();
+        this.host = serverInfo.getAddress();
+        this.port = serverInfo.getPort();
+    }
+
+    public InputStream getIn() {
+        return in;
+    }
+
+    public void setIn(InputStream in) {
+        this.in = in;
+    }
+
+    public OutputStream getOut() {
+        return out;
+    }
+
+    public void setOut(OutputStream out) {
+        this.out = out;
+    }
+
+    public OutputStream getErr() {
+        return err;
+    }
+
+    public void setErr(OutputStream err) {
+        this.err = err;
     }
 
     /**
@@ -65,13 +110,63 @@ public class JschSshUtil {
      */
     public Session openSession() throws JSchException {
         JSch jsch = new JSch();
-        Session session = jsch.getSession(username, host);
-        Properties sshConfig = new Properties();
-        sshConfig.put("StrictHostKeyChecking", "no");
-        session.setConfig(sshConfig);
-        session.setPassword(password);
-        session.connect(1000);
+        if (session == null || !session.isConnected()) {
+            Session session = jsch.getSession(username, host, port);
+            Properties sshConfig = new Properties();
+            sshConfig.put("StrictHostKeyChecking", "no");
+            session.setInputStream(in);
+            session.setOutputStream(out);
+            session.setConfig(sshConfig);
+            session.setPassword(password);
+            session.connect(2000);
+            this.session = session;
+        }
         return session;
     }
 
+    public void transferFile(String sourceFile, String distFile) throws JSchException, SftpException {
+        ChannelSftp channel = null;
+        try {
+            channel = (ChannelSftp) openSession().openChannel("sftp");
+            log.info("transferFile local " + sourceFile + " to remote@" + channel.getSession().getHost() + " " + distFile);
+            channel.connect(2000);
+            mkdirs(channel, FilenameUtils.getFullPath(distFile));
+            channel.put(sourceFile, FilenameUtils.getName(distFile));
+            channel.chmod(509, FilenameUtils.getName(distFile));
+        } finally {
+            if (channel != null) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    private void mkdirs(ChannelSftp sftp, String distPath) throws SftpException {
+        sftp.cd("/");
+        String[] folders = distPath.split("/");
+        for (String folder : folders) {
+            if (folder.length() > 0) {
+                try {
+                    sftp.cd(folder);
+                } catch (SftpException e) {
+                    sftp.mkdir(folder);
+                    sftp.cd(folder);
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString("/usr/bin/ffmpeg".split("/")));
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (session != null) {
+                session.disconnect();
+            }
+        } catch (Throwable ignore) {
+
+        }
+    }
 }

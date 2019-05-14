@@ -78,9 +78,8 @@ public class DynamicServerJob {
                 if (server.getDateCreated() == null) {
                     server.setDateCreated(System.currentTimeMillis());
                 }
-                int dMinutes = new Date().getMinutes() - new Date(server.getDateCreated()).getMinutes();
                 // 在1分钟内就要进入下一个收费周期了，检查是否需要释放服务器
-                if (dMinutes == -1) {
+                if (Math.abs((System.currentTimeMillis() - server.getDateCreated()) / 1000.0 / 60 % 60) > 59) {
                     VideoInfo currentVideo = server.getCurrentVideo();
                     if (currentVideo == null) {
                         servers.remove(server);

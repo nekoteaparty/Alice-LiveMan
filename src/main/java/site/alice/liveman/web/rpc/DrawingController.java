@@ -56,7 +56,6 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/screen/{videoId}")
     public void screen(@PathVariable("videoId") String videoId) {
-        log.info("screen:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {
@@ -126,7 +125,6 @@ public class DrawingController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/mask/{videoId}")
     public void mask(@PathVariable("videoId") String videoId) {
-        log.info("mask:" + videoId);
         Map<String, MediaProxyTask> executedProxyTaskMap = MediaProxyManager.getExecutedProxyTaskMap();
         MediaProxyTask mediaProxyTask = executedProxyTaskMap.get(videoId);
         if (mediaProxyTask == null) {

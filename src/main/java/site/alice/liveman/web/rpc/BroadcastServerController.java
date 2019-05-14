@@ -96,7 +96,9 @@ public class BroadcastServerController {
         }
         try {
             if (broadcastServerService.testServer(serverInfo)) {
-                broadcastServerService.addAndInstallServer(serverInfo);
+                if (broadcastServerService.addAndInstallServer(serverInfo)) {
+                    return ActionResult.getErrorResult("添加失败：服务器初始化失败！");
+                }
             } else {
                 return ActionResult.getErrorResult("添加失败：服务器无法连接！");
             }
@@ -144,10 +146,12 @@ public class BroadcastServerController {
             return ActionResult.getErrorResult("转播服务器编辑失败，找不到指定的服务器[" + serverInfo.getRemark() + "]");
         }
         try {
-            broadcastServerService.installServer(server);
+            if (!broadcastServerService.installServer(server)) {
+                return ActionResult.getErrorResult("初始化转播服务器失败");
+            }
         } catch (Exception e) {
             log.error("初始化转播服务器失败", e);
-            return ActionResult.getErrorResult("系统内部错误，请联系管理员");
+            return ActionResult.getErrorResult("初始化转播服务器失败");
         }
         return ActionResult.getSuccessResult(null);
     }

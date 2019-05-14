@@ -23,6 +23,8 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import site.alice.liveman.model.ServerInfo;
 
 import java.io.*;
@@ -90,6 +92,7 @@ public class ProcessUtil {
                 settingStdLog(videoId, processBuilder);
             }
             log.info("create process..." + processBuilder.command());
+            FileUtils.deleteQuietly(new File("/root/.ssh/known_hosts"));
             Process process = processBuilder.start();
             long processHandle = getProcessHandle(process);
             if (!terminalMode) {

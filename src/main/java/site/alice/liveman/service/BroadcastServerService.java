@@ -72,10 +72,10 @@ public class BroadcastServerService {
                 ServerInfo serverInfo = dynamicServerService.create(cropConf.getBroadcastResolution().getPerformance());
                 if (serverInfo != null) {
                     addServer(serverInfo);
+                    settingConfig.saveSetting(liveManSetting);
                     if (serverInfo.setCurrentVideo(videoInfo)) {
                         lockedServer = serverInfo;
-                        if (testServer(serverInfo)) {
-                            installServer(serverInfo);
+                        if (testServer(serverInfo) && installServer(serverInfo)) {
                             serverInfo.setAvailable(true);
                             settingConfig.saveSetting(liveManSetting);
                             log.info("转播服务器调度成功[" + serverInfo.getRemark() + "@" + serverInfo.getAddress() + ":" + serverInfo.getPort() + "] => videoId=" + videoInfo.getVideoId());
@@ -97,8 +97,7 @@ public class BroadcastServerService {
                             continue;
                         }
                     }
-                    if (testServer(serverInfo)) {
-                        installServer(serverInfo);
+                    if (testServer(serverInfo) && installServer(serverInfo)) {
                         serverInfo.setAvailable(true);
                         settingConfig.saveSetting(liveManSetting);
                         log.info("转播服务器调度成功[" + serverInfo.getRemark() + "@" + serverInfo.getAddress() + ":" + serverInfo.getPort() + "] => videoId=" + videoInfo.getVideoId());
@@ -130,10 +129,8 @@ public class BroadcastServerService {
             log.info("Connect to server" + serverInfo.getRemark() + " server failed: invalid host [" + serverInfo.getAddress() + "]");
             return false;
         }
-        JschSshUtil jschSshUtil = new JschSshUtil(serverInfo.getUsername(), serverInfo.getPassword(), serverInfo.getAddress());
-        try {
-            Session session = jschSshUtil.openSession();
-            session.disconnect();
+        try (JschSshUtil jschSshUtil = new JschSshUtil(serverInfo)) {
+            jschSshUtil.openSession();
             log.info("Connect to server " + serverInfo.getAddress() + "[" + serverInfo.getRemark() + "] success");
             return true;
         } catch (Throwable e) {
@@ -142,12 +139,17 @@ public class BroadcastServerService {
         return false;
     }
 
-    public void addAndInstallServer(ServerInfo serverInfo) {
-        addServer(serverInfo);
-        installServer(serverInfo);
+    public boolean addAndInstallServer(ServerInfo serverInfo) {
+        if (installServer(serverInfo)) {
+            addServer(serverInfo);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void addServer(ServerInfo serverInfo) {
+        log.info("addServer " + serverInfo);
         if (liveManSetting.getServers().add(serverInfo)) {
             settingConfig.saveSetting(liveManSetting);
         } else {
@@ -155,14 +157,15 @@ public class BroadcastServerService {
         }
     }
 
-    public void installServer(ServerInfo serverInfo) {
+    public boolean installServer(ServerInfo serverInfo) {
         log.info("installServer " + serverInfo);
-        String scpCmd = String.format("sshpass\t-p\t%s\tscp\t-o\tStrictHostKeyChecking=no\t-P\t%s\t-r\t%s\t%s@%s:%s", serverInfo.getPassword(), serverInfo.getPort(), liveManSetting.getFfmpegPath(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
-        long process = ProcessUtil.createProcess(scpCmd, "install-scp" + serverInfo.getAddress());
-        ProcessUtil.waitProcess(process);
-        String sshCmd = String.format("sshpass\t-p\t%s\tssh\t-o\tStrictHostKeyChecking=no\t-p\t%s\t%s@%s\tchmod 777 %s", serverInfo.getPassword(), serverInfo.getPort(), serverInfo.getUsername(), serverInfo.getAddress(), liveManSetting.getFfmpegPath());
-        process = ProcessUtil.createProcess(sshCmd, "install-chmod" + serverInfo.getAddress());
-        ProcessUtil.waitProcess(process);
+        try (JschSshUtil jschSshUtil = new JschSshUtil(serverInfo)) {
+            jschSshUtil.transferFile(liveManSetting.getFfmpegPath(), liveManSetting.getFfmpegPath());
+            return true;
+        } catch (Throwable e) {
+            log.error("Install server " + serverInfo.getAddress() + "[" + serverInfo.getRemark() + "] failed:" + e);
+            return false;
+        }
     }
 
     public void releaseServer(VideoInfo videoInfo) {
