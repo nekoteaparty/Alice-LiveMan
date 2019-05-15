@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.utils.HttpRequestUtil;
 
@@ -32,7 +31,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
