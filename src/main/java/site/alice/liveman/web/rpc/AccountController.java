@@ -218,6 +218,7 @@ public class AccountController {
             byAccountId.setJoinAutoBalance(accountInfoVO.isJoinAutoBalance());
             byAccountId.setPostBiliDynamic(accountInfoVO.isPostBiliDynamic());
             byAccountId.setAutoRoomTitle(accountInfoVO.isAutoRoomTitle());
+            byAccountId.setBroadcastResolution(accountInfoVO.getBroadcastResolution());
         } else {
             return ActionResult.getErrorResult("尝试编辑的账户不存在，请刷新页面后重试");
         }

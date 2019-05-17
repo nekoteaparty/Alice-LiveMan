@@ -18,6 +18,8 @@
 
 package site.alice.liveman.web.dataobject.vo;
 
+import site.alice.liveman.jenum.VideoResolutionEnum;
+
 import java.util.HashMap;
 
 public class AccountInfoVO {
@@ -34,6 +36,7 @@ public class AccountInfoVO {
     private boolean                autoRoomTitle;
     private long                   point;
     private HashMap<Integer, Long> billTimeMap;
+    private VideoResolutionEnum    broadcastResolution;
     private long                   timestamp = System.currentTimeMillis();
 
     public String getAccountId() {
@@ -146,5 +149,13 @@ public class AccountInfoVO {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public VideoResolutionEnum getBroadcastResolution() {
+        return broadcastResolution;
+    }
+
+    public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
+        this.broadcastResolution = broadcastResolution;
     }
 }
