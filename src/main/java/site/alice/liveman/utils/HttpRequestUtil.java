@@ -90,7 +90,7 @@ public class HttpRequestUtil {
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
                 .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
-        connectionManager = new PoolingHttpClientConnectionManager(reg, null, null, null, 5, TimeUnit.MINUTES);
+        connectionManager = new PoolingHttpClientConnectionManager(reg);
         connectionManager.setMaxTotal(1000);
         connectionManager.setDefaultMaxPerRoute(50);
         client = HttpClients.custom().setConnectionManager(connectionManager).setConnectionManagerShared(true).build();
@@ -131,6 +131,10 @@ public class HttpRequestUtil {
     }
 
     public static String downloadUrl(URI url, String cookies, String postData, Charset charset) throws IOException {
+        return downloadUrl(url, cookies, postData, null, charset);
+    }
+
+    public static String downloadUrl(URI url, String cookies, String postData, Map<String, String> requestProperties, Charset charset) throws IOException {
         HttpPost httpPost = new HttpPost(url);
         HttpClientContext context = HttpClientContext.create();
         RequestConfig.Builder builder = RequestConfig.custom();
@@ -138,6 +142,11 @@ public class HttpRequestUtil {
         httpPost.setConfig(builder.build());
         if (StringUtils.isNotBlank(cookies)) {
             httpPost.addHeader("Cookie", cookies);
+        }
+        if (requestProperties != null) {
+            for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
+                httpPost.addHeader(entry.getKey(), entry.getValue());
+            }
         }
         httpPost.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
         httpPost.addHeader("Accept-Encoding", "gzip, deflate");
@@ -233,7 +242,7 @@ public class HttpRequestUtil {
                 is = new GZIPInputStream(is);
             }
             tempFile.getParentFile().mkdirs();
-            byte[] buffer = new byte[40960];
+            byte[] buffer = new byte[10240];
             long setLastModifiedTime = System.nanoTime();
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 int readCount = -1;

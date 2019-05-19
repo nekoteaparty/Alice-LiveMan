@@ -38,10 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class Mp4DashMediaProxyTask extends MediaProxyTask {
     private static final int                         MAX_RETRY_COUNT   = 20;
-    private volatile     long                        LAST_RECV_TIME    = System.currentTimeMillis();
     private              BlockingDeque<URI>          downloadDeque     = new LinkedBlockingDeque<>();
     private              AtomicInteger               retryCount        = new AtomicInteger(0);
-    private transient    Session                     session           = null;
     private transient    BlockingQueue<byte[]>       bufferCache       = new ArrayBlockingQueue<>(20);
     private transient    List<BlockingQueue<byte[]>> bufferedQueueList = new CopyOnWriteArrayList<>();
     private transient    byte[]                      m4sVideoHeader;
@@ -64,7 +62,7 @@ public class Mp4DashMediaProxyTask extends MediaProxyTask {
 
             @Override
             protected void runTask() throws Exception {
-                File m4sPath = new File(MediaProxyManager.getTempPath() + "/mp4/" + getVideoId() + "/");
+                File m4sPath = new File(Mp4DashMediaProxyTask.this.getTempPath());
                 m4sPath.mkdirs();
                 File mp4File = new File(m4sPath + "/index.mp4");
                 try (FileOutputStream fos = new FileOutputStream(mp4File, true)) {
@@ -94,12 +92,22 @@ public class Mp4DashMediaProxyTask extends MediaProxyTask {
             protected void afterTerminate() {
                 Mp4DashMediaProxyTask.this.terminate();
             }
+
+            @Override
+            public String getTempPath() {
+                return MediaProxyManager.getTempPath() + "/mp4/" + getVideoId() + "/";
+            }
         };
     }
 
     @Override
     protected void afterTerminate() {
         downloadTask.waitForTerminate();
+    }
+
+    @Override
+    public String getTempPath() {
+        return MediaProxyManager.getTempPath() + "/mp4/" + getVideoId() + "/";
     }
 
     @Override

@@ -58,9 +58,9 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
     @Override
     protected void runTask() {
 
-        File m4sPath = new File(MediaProxyManager.getTempPath() + "/mp4/" + getVideoId() + "/");
+        File m4sPath = new File(getTempPath());
         m4sPath.mkdirs();
-        File mp4File = new File(m4sPath + "/index.mp4");
+        File mp4File = new File(getTempPath() + "/index.mp4");
         try (FileOutputStream fos = new FileOutputStream(mp4File, true)) {
             session = connectToTwitcasting(fos);
             while (!getTerminated() && retryCount.get() < MAX_RETRY_COUNT) {
@@ -147,5 +147,10 @@ public class TwitcastingMediaProxyTask extends MediaProxyTask {
     @Override
     protected void afterTerminate() {
         IOUtils.closeQuietly(session);
+    }
+
+    @Override
+    public String getTempPath() {
+        return MediaProxyManager.getTempPath() + "/mp4/" + getVideoId();
     }
 }

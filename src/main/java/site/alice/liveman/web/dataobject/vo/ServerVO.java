@@ -21,9 +21,9 @@ package site.alice.liveman.web.dataobject.vo;
 public class ServerVO {
     private String address;
     private String remark;
-    private String resolution;
     private String videoId;
     private String videoTitle;
+    private int    performance;
 
     public String getAddress() {
         return address;
@@ -41,14 +41,6 @@ public class ServerVO {
         this.remark = remark;
     }
 
-    public String getResolution() {
-        return resolution;
-    }
-
-    public void setResolution(String resolution) {
-        this.resolution = resolution;
-    }
-
     public String getVideoId() {
         return videoId;
     }
@@ -63,5 +55,13 @@ public class ServerVO {
 
     public void setVideoTitle(String videoTitle) {
         this.videoTitle = videoTitle;
+    }
+
+    public int getPerformance() {
+        return performance;
+    }
+
+    public void setPerformance(int performance) {
+        this.performance = performance;
     }
 }

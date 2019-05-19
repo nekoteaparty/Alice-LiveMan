@@ -41,9 +41,8 @@ public class FlvMediaProxyTask extends MediaProxyTask {
     @Override
     protected void runTask() throws Exception {
         while (!getTerminated() && retryCount.get() < MAX_RETRY_COUNT) {
-            VideoInfo videoInfo = getVideoInfo();
             try {
-                File flvFile = new File(MediaProxyManager.getTempPath() + "/flv/" + videoInfo.getVideoUnionId() + "/" + System.currentTimeMillis() + ".flv");
+                File flvFile = new File(getTempPath() + "/" + System.currentTimeMillis() + ".flv");
                 httpGet = new HttpGet(getSourceUrl());
                 HttpRequestUtil.downloadToFile(httpGet, flvFile);
             } catch (Throwable t) {
@@ -54,6 +53,11 @@ public class FlvMediaProxyTask extends MediaProxyTask {
             }
             Thread.sleep(1000);
         }
+    }
+
+    @Override
+    public String getTempPath() {
+        return MediaProxyManager.getTempPath() + "/flv/" + getVideoInfo().getVideoUnionId();
     }
 
     @Override

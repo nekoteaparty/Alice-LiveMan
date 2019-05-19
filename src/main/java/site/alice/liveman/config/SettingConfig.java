@@ -98,7 +98,8 @@ public class SettingConfig {
             try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
                 IOUtils.write(encodedData, fileOutputStream);
             }
-            if (tempFile.setLastModified((keyTimestamp / 1000) * 1000) && new File("./keys/" + keyTimestamp + ".key").createNewFile()) {
+            if (tempFile.setLastModified((keyTimestamp / 1000) * 1000)) {
+                IOUtils.write(keyTimestamp + "\n", new FileOutputStream(new File("./keys/.key"), true));
                 settingFile.delete();
                 tempFile.renameTo(settingFile);
             }

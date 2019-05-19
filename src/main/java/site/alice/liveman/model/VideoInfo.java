@@ -18,6 +18,7 @@
 package site.alice.liveman.model;
 
 import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager.BroadcastTask;
 import site.alice.liveman.service.external.TextLocation;
 

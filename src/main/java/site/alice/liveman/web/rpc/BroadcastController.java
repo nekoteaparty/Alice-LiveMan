@@ -128,6 +128,13 @@ public class BroadcastController {
             }
         }
         try {
+            VideoCropConf cropConf = videoInfo.getCropConf();
+            if (cropConf.getBroadcastResolution() != null && cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
+                if (account.getPoint() < serverPoint) {
+                    return ActionResult.getErrorResult("账户积分不足[当前可用余额：" + account.getPoint() + ", 需要积分(" + cropConf.getBroadcastResolution() + ")：" + serverPoint + "]");
+                }
+            }
             broadcastTask = broadcastServiceManager.createSingleBroadcastTask(videoInfo, account);
             if (broadcastTask == null) {
                 return ActionResult.getErrorResult("操作失败：BroadcastTask创建失败");
@@ -162,8 +169,9 @@ public class BroadcastController {
         }
         VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
         BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
+        AccountInfo broadcastAccount = null;
         if (broadcastTask != null) {
-            AccountInfo broadcastAccount = broadcastTask.getBroadcastAccount();
+            broadcastAccount = broadcastTask.getBroadcastAccount();
             if (broadcastAccount != null) {
                 if (!broadcastAccount.getRoomId().equals(account.getRoomId()) && !account.isAdmin()) {
                     log.info("您没有权限编辑他人直播间的推流任务[videoId=" + videoId + "][broadcastRoomId=" + broadcastAccount.getRoomId() + "]");
@@ -173,10 +181,15 @@ public class BroadcastController {
         }
         VideoCropConf _cropConf = videoInfo.getCropConf();
         if (cropConf != null) {
-            if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN && !account.isVip()) {
-                return ActionResult.getErrorResult("你没有权限使用区域打码或自定义功能");
-            }
+            boolean needRestart = false;
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                if (cropConf.getBroadcastResolution() != _cropConf.getBroadcastResolution() && broadcastTask != null) {
+                    needRestart = true;
+                }
+                int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
+                if (broadcastAccount != null && broadcastAccount.getPoint() < serverPoint) {
+                    return ActionResult.getErrorResult("账户积分不足[当前可用余额：" + broadcastAccount.getPoint() + ", 需要积分(" + cropConf.getBroadcastResolution() + ")：" + serverPoint + "]");
+                }
                 int blurLayoutCount = 0;
                 Collections.sort(cropConf.getLayouts());
                 for (CustomLayout layout : cropConf.getLayouts()) {
@@ -203,7 +216,10 @@ public class BroadcastController {
                 log.error("保存系统配置信息失败", e);
                 return ActionResult.getErrorResult("系统内部错误，请联系管理员");
             }
-            if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
+            if (needRestart) {
+                stopTask(videoId);
+                adoptTask(videoId);
+            } else if ((_cropConf == null || _cropConf.getVideoBannedType() != cropConf.getVideoBannedType() || _cropConf.getBlurSize() != cropConf.getBlurSize()) && broadcastTask != null) {
                 ProcessUtil.killProcess(broadcastTask.getPid());
             }
         }
@@ -245,7 +261,7 @@ public class BroadcastController {
     @RequestMapping("/terminateTask.json")
     public ActionResult terminateTask(String videoId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
-        log.info("afterTerminate()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
+        log.info("terminateTask()[videoId=" + videoId + "][accountRoomId=" + account.getRoomId() + "]");
         if (!account.isAdmin()) {
             return ActionResult.getErrorResult("没有权限！");
         }

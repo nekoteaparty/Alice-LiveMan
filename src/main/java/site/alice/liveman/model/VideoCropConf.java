@@ -22,6 +22,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import site.alice.liveman.customlayout.CustomLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 
 import java.io.Serializable;
 import java.util.TreeSet;
@@ -35,6 +36,7 @@ public class VideoCropConf implements Serializable {
     private boolean                            autoImageSegment;
     private int                                blurSize;
     private CopyOnWriteArrayList<CustomLayout> layouts;
+    private VideoResolutionEnum                broadcastResolution;
     @JsonIgnore
     private byte[]                             cachedDrawBytes;
     @JsonIgnore
@@ -98,6 +100,14 @@ public class VideoCropConf implements Serializable {
 
     public void setAutoImageSegment(boolean autoImageSegment) {
         this.autoImageSegment = autoImageSegment;
+    }
+
+    public VideoResolutionEnum getBroadcastResolution() {
+        return broadcastResolution;
+    }
+
+    public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
+        this.broadcastResolution = broadcastResolution;
     }
 
     @Override

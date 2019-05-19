@@ -39,7 +39,10 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<ChannelInfo>         channels;
     private CopyOnWriteArraySet<ServerInfo>          servers;
     private CopyOnWriteArraySet<ExternalAppSecretDO> externalAppSecretDOS;
-    private Boolean                                  preReEncode = false;
+    private String                                   encodeKey;
+    private String                                   apShopUrl;
+    private int[]                                    serverPoints = {0, 7, 30};
+    private Boolean                                  preReEncode  = false;
     private Proxy                                    proxy;
 
     public String[] getBannedYoutubeChannel() {
@@ -122,6 +125,14 @@ public class LiveManSetting {
         this.oneDriveClientSecret = oneDriveClientSecret;
     }
 
+    public int[] getServerPoints() {
+        return serverPoints;
+    }
+
+    public void setServerPoints(int[] serverPoints) {
+        this.serverPoints = serverPoints;
+    }
+
     public String getOneDriveToken() {
         return oneDriveToken;
     }
@@ -136,6 +147,14 @@ public class LiveManSetting {
 
     public void setPreReEncode(Boolean preReEncode) {
         this.preReEncode = preReEncode;
+    }
+
+    public String getEncodeKey() {
+        return encodeKey;
+    }
+
+    public void setEncodeKey(String encodeKey) {
+        this.encodeKey = encodeKey;
     }
 
     @JSONField(serialize = false)
@@ -169,6 +188,26 @@ public class LiveManSetting {
             }
         }
         return null;
+    }
+
+    public AccountInfo findByRoomId(String roomId) {
+        if (roomId == null) {
+            return null;
+        }
+        for (AccountInfo account : accounts) {
+            if (roomId.equals(account.getRoomId())) {
+                return account;
+            }
+        }
+        return null;
+    }
+
+    public String getApShopUrl() {
+        return apShopUrl;
+    }
+
+    public void setApShopUrl(String apShopUrl) {
+        this.apShopUrl = apShopUrl;
     }
 
     public CopyOnWriteArraySet<ServerInfo> getServers() {

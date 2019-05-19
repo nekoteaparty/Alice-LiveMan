@@ -16,22 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.bo;
+package site.alice.liveman.jenum;
 
-import site.alice.liveman.dataobject.ExternalAppSecretDO;
-import site.alice.liveman.jenum.ExternalServiceType;
+public enum VideoResolutionEnum {
+    R1080F60(1080, 60, 2), R1080F30(1080, 30, 2), R720F60(720, 60, 2), R720F30(720, 30, 1), R480F30(480, 30, 1);
 
-import java.util.List;
+    private Integer resolution;
+    private Integer frameRate;
+    private int     performance;
 
-public interface ExternalAppSecretBO {
+    VideoResolutionEnum(Integer resolution, Integer frameRate, int performance) {
+        this.resolution = resolution;
+        this.frameRate = frameRate;
+        this.performance = performance;
+    }
 
-    ExternalAppSecretDO getAppSecret(ExternalServiceType type);
+    public Integer getResolution() {
+        return resolution;
+    }
 
-    void insert(ExternalAppSecretDO externalAppSecretDO);
+    public Integer getFrameRate() {
+        return frameRate;
+    }
 
-    List<ExternalAppSecretDO> selectForList();
-
-    int update(ExternalAppSecretDO externalAppSecretDO);
-
-    int remove(ExternalAppSecretDO externalAppSecretDO);
+    public int getPerformance() {
+        return performance;
+    }
 }
