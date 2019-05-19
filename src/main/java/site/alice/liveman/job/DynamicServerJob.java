@@ -36,6 +36,7 @@ import site.alice.liveman.service.external.DynamicServerService;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -56,7 +57,8 @@ public class DynamicServerJob {
     @Scheduled(cron = "0 0/1 * * * ?")
     public void serverScanner() {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
-        Collection<ServerInfo> subtract = CollectionUtils.subtract(dynamicServerService.list(), servers);
+        List<ServerInfo> list = dynamicServerService.list();
+        Collection<ServerInfo> subtract = CollectionUtils.subtract(list, servers);
         for (ServerInfo serverInfo : subtract) {
             // 检查是否可以连接
             try {
@@ -79,7 +81,7 @@ public class DynamicServerJob {
                     server.setDateCreated(System.currentTimeMillis());
                 }
                 // 在1分钟内就要进入下一个收费周期了，检查是否需要释放服务器
-                if (Math.abs((System.currentTimeMillis() - server.getDateCreated()) / 1000.0 / 60 % 60) > 59) {
+                if ((System.currentTimeMillis() - server.getDateCreated() / 1000.0 / 60 % 60) > 59) {
                     VideoInfo currentVideo = server.getCurrentVideo();
                     if (currentVideo == null) {
                         servers.remove(server);

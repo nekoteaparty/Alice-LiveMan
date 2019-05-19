@@ -52,6 +52,8 @@ public class BroadcastServerService {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
         ServerInfo lockedServer = null;
         try {
+            // 获取服务器之前先释放掉所有被占用的服务器
+            releaseServer(videoInfo);
             // 查找已经可用的服务器
             List<ServerInfo> availableServers = servers.stream().filter(server -> server.getCurrentVideo() == null && server.getPerformance() == videoInfo.getCropConf().getBroadcastResolution().getPerformance() && server.isAvailable()).collect(Collectors.toList());
             while (!availableServers.isEmpty()) {
@@ -93,6 +95,7 @@ public class BroadcastServerService {
                             log.warn("server " + serverInfo.getRemark() + " was not found, remove it.");
                             servers.remove(serverInfo);
                             unavailableServers.remove(serverInfo);
+                            lockedServer.removeCurrentVideo(videoInfo);
                             settingConfig.saveSetting(liveManSetting);
                             continue;
                         }
