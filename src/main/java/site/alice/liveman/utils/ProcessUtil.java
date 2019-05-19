@@ -23,6 +23,8 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinBase;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import site.alice.liveman.model.ServerInfo;
 
 import java.io.*;
@@ -46,6 +48,9 @@ public class ProcessUtil {
     }
 
     public static long createProcess(String cmdLine, String videoId) {
+        if (cmdLine == null) {
+            return 0;
+        }
         String[] args = cmdLine.split("\t");
         for (int i = 0; i < args.length; i++) {
             if (args[i].startsWith("\"") && args[i].endsWith("\"")) {
@@ -57,6 +62,9 @@ public class ProcessUtil {
 
     public static long createProcess(String[] args, String videoId) {
         try {
+            if (args == null) {
+                return 0;
+            }
             ProcessBuilder processBuilder = new ProcessBuilder();
             processBuilder.command(args);
             if (videoId != null) {
@@ -75,12 +83,16 @@ public class ProcessUtil {
 
     public static long createRemoteProcess(String cmdLine, ServerInfo remoteServer, boolean terminalMode, String videoId) {
         try {
+            if (cmdLine == null) {
+                return 0;
+            }
             cmdLine = cmdLine.replaceAll("\t", " ");
             ProcessBuilder processBuilder = createRemoteProcessBuilder(remoteServer, cmdLine, terminalMode);
             if (videoId != null) {
                 settingStdLog(videoId, processBuilder);
             }
             log.info("create process..." + processBuilder.command());
+            FileUtils.deleteQuietly(new File("/root/.ssh/known_hosts"));
             Process process = processBuilder.start();
             long processHandle = getProcessHandle(process);
             if (!terminalMode) {

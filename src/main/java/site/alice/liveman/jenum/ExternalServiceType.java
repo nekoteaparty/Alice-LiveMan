@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.service.external;
+package site.alice.liveman.jenum;
 
 public enum ExternalServiceType {
-    BAIDU_API("baidu");
+    BAIDU_API("baidu"),
+    VULTR_API("vultr");
 
     ExternalServiceType(String code) {
         this.code = code;

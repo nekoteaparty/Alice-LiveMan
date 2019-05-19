@@ -19,6 +19,7 @@
 package site.alice.liveman.model;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import site.alice.liveman.jenum.ExternalServiceType;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,8 +29,11 @@ public class ServerInfo {
     private String                     address;
     private String                     username;
     private String                     password;
-    private String                     resolution;
+    private Long                       dateCreated;
+    private int                        performance;
+    private ExternalServiceType        externalServiceType;
     private String                     remark;
+    private boolean                    available;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo> currentVideo = new AtomicReference<>();
 
@@ -65,12 +69,28 @@ public class ServerInfo {
         this.password = password;
     }
 
-    public String getResolution() {
-        return resolution;
+    public int getPerformance() {
+        return performance;
     }
 
-    public void setResolution(String resolution) {
-        this.resolution = resolution;
+    public void setPerformance(int performance) {
+        this.performance = performance;
+    }
+
+    public Long getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(Long dateCreated) {
+        this.dateCreated = dateCreated;
+    }
+
+    public ExternalServiceType getExternalServiceType() {
+        return externalServiceType;
+    }
+
+    public void setExternalServiceType(ExternalServiceType externalServiceType) {
+        this.externalServiceType = externalServiceType;
     }
 
     public VideoInfo getCurrentVideo() {
@@ -93,6 +113,14 @@ public class ServerInfo {
         this.remark = remark;
     }
 
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -104,5 +132,19 @@ public class ServerInfo {
     @Override
     public int hashCode() {
         return Objects.hash(remark);
+    }
+
+    @Override
+    public String toString() {
+        return "ServerInfo{" +
+                "port=" + port +
+                ", address='" + address + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", dateCreated=" + dateCreated +
+                ", performance=" + performance +
+                ", externalServiceType=" + externalServiceType +
+                ", remark='" + remark + '\'' +
+                '}';
     }
 }

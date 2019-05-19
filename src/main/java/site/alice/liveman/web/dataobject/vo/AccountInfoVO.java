@@ -18,19 +18,26 @@
 
 package site.alice.liveman.web.dataobject.vo;
 
+import site.alice.liveman.jenum.VideoResolutionEnum;
+
+import java.util.HashMap;
+
 public class AccountInfoVO {
-    private String  accountId;
-    private String  accountSite;
-    private String  nickname;
-    private String  description;
-    private String  roomId;
-    private boolean vip;
-    private boolean joinAutoBalance;
-    private boolean admin;
-    private boolean saved;
-    private boolean disable;
-    private boolean postBiliDynamic;
-    private boolean autoRoomTitle;
+    private String                 accountId;
+    private String                 accountSite;
+    private String                 nickname;
+    private String                 description;
+    private String                 roomId;
+    private boolean                joinAutoBalance;
+    private boolean                admin;
+    private boolean                saved;
+    private boolean                disable;
+    private boolean                postBiliDynamic;
+    private boolean                autoRoomTitle;
+    private long                   point;
+    private HashMap<Integer, Long> billTimeMap;
+    private VideoResolutionEnum    broadcastResolution;
+    private long                   timestamp = System.currentTimeMillis();
 
     public String getAccountId() {
         return accountId;
@@ -120,11 +127,35 @@ public class AccountInfoVO {
         this.autoRoomTitle = autoRoomTitle;
     }
 
-    public boolean isVip() {
-        return vip;
+    public long getPoint() {
+        return point;
     }
 
-    public void setVip(boolean vip) {
-        this.vip = vip;
+    public void setPoint(long point) {
+        this.point = point;
+    }
+
+    public HashMap<Integer, Long> getBillTimeMap() {
+        return billTimeMap;
+    }
+
+    public void setBillTimeMap(HashMap<Integer, Long> billTimeMap) {
+        this.billTimeMap = billTimeMap;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public VideoResolutionEnum getBroadcastResolution() {
+        return broadcastResolution;
+    }
+
+    public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
+        this.broadcastResolution = broadcastResolution;
     }
 }

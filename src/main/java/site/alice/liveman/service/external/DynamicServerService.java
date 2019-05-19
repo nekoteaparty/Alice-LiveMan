@@ -16,22 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package site.alice.liveman.bo;
+package site.alice.liveman.service.external;
 
-import site.alice.liveman.dataobject.ExternalAppSecretDO;
-import site.alice.liveman.jenum.ExternalServiceType;
+import site.alice.liveman.model.ServerInfo;
 
 import java.util.List;
 
-public interface ExternalAppSecretBO {
+public interface DynamicServerService {
 
-    ExternalAppSecretDO getAppSecret(ExternalServiceType type);
+    List<ServerInfo> list();
 
-    void insert(ExternalAppSecretDO externalAppSecretDO);
+    void destroy(ServerInfo ServerInfo);
 
-    List<ExternalAppSecretDO> selectForList();
+    ServerInfo create(int performance);
 
-    int update(ExternalAppSecretDO externalAppSecretDO);
-
-    int remove(ExternalAppSecretDO externalAppSecretDO);
+    ServerInfo update(ServerInfo serverInfo);
 }

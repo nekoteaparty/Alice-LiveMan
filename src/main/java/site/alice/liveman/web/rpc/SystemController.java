@@ -19,21 +19,25 @@
 package site.alice.liveman.web.rpc;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import site.alice.liveman.config.SettingConfig;
 import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.utils.SecurityUtils;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.SettingVO;
 
 import javax.servlet.http.HttpSession;
 
 @Slf4j
-@RestController
+@Controller
 @RequestMapping("/api/system")
 public class SystemController {
 
@@ -44,6 +48,7 @@ public class SystemController {
     @Autowired
     private SettingConfig  settingConfig;
 
+    @ResponseBody
     @RequestMapping("/getSetting.json")
     public ActionResult<SettingVO> getSetting() {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
@@ -58,9 +63,12 @@ public class SystemController {
         settingVO.setBaseUrl(liveManSetting.getBaseUrl());
         settingVO.setHasOneDriveToken(StringUtils.isNotEmpty(liveManSetting.getOneDriveToken()));
         settingVO.setPreReEncode(liveManSetting.getPreReEncode());
+        settingVO.setEncodeKey(liveManSetting.getEncodeKey());
+        settingVO.setApShopUrl(liveManSetting.getApShopUrl());
         return ActionResult.getSuccessResult(settingVO);
     }
 
+    @ResponseBody
     @RequestMapping("/saveSetting.json")
     public ActionResult<SettingVO> saveSetting(@RequestBody SettingVO settingVO) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
@@ -73,6 +81,8 @@ public class SystemController {
         liveManSetting.setDefaultResolution(settingVO.getDefaultResolution());
         liveManSetting.setBaseUrl(settingVO.getBaseUrl());
         liveManSetting.setPreReEncode(settingVO.getPreReEncode());
+        liveManSetting.setEncodeKey(settingVO.getEncodeKey());
+        liveManSetting.setApShopUrl(settingVO.getApShopUrl());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {
@@ -81,4 +91,24 @@ public class SystemController {
         }
         return ActionResult.getSuccessResult(settingVO);
     }
+
+    @ResponseBody
+    @RequestMapping("/cardGenerator.json")
+    public ActionResult<String> cardGenerator(int point, int count) {
+        AccountInfo account = (AccountInfo) session.getAttribute("account");
+        if (!account.isAdmin()) {
+            return ActionResult.getErrorResult("权限不足");
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= count; i++) {
+            sb.append(SecurityUtils.aesEncrypt(point + "|" + System.currentTimeMillis() + "|" + i)).append("\n");
+        }
+        return ActionResult.getSuccessResult(sb.toString());
+    }
+
+    @RequestMapping("/apShop")
+    public String apShop() {
+        return "redirect:" + liveManSetting.getApShopUrl();
+    }
+
 }

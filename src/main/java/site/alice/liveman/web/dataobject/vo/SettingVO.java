@@ -27,6 +27,8 @@ public class SettingVO {
     private String   baseUrl;
     private Boolean  hasOneDriveToken;
     private Boolean  preReEncode;
+    private String   encodeKey;
+    private String   apShopUrl;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -98,5 +100,21 @@ public class SettingVO {
 
     public void setPreReEncode(Boolean preReEncode) {
         this.preReEncode = preReEncode;
+    }
+
+    public String getEncodeKey() {
+        return encodeKey;
+    }
+
+    public void setEncodeKey(String encodeKey) {
+        this.encodeKey = encodeKey;
+    }
+
+    public String getApShopUrl() {
+        return apShopUrl;
+    }
+
+    public void setApShopUrl(String apShopUrl) {
+        this.apShopUrl = apShopUrl;
     }
 }

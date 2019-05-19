@@ -32,8 +32,10 @@ import site.alice.liveman.customlayout.impl.BrowserLayout;
 import site.alice.liveman.customlayout.impl.ImageSegmentBlurLayout;
 import site.alice.liveman.customlayout.impl.RectangleBlurLayout;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
+import site.alice.liveman.jenum.VideoResolutionEnum;
 import site.alice.liveman.mediaproxy.MediaProxyManager;
 import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask;
+import site.alice.liveman.mediaproxy.proxytask.MediaProxyTask.KeyFrame;
 import site.alice.liveman.model.VideoCropConf;
 import site.alice.liveman.model.VideoInfo;
 
@@ -67,7 +69,7 @@ public class DrawingController {
         }
         String resolution = videoInfo.getResolution();
         if (resolution == null) {
-            BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
+            KeyFrame keyFrame = mediaProxyTask.getKeyFrame();
             if (keyFrame != null) {
                 resolution = keyFrame.getWidth() + "x" + keyFrame.getHeight();
                 videoInfo.setResolution(resolution);
@@ -77,8 +79,8 @@ public class DrawingController {
                 return;
             }
         }
-        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         VideoCropConf cropConf = videoInfo.getCropConf();
+        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             byte[] cachedDrawBytes = cropConf.getCachedDrawBytes();
             if (cachedDrawBytes == null) {
@@ -101,12 +103,6 @@ public class DrawingController {
                             log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
                         }
                     }
-                }
-                if (sizes[1] != 720) {
-                    BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D originalSizeImageGraphics = originalSizeImage.createGraphics();
-                    originalSizeImageGraphics.drawImage(image.getScaledInstance(sizes[0], sizes[1], Image.SCALE_SMOOTH), 0, 0, null);
-                    image = originalSizeImage;
                 }
                 PngEncoderB pngEncoderB = new PngEncoderB();
                 pngEncoderB.setCompressionLevel(3);
@@ -143,7 +139,7 @@ public class DrawingController {
         String resolution = videoInfo.getResolution();
         if (resolution == null) {
             log.info("未知媒体分辨率[videoId=" + videoId + "]，尝试获取...");
-            BufferedImage keyFrame = mediaProxyTask.getKeyFrame();
+            KeyFrame keyFrame = mediaProxyTask.getKeyFrame();
             if (keyFrame != null) {
                 resolution = keyFrame.getWidth() + "x" + keyFrame.getHeight();
                 videoInfo.setResolution(resolution);
@@ -153,8 +149,8 @@ public class DrawingController {
                 return;
             }
         }
-        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         VideoCropConf cropConf = videoInfo.getCropConf();
+        int[] sizes = Arrays.stream(resolution.split("x")).mapToInt(Integer::parseInt).toArray();
         if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
             try (OutputStream os = response.getOutputStream()) {
                 byte[] cachedBlurBytes = cropConf.getCachedBlurBytes();
@@ -179,11 +175,6 @@ public class DrawingController {
                                 log.error(customLayout.getClass().getName() + "[videoId=" + videoInfo.getVideoId() + "]渲染出错", e);
                             }
                         }
-                    }
-                    if (sizes[1] != 720) {
-                        BufferedImage originalSizeImage = new BufferedImage(sizes[0], sizes[1], BufferedImage.TYPE_INT_ARGB);
-                        originalSizeImage.createGraphics().drawImage(image, 0, 0, sizes[0], sizes[1], null);
-                        image = originalSizeImage;
                     }
                     PngEncoderB pngEncoderB = new PngEncoderB();
                     pngEncoderB.setCompressionLevel(3);
