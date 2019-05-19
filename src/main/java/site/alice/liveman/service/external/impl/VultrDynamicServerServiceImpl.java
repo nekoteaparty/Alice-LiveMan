@@ -59,6 +59,9 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
         List<ServerInfo> list = new ArrayList<>();
         try {
             ExternalAppSecretDO appSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.VULTR_API);
+            if (appSecret == null) {
+                return null;
+            }
             Map<String, String> requestProperties = new HashMap<>();
             requestProperties.put("API-Key", appSecret.getAppKey());
             String listJSON = HttpRequestUtil.downloadUrl(URI.create(API_SERVER_LIST), null, requestProperties, StandardCharsets.UTF_8);
@@ -92,6 +95,9 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
     public ServerInfo create(int performance) {
         try {
             ExternalAppSecretDO appSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.VULTR_API);
+            if (appSecret == null) {
+                return null;
+            }
             Map<String, String> requestProperties = new HashMap<>();
             requestProperties.put("API-Key", appSecret.getAppKey());
             String subData = HttpRequestUtil.downloadUrl(URI.create(API_SERVER_CREATE), null, "DCID=" + DCID + "&VPSPLANID=" + PLANIDS[performance] + "&OSID=" + OSID + "&label=" + SERVER_LABEL, requestProperties, StandardCharsets.UTF_8);
@@ -139,9 +145,11 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
             String SUBID = serverInfo.getRemark().substring("VULTR_".length());
             try {
                 ExternalAppSecretDO appSecret = externalAppSecretBO.getAppSecret(ExternalServiceType.VULTR_API);
-                Map<String, String> requestProperties = new HashMap<>();
-                requestProperties.put("API-Key", appSecret.getAppKey());
-                HttpRequestUtil.downloadUrl(URI.create(API_SERVER_DESTROY), null, "SUBID=" + SUBID, requestProperties, StandardCharsets.UTF_8);
+                if (appSecret != null) {
+                    Map<String, String> requestProperties = new HashMap<>();
+                    requestProperties.put("API-Key", appSecret.getAppKey());
+                    HttpRequestUtil.downloadUrl(URI.create(API_SERVER_DESTROY), null, "SUBID=" + SUBID, requestProperties, StandardCharsets.UTF_8);
+                }
             } catch (Throwable e) {
                 log.error("request /v1/server/destroy failed", e);
             }
