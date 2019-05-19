@@ -173,7 +173,10 @@ public class AccountController {
             Set<String> cardLines = new HashSet<>(Arrays.asList(cards.split("\n")));
             for (String cardLine : cardLines) {
                 cardLine = cardLine.trim();
-                if (StringUtils.isNotEmpty(cardLine) && !usedCardLine.contains(cardLine) && cardLine.length() == 44) {
+                if (StringUtils.isNotEmpty(cardLine) && !usedCardLine.contains(cardLine)) {
+                    if (cardLine.length() != 44) {
+                        return ActionResult.getErrorResult("处理卡号[" + cardLine + "]时出现错误，请检查卡号是否正确，有效的卡号为44位，用'='结尾。");
+                    }
                     try {
                         String decodeCardLine = SecurityUtils.aesDecrypt(cardLine);
                         String[] cardInfo = decodeCardLine.split("\\|");
