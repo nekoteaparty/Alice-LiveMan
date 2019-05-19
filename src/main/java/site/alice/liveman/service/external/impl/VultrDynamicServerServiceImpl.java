@@ -76,7 +76,7 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
                     serverInfo.setUsername("root");
                     serverInfo.setRemark("VULTR_" + subData.getString("SUBID"));
                     serverInfo.setPerformance(subData.getInteger("vcpu_count"));
-                    serverInfo.setDateCreated(subData.getDate("date_created").getTime());
+                    serverInfo.setDateCreated(subData.getDate("date_created").getTime() + 8 * 60 * 60 * 1000);
                     serverInfo.setExternalServiceType(ExternalServiceType.VULTR_API);
                     list.add(serverInfo);
                 }
