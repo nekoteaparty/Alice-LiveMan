@@ -93,7 +93,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
                         @Override
                         public String getTempPath() {
-                            return MediaProxyManager.getTempPath() + "/m3u8/" + getVideoInfo().getVideoUnionId();
+                            return MediaProxyManager.getTempPath() + "/m3u8/" + M3u8MediaProxyTask.this.getVideoInfo().getVideoUnionId();
                         }
                     });
                 }
@@ -137,7 +137,7 @@ public class M3u8MediaProxyTask extends MediaProxyTask {
 
             @Override
             public String getTempPath() {
-                return MediaProxyManager.getTempPath() + "/m3u8/" + getVideoInfo().getVideoUnionId();
+                return MediaProxyManager.getTempPath() + "/m3u8/" + M3u8MediaProxyTask.this.getVideoInfo().getVideoUnionId();
             }
 
             private void downloadSeqFile(M3u8SeqInfo m3u8SeqInfo) {
