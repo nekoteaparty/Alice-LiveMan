@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+import site.alice.liveman.customlayout.CustomLayout;
+import site.alice.liveman.customlayout.impl.ImageSegmentBlurLayout;
 import site.alice.liveman.event.MediaProxyEvent;
 import site.alice.liveman.event.MediaProxyEventListener;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -53,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -320,6 +323,11 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoInfo.getVideoId());
                                 if (mediaProxyTask != null) {
                                     imageSegmentService.imageSegment(mediaProxyTask.getKeyFrame().getFrameImage(), new ImageSegmentConsumerImpl(videoInfo));
+                                }
+                            } else {
+                                CopyOnWriteArrayList<CustomLayout> layouts = videoInfo.getCropConf().getLayouts();
+                                if (layouts != null) {
+                                    layouts.removeIf(layout -> layout instanceof ImageSegmentBlurLayout);
                                 }
                             }
                         } catch (Throwable e) {
