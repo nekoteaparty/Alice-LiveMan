@@ -173,7 +173,7 @@ public class AccountController {
             Set<String> cardLines = new HashSet<>(Arrays.asList(cards.split("\n")));
             for (String cardLine : cardLines) {
                 cardLine = cardLine.trim();
-                if (StringUtils.isNotEmpty(cardLine) && !usedCardLine.contains(cardLine)) {
+                if (StringUtils.isNotEmpty(cardLine) && !usedCardLine.contains(cardLine) && cardLine.length() == 44) {
                     try {
                         String decodeCardLine = SecurityUtils.aesDecrypt(cardLine);
                         String[] cardInfo = decodeCardLine.split("\\|");
