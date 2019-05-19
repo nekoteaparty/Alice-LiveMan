@@ -41,7 +41,7 @@ public class LiveManSetting {
     private CopyOnWriteArraySet<ExternalAppSecretDO> externalAppSecretDOS;
     private String                                   encodeKey;
     private String                                   apShopUrl;
-    private int[]                                    serverPoints = {0, 7, 30};
+    private int[]                                    serverPoints = {0, 8, 30};
     private Boolean                                  preReEncode  = false;
     private Proxy                                    proxy;
 
