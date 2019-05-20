@@ -381,8 +381,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                             // 如果没有设置账户默认转播分辨率，则设置为720P/30FPS
                                             videoInfo.getCropConf().setBroadcastResolution(VideoResolutionEnum.R720F30);
                                         }
-                                        int serverPoint = liveManSetting.getServerPoints()[videoInfo.getCropConf().getBroadcastResolution().getPerformance()];
-                                        if (broadcastAccount.getPoint() < serverPoint) {
+                                        int performance = videoInfo.getCropConf().getBroadcastResolution().getPerformance();
+                                        int serverPoint = liveManSetting.getServerPoints()[performance];
+                                        if (broadcastAccount.getPoint() < serverPoint && broadcastAccount.getBillTimeMap().get(performance) == null) {
                                             terminateTask();
                                             throw new RuntimeException("账户积分不足[roomId=" + broadcastAccount.getRoomId() + ", point=" + broadcastAccount.getPoint() + ", need=" + serverPoint + "]");
                                         }

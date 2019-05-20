@@ -130,8 +130,9 @@ public class BroadcastController {
         try {
             VideoCropConf cropConf = videoInfo.getCropConf();
             if (cropConf.getBroadcastResolution() != null && cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
-                int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
-                if (account.getPoint() < serverPoint) {
+                int performance = cropConf.getBroadcastResolution().getPerformance();
+                int serverPoint = liveManSetting.getServerPoints()[performance];
+                if (account.getPoint() < serverPoint && account.getBillTimeMap().get(performance) == null) {
                     return ActionResult.getErrorResult("账户积分不足[当前可用余额：" + account.getPoint() + ", 需要积分(" + cropConf.getBroadcastResolution() + ")：" + serverPoint + "]");
                 }
             }
@@ -186,8 +187,9 @@ public class BroadcastController {
                 if (cropConf.getBroadcastResolution() != _cropConf.getBroadcastResolution() && broadcastTask != null) {
                     needRestart = true;
                 }
-                int serverPoint = liveManSetting.getServerPoints()[cropConf.getBroadcastResolution().getPerformance()];
-                if (broadcastAccount != null && broadcastAccount.getPoint() < serverPoint) {
+                int performance = cropConf.getBroadcastResolution().getPerformance();
+                int serverPoint = liveManSetting.getServerPoints()[performance];
+                if (broadcastAccount != null && broadcastAccount.getPoint() < serverPoint && broadcastAccount.getBillTimeMap().get(performance) == null) {
                     return ActionResult.getErrorResult("账户积分不足[当前可用余额：" + broadcastAccount.getPoint() + ", 需要积分(" + cropConf.getBroadcastResolution() + ")：" + serverPoint + "]");
                 }
                 int blurLayoutCount = 0;
