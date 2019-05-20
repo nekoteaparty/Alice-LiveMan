@@ -96,6 +96,7 @@ public class AccountController {
             accountInfoVO.setSaved(true);
         }
         accountInfoVO.setBillTimeMap(new HashMap<>(account.getBillTimeMap()));
+        accountInfoVO.setServerPoints(liveManSetting.getServerPoints());
         return ActionResult.getSuccessResult(accountInfoVO);
     }
 

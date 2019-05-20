@@ -65,6 +65,7 @@ public class SystemController {
         settingVO.setPreReEncode(liveManSetting.getPreReEncode());
         settingVO.setEncodeKey(liveManSetting.getEncodeKey());
         settingVO.setApShopUrl(liveManSetting.getApShopUrl());
+        settingVO.setServerPoints(liveManSetting.getServerPoints());
         return ActionResult.getSuccessResult(settingVO);
     }
 
@@ -83,6 +84,7 @@ public class SystemController {
         liveManSetting.setPreReEncode(settingVO.getPreReEncode());
         liveManSetting.setEncodeKey(settingVO.getEncodeKey());
         liveManSetting.setApShopUrl(settingVO.getApShopUrl());
+        liveManSetting.setServerPoints(settingVO.getServerPoints());
         try {
             settingConfig.saveSetting(liveManSetting);
         } catch (Exception e) {

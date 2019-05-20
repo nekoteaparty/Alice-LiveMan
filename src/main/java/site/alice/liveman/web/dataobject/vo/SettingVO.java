@@ -29,6 +29,7 @@ public class SettingVO {
     private Boolean  preReEncode;
     private String   encodeKey;
     private String   apShopUrl;
+    private int[]    serverPoints;
 
     public String getFfmpegPath() {
         return ffmpegPath;
@@ -116,5 +117,13 @@ public class SettingVO {
 
     public void setApShopUrl(String apShopUrl) {
         this.apShopUrl = apShopUrl;
+    }
+
+    public int[] getServerPoints() {
+        return serverPoints;
+    }
+
+    public void setServerPoints(int[] serverPoints) {
+        this.serverPoints = serverPoints;
     }
 }

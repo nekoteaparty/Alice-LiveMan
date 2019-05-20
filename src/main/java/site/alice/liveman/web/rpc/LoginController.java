@@ -41,6 +41,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -86,6 +87,8 @@ public class LoginController {
             accountInfo.setAdmin(accountInfo.getRoomId().equals(adminRoomId));
             session.setAttribute("account", accountInfo);
             BeanUtils.copyProperties(accountInfo, accountInfoVO);
+            accountInfoVO.setBillTimeMap(new HashMap<>(accountInfo.getBillTimeMap()));
+            accountInfoVO.setServerPoints(liveManSetting.getServerPoints());
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);

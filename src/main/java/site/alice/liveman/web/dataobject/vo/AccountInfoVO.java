@@ -37,6 +37,7 @@ public class AccountInfoVO {
     private long                   point;
     private HashMap<Integer, Long> billTimeMap;
     private VideoResolutionEnum    broadcastResolution;
+    private int[]                  serverPoints;
     private long                   timestamp = System.currentTimeMillis();
 
     public String getAccountId() {
@@ -157,5 +158,13 @@ public class AccountInfoVO {
 
     public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
         this.broadcastResolution = broadcastResolution;
+    }
+
+    public int[] getServerPoints() {
+        return serverPoints;
+    }
+
+    public void setServerPoints(int[] serverPoints) {
+        this.serverPoints = serverPoints;
     }
 }
