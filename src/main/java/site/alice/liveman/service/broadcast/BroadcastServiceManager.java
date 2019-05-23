@@ -428,7 +428,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 lowHealthCount = 0;
                                 health = 0;
                                 lastLogLength = 0;
-                                while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
+                                while (broadcastAccount.getCurrentVideo() == videoInfo && !ProcessUtil.waitProcess(pid, 1000)) {
                                     ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
                                     if (aliceProcess == null) {
                                         continue;
@@ -510,18 +510,18 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             break;
                         }
                     } catch (Throwable e) {
-                        log.error("startBroadcast failed", e);
+                        log.error("broadcastTask failed", e);
                     }
                     if (!terminate) {
                         Thread.sleep(1000);
                     }
                 }
+            } catch (InterruptedException ignore) {
+            } finally {
                 log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
                 if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                     log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
                 }
-            } catch (InterruptedException ignore) {
-            } finally {
                 terminate = true;
             }
         }
