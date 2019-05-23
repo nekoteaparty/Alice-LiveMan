@@ -503,7 +503,6 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             mediaProxyTask.waitForTerminate();
                             FileUtils.deleteQuietly(new File(mediaProxyTask.getTempPath()));
                         }
-                        broadcastAccount.removeCurrentVideo(videoInfo);
                         if (broadcastAccount.isDisable() && singleTask) {
                             log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
                             terminate = true;
@@ -511,6 +510,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         }
                     } catch (Throwable e) {
                         log.error("broadcastTask failed", e);
+                    } finally {
+                        if (broadcastAccount != null) {
+                            broadcastAccount.removeCurrentVideo(videoInfo);
+                        }
                     }
                     if (!terminate) {
                         Thread.sleep(1000);
