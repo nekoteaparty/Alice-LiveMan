@@ -484,20 +484,15 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             } catch (Throwable e) {
                                 log.error("startBroadcast failed", e);
                             } finally {
-                                if (lowVideoInfo != null) {
-                                    broadcastServerService.releaseServer(videoInfo);
-                                }
+                                broadcastServerService.releaseServer(videoInfo);
                                 // 杀死进程
                                 if (pid != 0) {
                                     ProcessUtil.killProcess(pid);
                                     log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + videoInfo.getVideoId() + "]推流进程已终止PID:" + pid);
                                 }
                             }
-                            try {
-                                if (!terminate) {
-                                    Thread.sleep(1000);
-                                }
-                            } catch (InterruptedException ignore) {
+                            if (!terminate) {
+                                Thread.sleep(1000);
                             }
                         }
                         // 终止推流时自动终止创建的低清晰度媒体代理任务
@@ -517,17 +512,15 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                     } catch (Throwable e) {
                         log.error("startBroadcast failed", e);
                     }
-                    try {
-                        if (!terminate) {
-                            Thread.sleep(1000);
-                        }
-                    } catch (InterruptedException ignore) {
+                    if (!terminate) {
+                        Thread.sleep(1000);
                     }
                 }
                 log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
                 if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                     log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
                 }
+            } catch (InterruptedException ignore) {
             } finally {
                 terminate = true;
             }
