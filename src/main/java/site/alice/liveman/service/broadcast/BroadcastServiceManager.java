@@ -436,6 +436,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                     }
                                     if (availableServer != null && availableServer.getCurrentVideo() != videoInfo) {
                                         log.warn("推流服务器已被释放，终止推流进程[videoId=" + videoInfo.getVideoId() + "]...");
+                                        break;
                                     }
                                     File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
                                     if (logFile != null && logFile.length() > 1024) {
