@@ -370,6 +370,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 String ffmpegCmdLine;
                                 // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
                                 pid = 0;
+                                ServerInfo availableServer = null;
                                 switch (videoInfo.getCropConf().getVideoBannedType()) {
                                     case CUSTOM_SCREEN: {
                                         health = -1;
@@ -402,7 +403,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         lowVideoInfo.setCropConf(videoInfo.getCropConf());
                                         ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                                         // pid = ProcessUtil.createProcess(ffmpegCmdLine, videoInfo.getVideoId());
-                                        ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
+                                        availableServer = broadcastServerService.getAvailableServer(videoInfo);
                                         if (availableServer != null) {
                                             pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, availableServer, true, videoInfo.getVideoId());
                                         } else {
@@ -428,10 +429,14 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 lowHealthCount = 0;
                                 health = 0;
                                 lastLogLength = 0;
-                                while (broadcastAccount.getCurrentVideo() != null && !ProcessUtil.waitProcess(pid, 1000)) {
+                                while (broadcastAccount.getCurrentVideo() == videoInfo && !ProcessUtil.waitProcess(pid, 1000)) {
                                     ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
                                     if (aliceProcess == null) {
                                         continue;
+                                    }
+                                    if (availableServer != null && availableServer.getCurrentVideo() != videoInfo) {
+                                        log.warn("推流服务器已被释放，终止推流进程[videoId=" + videoInfo.getVideoId() + "]...");
+                                        break;
                                     }
                                     File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
                                     if (logFile != null && logFile.length() > 1024) {
@@ -484,20 +489,15 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             } catch (Throwable e) {
                                 log.error("startBroadcast failed", e);
                             } finally {
-                                if (lowVideoInfo != null) {
-                                    broadcastServerService.releaseServer(videoInfo);
-                                }
+                                broadcastServerService.releaseServer(videoInfo);
                                 // 杀死进程
                                 if (pid != 0) {
                                     ProcessUtil.killProcess(pid);
                                     log.info("[" + broadcastAccount.getRoomId() + "@" + broadcastAccount.getAccountSite() + ", videoId=" + videoInfo.getVideoId() + "]推流进程已终止PID:" + pid);
                                 }
                             }
-                            try {
-                                if (!terminate) {
-                                    Thread.sleep(1000);
-                                }
-                            } catch (InterruptedException ignore) {
+                            if (!terminate) {
+                                Thread.sleep(1000);
                             }
                         }
                         // 终止推流时自动终止创建的低清晰度媒体代理任务
@@ -508,27 +508,28 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                             mediaProxyTask.waitForTerminate();
                             FileUtils.deleteQuietly(new File(mediaProxyTask.getTempPath()));
                         }
-                        broadcastAccount.removeCurrentVideo(videoInfo);
                         if (broadcastAccount.isDisable() && singleTask) {
                             log.warn("手动推流的直播账号[" + broadcastAccount.getAccountId() + "]不可用，已终止推流任务。");
                             terminate = true;
                             break;
                         }
                     } catch (Throwable e) {
-                        log.error("startBroadcast failed", e);
-                    }
-                    try {
-                        if (!terminate) {
-                            Thread.sleep(1000);
+                        log.error("broadcastTask failed", e);
+                    } finally {
+                        if (broadcastAccount != null) {
+                            broadcastAccount.removeCurrentVideo(videoInfo);
                         }
-                    } catch (InterruptedException ignore) {
+                    }
+                    if (!terminate) {
+                        Thread.sleep(1000);
                     }
                 }
+            } catch (InterruptedException ignore) {
+            } finally {
                 log.info("节目[" + videoInfo.getTitle() + "][videoId=" + videoInfo.getVideoId() + "]的推流任务[roomId=" + (broadcastAccount != null ? broadcastAccount.getRoomId() : "(无)") + "]已停止");
                 if (videoInfo.getBroadcastTask() != null && !videoInfo.removeBroadcastTask(this)) {
                     log.warn("警告：无法移除[videoId=" + videoInfo.getVideoId() + "]的推流任务，CAS操作失败");
                 }
-            } finally {
                 terminate = true;
             }
         }

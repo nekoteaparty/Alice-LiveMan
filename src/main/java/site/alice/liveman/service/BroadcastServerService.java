@@ -50,7 +50,6 @@ public class BroadcastServerService {
 
     public ServerInfo getAvailableServer(VideoInfo videoInfo) {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
-        ServerInfo lockedServer = null;
         try {
             // 获取服务器之前先释放掉所有被占用的服务器
             releaseServer(videoInfo);
@@ -59,7 +58,6 @@ public class BroadcastServerService {
             while (!availableServers.isEmpty()) {
                 ServerInfo serverInfo = availableServers.get((int) (Math.random() * availableServers.size()));
                 if (serverInfo.setCurrentVideo(videoInfo)) {
-                    lockedServer = serverInfo;
                     log.info("转播服务器调度成功[" + serverInfo.getRemark() + "@" + serverInfo.getAddress() + ":" + serverInfo.getPort() + "] => videoId=" + videoInfo.getVideoId());
                     return serverInfo;
                 } else {
@@ -76,7 +74,6 @@ public class BroadcastServerService {
                     addServer(serverInfo);
                     settingConfig.saveSetting(liveManSetting);
                     if (serverInfo.setCurrentVideo(videoInfo)) {
-                        lockedServer = serverInfo;
                         if (testServer(serverInfo) && installServer(serverInfo)) {
                             serverInfo.setAvailable(true);
                             settingConfig.saveSetting(liveManSetting);
@@ -89,13 +86,11 @@ public class BroadcastServerService {
             while (!unavailableServers.isEmpty()) {
                 ServerInfo serverInfo = unavailableServers.get((int) (Math.random() * unavailableServers.size()));
                 if (serverInfo.setCurrentVideo(videoInfo)) {
-                    lockedServer = serverInfo;
                     if (serverInfo.getExternalServiceType() == ExternalServiceType.VULTR_API) {
                         if (dynamicServerService.update(serverInfo) == null) {
                             log.warn("server " + serverInfo.getRemark() + " was not found, remove it.");
                             servers.remove(serverInfo);
                             unavailableServers.remove(serverInfo);
-                            lockedServer.removeCurrentVideo(videoInfo);
                             settingConfig.saveSetting(liveManSetting);
                             continue;
                         }
@@ -113,14 +108,10 @@ public class BroadcastServerService {
                     unavailableServers.remove(serverInfo);
                 }
             }
-            if (lockedServer != null) {
-                lockedServer.removeCurrentVideo(videoInfo);
-            }
+            releaseServer(videoInfo);
             log.info("没有找到空闲的转播服务器![videoId=" + videoInfo.getVideoUnionId() + "]");
         } catch (Throwable e) {
-            if (lockedServer != null) {
-                lockedServer.removeCurrentVideo(videoInfo);
-            }
+            releaseServer(videoInfo);
             throw e;
         }
         return null;
