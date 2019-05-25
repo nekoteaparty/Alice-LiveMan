@@ -79,6 +79,8 @@ public class BroadcastServerService {
                             settingConfig.saveSetting(liveManSetting);
                             log.info("转播服务器调度成功[" + serverInfo.getRemark() + "@" + serverInfo.getAddress() + ":" + serverInfo.getPort() + "] => videoId=" + videoInfo.getVideoId());
                             return serverInfo;
+                        } else {
+                            serverInfo.removeCurrentVideo(videoInfo);
                         }
                     }
                 }
@@ -91,6 +93,7 @@ public class BroadcastServerService {
                             log.warn("server " + serverInfo.getRemark() + " was not found, remove it.");
                             servers.remove(serverInfo);
                             unavailableServers.remove(serverInfo);
+                            serverInfo.removeCurrentVideo(videoInfo);
                             settingConfig.saveSetting(liveManSetting);
                             continue;
                         }
@@ -103,12 +106,12 @@ public class BroadcastServerService {
                     } else {
                         log.info("转播服务器[" + serverInfo.getRemark() + "]尚未初始化完毕，当前无法连接。");
                         unavailableServers.remove(serverInfo);
+                        serverInfo.removeCurrentVideo(videoInfo);
                     }
                 } else {
                     unavailableServers.remove(serverInfo);
                 }
             }
-            releaseServer(videoInfo);
             log.info("没有找到空闲的转播服务器![videoId=" + videoInfo.getVideoUnionId() + "]");
         } catch (Throwable e) {
             releaseServer(videoInfo);
