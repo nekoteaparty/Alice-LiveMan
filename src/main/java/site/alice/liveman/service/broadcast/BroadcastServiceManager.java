@@ -370,6 +370,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 String ffmpegCmdLine;
                                 // 如果是区域打码或自定义的，创建低分辨率媒体代理服务
                                 pid = 0;
+                                ServerInfo availableServer = null;
                                 switch (videoInfo.getCropConf().getVideoBannedType()) {
                                     case CUSTOM_SCREEN: {
                                         health = -1;
@@ -402,7 +403,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                         lowVideoInfo.setCropConf(videoInfo.getCropConf());
                                         ffmpegCmdLine = FfmpegUtil.buildFfmpegCmdLine(lowVideoInfo, broadcastAddress);
                                         // pid = ProcessUtil.createProcess(ffmpegCmdLine, videoInfo.getVideoId());
-                                        ServerInfo availableServer = broadcastServerService.getAvailableServer(videoInfo);
+                                        availableServer = broadcastServerService.getAvailableServer(videoInfo);
                                         if (availableServer != null) {
                                             pid = ProcessUtil.createRemoteProcess(ffmpegCmdLine, availableServer, true, videoInfo.getVideoId());
                                         } else {
@@ -432,6 +433,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                     ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(pid);
                                     if (aliceProcess == null) {
                                         continue;
+                                    }
+                                    if (availableServer != null && availableServer.getCurrentVideo() != videoInfo) {
+                                        log.warn("推流服务器已被释放，终止推流进程[videoId=" + videoInfo.getVideoId() + "]...");
                                     }
                                     File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
                                     if (logFile != null && logFile.length() > 1024) {
