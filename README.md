@@ -12,6 +12,7 @@
 + NicoLive `https://live2.nicovideo.jp/watch/lv318312102`或 `https://cas.nicovideo.jp/user/83115560/lv319023737`
 + PscpTV `https://www.pscp.tv/w/xxxxxxxx`
 + 17Live `https://17.live/live/xxxxxxxx`
++ Colon `https://colon-live.com/Usr/VTuberProfile?vTuberUserId=37d68b1c-954b-4aab-b8ab-e00b614a5cb0`
 
 ## 支持的转播目标
 + Bilibili
