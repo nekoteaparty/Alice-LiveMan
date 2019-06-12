@@ -96,7 +96,7 @@ public class BroadcastServerController {
         }
         try {
             if (broadcastServerService.testServer(serverInfo)) {
-                if (broadcastServerService.addAndInstallServer(serverInfo)) {
+                if (!broadcastServerService.addAndInstallServer(serverInfo)) {
                     return ActionResult.getErrorResult("添加失败：服务器初始化失败！");
                 }
             } else {
