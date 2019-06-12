@@ -58,16 +58,18 @@ public class DynamicServerJob {
     public void serverScanner() {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
         List<ServerInfo> list = dynamicServerService.list();
-        Collection<ServerInfo> subtract = CollectionUtils.subtract(list, servers);
-        for (ServerInfo serverInfo : subtract) {
-            // 检查是否可以连接
-            try {
-                log.info("发现新的服务器资源 " + serverInfo);
-                if (broadcastServerService.testServer(serverInfo)) {
-                    serverInfo.setAvailable(true);
-                    broadcastServerService.addAndInstallServer(serverInfo);
+        if (CollectionUtils.isNotEmpty(list)) {
+            Collection<ServerInfo> subtract = CollectionUtils.subtract(list, servers);
+            for (ServerInfo serverInfo : subtract) {
+                // 检查是否可以连接
+                try {
+                    log.info("发现新的服务器资源 " + serverInfo);
+                    if (broadcastServerService.testServer(serverInfo)) {
+                        serverInfo.setAvailable(true);
+                        broadcastServerService.addAndInstallServer(serverInfo);
+                    }
+                } catch (Exception ignore) {
                 }
-            } catch (Exception ignore) {
             }
         }
     }
