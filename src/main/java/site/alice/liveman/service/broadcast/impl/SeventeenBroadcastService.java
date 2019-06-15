@@ -41,7 +41,6 @@ public class SeventeenBroadcastService implements BroadcastService {
 
     private static final String API_RTMP                = "https://api-dsa.17app.co/api/v1/rtmp";
     private static final String API_17APP_GATEWAY       = "https://api-dsa.17app.co/apiGateWay";
-    private static final String API_17WINWINSUN_GATEWAY = "https://api-17.winwinsun.com/apiGateWay";
 
     @Override
     public boolean isMatch(String accountSite) {
@@ -93,7 +92,7 @@ public class SeventeenBroadcastService implements BroadcastService {
     @Override
     public String getBroadcastCookies(String username, String password, String captcha) throws Exception {
         Map<String, String> requestHeader = buildRequestHeader(null);
-        String loginJSON = HttpRequestUtil.downloadUrl(new URI(API_17WINWINSUN_GATEWAY), null, "data={\"openID\":\"" + username + "\",\"password\":\"" + DigestUtils.md5Hex(password) + "\",\"action\":\"loginAction\"}", requestHeader, StandardCharsets.UTF_8);
+        String loginJSON = HttpRequestUtil.downloadUrl(new URI(API_17APP_GATEWAY), null, "data={\"openID\":\"" + username + "\",\"password\":\"" + DigestUtils.md5Hex(password) + "\",\"action\":\"loginAction\"}", requestHeader, StandardCharsets.UTF_8);
         JSONObject loginObj = JSONObject.parseObject(loginJSON).getJSONObject("data");
         if ("success".equals(loginObj.get("result"))) {
             return loginObj.getString("accessToken");
