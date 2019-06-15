@@ -23,9 +23,12 @@ public class LiveNowVO {
      * uid
      */
     private String uid;
+    private String accountId;
     private String roomId;
+    private String accountSite;
     private String videoTitle;
     private String channelName;
+    private String thumbnail;
 
     public String getUid() {
         return uid;
@@ -33,6 +36,22 @@ public class LiveNowVO {
 
     public void setUid(String uid) {
         this.uid = uid;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
+
+    public String getAccountSite() {
+        return accountSite;
+    }
+
+    public void setAccountSite(String accountSite) {
+        this.accountSite = accountSite;
     }
 
     public String getRoomId() {
@@ -57,5 +76,13 @@ public class LiveNowVO {
 
     public void setChannelName(String channelName) {
         this.channelName = channelName;
+    }
+
+    public String getThumbnail() {
+        return thumbnail;
+    }
+
+    public void setThumbnail(String thumbnail) {
+        this.thumbnail = thumbnail;
     }
 }

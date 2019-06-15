@@ -29,6 +29,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -107,16 +108,16 @@ public class HttpRequestUtil {
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
         if (StringUtils.isNotBlank(cookies)) {
-            httpGet.addHeader("Cookie", cookies);
+            httpGet.setHeader("Cookie", cookies);
         }
+        httpGet.setHeader("Accept", "*/*");
+        httpGet.setHeader("Accept-Encoding", "gzip, deflate");
+        httpGet.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         if (requestProperties != null) {
             for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
-                httpGet.addHeader(entry.getKey(), entry.getValue());
+                httpGet.setHeader(entry.getKey(), entry.getValue());
             }
         }
-        httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        httpGet.addHeader("Accept-Encoding", "gzip, deflate");
-        httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
@@ -141,16 +142,16 @@ public class HttpRequestUtil {
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpPost.setConfig(builder.build());
         if (StringUtils.isNotBlank(cookies)) {
-            httpPost.addHeader("Cookie", cookies);
+            httpPost.setHeader("Cookie", cookies);
         }
+        httpPost.setHeader("Accept", "*/*");
+        httpPost.setHeader("Accept-Encoding", "gzip, deflate");
+        httpPost.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         if (requestProperties != null) {
             for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
-                httpPost.addHeader(entry.getKey(), entry.getValue());
+                httpPost.setHeader(entry.getKey(), entry.getValue());
             }
         }
-        httpPost.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
-        httpPost.addHeader("Accept-Encoding", "gzip, deflate");
-        httpPost.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         if (postData.startsWith("{")) {
             httpPost.setEntity(new StringEntity(postData, ContentType.APPLICATION_JSON));
         } else {
@@ -160,13 +161,14 @@ public class HttpRequestUtil {
                 String[] itemData = formItem.split("=");
                 nameValuePairs.add(new BasicNameValuePair(itemData[0], itemData.length > 1 ? itemData[1] : StringUtils.EMPTY));
             }
-            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs, charset));
+            UrlEncodedFormEntity urlEncodedFormEntity = new UrlEncodedFormEntity(nameValuePairs, charset);
+            urlEncodedFormEntity.setContentType(URLEncodedUtils.CONTENT_TYPE);
+            httpPost.setEntity(urlEncodedFormEntity);
         }
         try (CloseableHttpResponse httpResponse = client.execute(httpPost, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -181,7 +183,7 @@ public class HttpRequestUtil {
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
-        httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        httpGet.addHeader("Accept", "*/*");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
@@ -203,7 +205,7 @@ public class HttpRequestUtil {
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(30000).setConnectionRequestTimeout(30000).setSocketTimeout(30000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
-        httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        httpGet.addHeader("Accept", "*/*");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
@@ -225,7 +227,7 @@ public class HttpRequestUtil {
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
-        httpGet.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        httpGet.addHeader("Accept", "*/*");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
