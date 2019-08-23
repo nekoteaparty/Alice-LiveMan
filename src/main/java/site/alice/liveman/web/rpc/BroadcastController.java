@@ -116,6 +116,9 @@ public class BroadcastController {
             return ActionResult.getErrorResult("此转播任务尚未运行或已停止");
         }
         VideoInfo videoInfo = mediaProxyTask.getVideoInfo();
+        if (account.getAccountSite().equals("17live") && videoInfo.getChannelInfo().getChannelName().equals("手动推流")) {
+            return ActionResult.getErrorResult("17Live账号不允许手动推流，请联系管理员添加相应频道！");
+        }
         log.info(account.getAccountId() + "认领了转播任务[videoId=" + videoId + ", title=" + videoInfo.getTitle() + "]");
         BroadcastTask broadcastTask = videoInfo.getBroadcastTask();
         if (broadcastTask != null) {
@@ -130,6 +133,9 @@ public class BroadcastController {
         try {
             VideoCropConf cropConf = videoInfo.getCropConf();
             if (cropConf.getBroadcastResolution() != null && cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                if (account.getAccountSite().equals("17live")) {
+                    return ActionResult.getErrorResult("17Live账号不支持自定义推流，请点击[管理] -> [视频内容规则]选择[取消内容规制]选项！");
+                }
                 int performance = cropConf.getBroadcastResolution().getPerformance();
                 int serverPoint = liveManSetting.getServerPoints()[performance];
                 if (account.getPoint() < serverPoint && account.getBillTimeMap().get(performance) == null) {
@@ -184,6 +190,9 @@ public class BroadcastController {
         if (cropConf != null) {
             boolean needRestart = false;
             if (cropConf.getVideoBannedType() == VideoBannedTypeEnum.CUSTOM_SCREEN) {
+                if (account.getAccountSite().equals("17live")) {
+                    return ActionResult.getErrorResult("17Live账号不支持自定义推流，请点击[管理] -> [视频内容规则]选择[取消内容规制]选项！");
+                }
                 if (cropConf.getBroadcastResolution() != _cropConf.getBroadcastResolution() && broadcastTask != null) {
                     needRestart = true;
                 }
@@ -286,6 +295,9 @@ public class BroadcastController {
     public ActionResult createTask(String videoUrl, String cookies) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
         try {
+            if (account.getAccountSite().equals("17live")) {
+                return ActionResult.getErrorResult("17Live账号不允许手动推流，请联系管理员添加相应频道！");
+            }
             ChannelInfo channelInfo = new ChannelInfo();
             channelInfo.setChannelName("手动推流");
             channelInfo.setCookies(cookies);
