@@ -200,16 +200,28 @@ public class HttpRequestUtil {
     }
 
     public static HttpResponse getHttpResponse(URI url) throws IOException {
+        return getHttpResponse(url, null, null);
+    }
+
+    public static HttpResponse getHttpResponse(URI url, String cookies, Map<String, String> requestProperties) throws IOException {
         HttpGet httpGet = new HttpGet(url);
         HttpClientContext context = HttpClientContext.create();
         RequestConfig.Builder builder = RequestConfig.custom();
         builder.setConnectTimeout(30000).setConnectionRequestTimeout(30000).setSocketTimeout(30000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
         httpGet.setConfig(builder.build());
+        if (StringUtils.isNotBlank(cookies)) {
+            httpGet.setHeader("Cookie", cookies);
+        }
         httpGet.addHeader("Accept", "*/*");
         httpGet.addHeader("Accept-Encoding", "gzip, deflate");
         httpGet.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
-        try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
-            return httpResponse;
+        if (requestProperties != null) {
+            for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
+                httpGet.setHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        try {
+            return client.execute(httpGet, context);
         } catch (IllegalStateException e) {
             initClient();
             throw e;

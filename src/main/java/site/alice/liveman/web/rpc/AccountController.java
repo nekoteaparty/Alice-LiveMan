@@ -103,6 +103,9 @@ public class AccountController {
     @RequestMapping("/addAccount.json")
     public ActionResult addAccount(@RequestBody AccountInfoVO accountInfoVO) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
+        if (account.getAccountSite().equals("17live")) {
+            return ActionResult.getErrorResult("暂不支持保存17Live账号，敬请谅解！");
+        }
         AccountInfo byAccountId = liveManSetting.findByAccountId(account.getAccountId());
         if (byAccountId != null) {
             return ActionResult.getErrorResult("此账号已存在，如要更新账号信息请删除后重新添加");
