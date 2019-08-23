@@ -126,7 +126,7 @@ public class DouYuBroadcastService implements BroadcastService {
                     accountInfo.setAccountId(accountInfo.getNickname());
                 }
             } else {
-                throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);
+                throw new RuntimeException("获取斗鱼直播间信息失败" + liveInfoObject);
             }
         }
         return accountInfo.getRoomId();
