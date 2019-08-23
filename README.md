@@ -16,5 +16,7 @@
 
 ## 支持的转播目标
 + Bilibili
++ 斗鱼TV
++ 17L
 
 依赖项目：https://github.com/NekoSunflower/OneDriveJavaSDK
