@@ -110,6 +110,7 @@ public class BroadcastController {
     @RequestMapping("/adoptTask.json")
     public ActionResult adoptTask(String videoId) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
+        account.setDisable(false);
         MediaProxyTask mediaProxyTask = MediaProxyManager.getExecutedProxyTaskMap().get(videoId);
         if (mediaProxyTask == null) {
             log.info("此转播任务尚未运行，或已停止[MediaProxyTask不存在][videoId=" + videoId + "]");
@@ -294,6 +295,7 @@ public class BroadcastController {
     @RequestMapping("/createTask.json")
     public ActionResult createTask(String videoUrl, String cookies) {
         AccountInfo account = (AccountInfo) session.getAttribute("account");
+        account.setDisable(false);
         try {
             if (account.getAccountSite().equals("17live")) {
                 return ActionResult.getErrorResult("17Live账号不允许手动推流，请联系管理员添加相应频道！");

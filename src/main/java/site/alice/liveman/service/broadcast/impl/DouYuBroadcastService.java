@@ -112,6 +112,9 @@ public class DouYuBroadcastService implements BroadcastService {
     public String getBroadcastRoomId(AccountInfo accountInfo) throws Exception {
         if (StringUtils.isEmpty(accountInfo.getRoomId())) {
             String liveInfoJson = HttpRequestUtil.downloadUrl(new URI(URL_ROOM_INFO), accountInfo.getCookies(), Collections.emptyMap(), StandardCharsets.UTF_8);
+            if (liveInfoJson.contains("申请主播")) {
+                throw new RuntimeException("此账号未开通斗鱼直播间");
+            }
             JSONObject liveInfoObject = JSON.parseObject(liveInfoJson);
             if (liveInfoObject.get("data") instanceof JSONObject) {
                 JSONObject data = liveInfoObject.getJSONObject("data");
