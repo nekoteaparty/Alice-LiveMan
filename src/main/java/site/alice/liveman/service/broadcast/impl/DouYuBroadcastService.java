@@ -84,7 +84,7 @@ public class DouYuBroadcastService implements BroadcastService {
         Map<String, String> requestProperties = new HashMap<>();
         requestProperties.put("referer", "https://mp.douyu.com/live/main");
         requestProperties.put("x-requested-with", "XMLHttpRequest");
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(URL_OPEN_SHOW), accountInfo.getCookies(), "", requestProperties, StandardCharsets.UTF_8);
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(URL_OPEN_SHOW), accountInfo.getCookies(), "notshowtip=1", requestProperties, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.getInteger("code") == 0 || startLiveObject.getString("msg").contains("重复")) {

@@ -208,6 +208,10 @@ public class BroadcastServiceManager implements ApplicationContextAware {
         if (defaultAccountId != null) {
             AccountInfo accountInfo = liveManSetting.findByAccountId(defaultAccountId);
             String logInfo = "频道[" + channelInfo.getChannelName() + "], videoId=" + videoInfo.getVideoId() + "的默认直播间[" + defaultAccountId + "]";
+            if (accountInfo != null && "bilibili".equals(accountInfo.getAccountSite())) {
+                log.info("忽略B站账号的自动推流设置!");
+                return null;
+            }
             if (accountInfo == null) {
                 log.info(logInfo + "的账号信息不存在");
             } else if (accountInfo.isDisable()) {
