@@ -25,11 +25,12 @@ import java.awt.geom.RoundRectangle2D;
 
 public class ShapeLayout extends DrawingLayout {
 
-    private float  opacity;
-    private float  radiusPercentW;
-    private float  radiusPercentH;
-    private String hexColor;
-    private String rgba;
+    private float   opacity;
+    private float   radiusPercentW;
+    private float   radiusPercentH;
+    private String  hexColor;
+    private String  rgba;
+    private boolean mask;
 
     public float getRadiusPercentW() {
         return radiusPercentW;
@@ -71,14 +72,29 @@ public class ShapeLayout extends DrawingLayout {
         this.rgba = rgba;
     }
 
+    public boolean isMask() {
+        return mask;
+    }
+
+    public void setMask(boolean mask) {
+        this.mask = mask;
+    }
+
     @Override
     public void paintLayout(Graphics2D g) throws Exception {
         RoundRectangle2D roundedRectangle = new RoundRectangle2D.Float(x, y, width, height, width * (radiusPercentW * 0.01f), height * (radiusPercentH * 0.01f));
-        g.setColor(Color.decode(hexColor));
-        Composite oldComp = g.getComposite();
-        g.setPaintMode();
-        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
-        g.fill(roundedRectangle);
-        g.setComposite(oldComp);
+        if (mask) {
+            g.setColor(new Color(0, 0, 0, 0));
+            g.setPaintMode();
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+            g.fill(roundedRectangle);
+        } else {
+            g.setColor(Color.decode(hexColor));
+            Composite oldComp = g.getComposite();
+            g.setPaintMode();
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+            g.fill(roundedRectangle);
+            g.setComposite(oldComp);
+        }
     }
 }
