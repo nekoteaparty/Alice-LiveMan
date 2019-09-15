@@ -17,6 +17,8 @@
  */
 package site.alice.liveman.utils;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -122,7 +124,7 @@ public class HttpRequestUtil {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + JSON.toJSONString(httpResponse.getAllHeaders(), SerializerFeature.PrettyFormat) + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -168,7 +170,7 @@ public class HttpRequestUtil {
         try (CloseableHttpResponse httpResponse = client.execute(httpPost, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n" + EntityUtils.toString(responseEntity));
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + JSON.toJSONString(httpResponse.getAllHeaders(), SerializerFeature.PrettyFormat) + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
