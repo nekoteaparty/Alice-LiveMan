@@ -57,10 +57,7 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
@@ -123,8 +120,7 @@ public class HttpRequestUtil {
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + JSON.toJSONString(httpResponse.getAllHeaders(), SerializerFeature.PrettyFormat) + "\n" + EntityUtils.toString(responseEntity));
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + Arrays.toString(httpResponse.getAllHeaders()) + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -170,7 +166,7 @@ public class HttpRequestUtil {
         try (CloseableHttpResponse httpResponse = client.execute(httpPost, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + JSON.toJSONString(httpResponse.getAllHeaders(), SerializerFeature.PrettyFormat) + "\n" + EntityUtils.toString(responseEntity));
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + Arrays.toString(httpResponse.getAllHeaders()) + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toString(responseEntity, charset);
         } catch (IllegalStateException e) {
@@ -191,8 +187,7 @@ public class HttpRequestUtil {
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                EntityUtils.consume(responseEntity);
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + Arrays.toString(httpResponse.getAllHeaders()) + "\n" + EntityUtils.toString(responseEntity));
             }
             return EntityUtils.toByteArray(responseEntity);
         } catch (IllegalStateException e) {
@@ -247,11 +242,11 @@ public class HttpRequestUtil {
         try (CloseableHttpResponse httpResponse = client.execute(httpGet, context)) {
             HttpEntity responseEntity = httpResponse.getEntity();
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                EntityUtils.consume(responseEntity);
                 if (httpResponse.getStatusLine().getStatusCode() == 404) {
+                    EntityUtils.consume(responseEntity);
                     throw new FileNotFoundException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
                 }
-                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase());
+                throw new IOException(httpResponse.getStatusLine().getStatusCode() + " " + httpResponse.getStatusLine().getReasonPhrase() + "\n Headers:" + Arrays.toString(httpResponse.getAllHeaders()) + "\n" + EntityUtils.toString(responseEntity));
             }
             InputStream is = responseEntity.getContent();
             if (responseEntity.getContentEncoding() != null && StringUtils.containsIgnoreCase(responseEntity.getContentEncoding().getValue(), "gzip")) {
