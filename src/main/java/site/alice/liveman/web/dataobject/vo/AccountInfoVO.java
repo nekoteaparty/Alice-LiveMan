@@ -19,6 +19,7 @@
 package site.alice.liveman.web.dataobject.vo;
 
 import site.alice.liveman.jenum.VideoResolutionEnum;
+import site.alice.liveman.model.BroadcastError;
 
 import java.util.HashMap;
 
@@ -38,6 +39,7 @@ public class AccountInfoVO {
     private HashMap<Integer, Long> billTimeMap;
     private VideoResolutionEnum    broadcastResolution;
     private int[]                  serverPoints;
+    private BroadcastError         broadcastError;
     private long                   timestamp = System.currentTimeMillis();
 
     public String getAccountId() {
@@ -166,5 +168,13 @@ public class AccountInfoVO {
 
     public void setServerPoints(int[] serverPoints) {
         this.serverPoints = serverPoints;
+    }
+
+    public BroadcastError getBroadcastError() {
+        return broadcastError;
+    }
+
+    public void setBroadcastError(BroadcastError broadcastError) {
+        this.broadcastError = broadcastError;
     }
 }

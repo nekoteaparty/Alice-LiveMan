@@ -47,6 +47,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private ConcurrentHashMap<Integer, Long> billTimeMap;
     private CopyOnWriteArrayList<BillRecord> billRecords;
     private VideoResolutionEnum              broadcastResolution;
+    private BroadcastError                   broadcastError;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo>       currentVideo = new AtomicReference<>();
 
@@ -155,6 +156,14 @@ public class AccountInfo implements Comparable<AccountInfo> {
             billRecords = new CopyOnWriteArrayList<>(billRecords.subList(0, 100));
         }
         return this.point.addAndGet(delta);
+    }
+
+    public BroadcastError getBroadcastError() {
+        return broadcastError;
+    }
+
+    public void setBroadcastError(BroadcastError broadcastError) {
+        this.broadcastError = broadcastError;
     }
 
     public ConcurrentHashMap<Integer, Long> getBillTimeMap() {
