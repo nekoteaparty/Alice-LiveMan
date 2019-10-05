@@ -26,12 +26,15 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.google.zxing.qrcode.encoder.Encoder;
 import com.google.zxing.qrcode.encoder.QRCode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.Md5Crypt;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
+import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import retrofit2.http.Url;
@@ -40,6 +43,7 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.VideoInfo;
 import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.utils.HttpRequestUtil;
+import site.alice.liveman.utils.SecurityUtils;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpSession;
@@ -67,9 +71,9 @@ public class DouYuBroadcastService implements BroadcastService {
     public static final String URL_CHECK_CODE    = "https://passport.douyu.com/lapi/passport/qrcode/check?time=%s&code=%s";
     public static final String URL_ROOM_INFO     = "https://mp.douyu.com/live/room/getroominfo";
     public static final String URL_MEMBER_INFO   = "https://www.douyu.com/lapi/member/api/getInfo?client_type=0";
-    public static final String URL_OPEN_SHOW     = "https://mp.douyu.com/live/pushflow/openShow";
-    public static final String URL_CLOSE_SHOW    = "https://mp.douyu.com/live/pushflow/closeshow";
-    public static final String URL_GET_RTMP      = "https://mp.douyu.com/live/pushflow/getRtmp";
+    public static final String URL_OPEN_SHOW     = "https://www.douyu.com/room/my/first_show";
+    public static final String URL_CLOSE_SHOW    = "https://www.douyu.com/room/my/close_show";
+    public static final String URL_GET_RTMP      = "https://www.douyu.com/room/my/get_live_code";
 
     @Autowired
     private HttpSession session;
@@ -82,17 +86,26 @@ public class DouYuBroadcastService implements BroadcastService {
     @Override
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
         Map<String, String> requestProperties = new HashMap<>();
-        requestProperties.put("referer", "https://mp.douyu.com/live/main");
+        requestProperties.put("referer", "https://www.douyu.com/" + accountInfo.getRoomId());
         requestProperties.put("x-requested-with", "XMLHttpRequest");
-        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(URL_OPEN_SHOW), accountInfo.getCookies(), "notshowtip=1", requestProperties, StandardCharsets.UTF_8);
+        Matcher matcher = Pattern.compile("acf_ccn=(.{32})").matcher(accountInfo.getCookies());
+        String csrfToken = "";
+        if (matcher.find()) {
+            csrfToken = matcher.group(1);
+        }
+        String startLiveJson = HttpRequestUtil.downloadUrl(new URI(URL_OPEN_SHOW), accountInfo.getCookies(), "ctn=" + csrfToken + "&notshowtip=1", requestProperties, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
-        if (startLiveObject.getInteger("code") == 0 || startLiveObject.getString("msg").contains("重复")) {
-            String getRtmpJson = HttpRequestUtil.downloadUrl(new URI(URL_GET_RTMP), accountInfo.getCookies(), "", requestProperties, StandardCharsets.UTF_8);
-            rtmpObject = JSON.parseObject(getRtmpJson).getJSONObject("data");
+        if (startLiveObject.getInteger("error") == 0 || startLiveObject.getString("msg").contains("重复")) {
+            String getRtmpJson = HttpRequestUtil.downloadUrl(new URI(URL_GET_RTMP), accountInfo.getCookies(), "ctn=" + csrfToken + "&room_id=" + accountInfo.getRoomId(), requestProperties, StandardCharsets.UTF_8);
+            rtmpObject = JSON.parseObject(getRtmpJson).getJSONObject("rtmp_send");
         } else {
             accountInfo.setDisable(true);
-            throw new RuntimeException("开启斗鱼直播间失败" + startLiveJson);
+            if (startLiveObject.getInteger("error") == -99) {
+                throw new RuntimeException("开启斗鱼直播间失败，账号登录凭据已失效。");
+            } else {
+                throw new RuntimeException("开启斗鱼直播间失败" + startLiveObject);
+            }
         }
         String addr = rtmpObject.getString("rtmp_url");
         String code = rtmpObject.getString("rtmp_val");
@@ -163,7 +176,9 @@ public class DouYuBroadcastService implements BroadcastService {
                 JSONObject apolloLogin = JSON.parseObject(apolloLoginJSON.substring(1, apolloLoginJSON.length() - 1));
                 if (apolloLogin.getInteger("error") == 0) {
                     headerList.addAll(Arrays.asList(httpResponse.getHeaders("set-cookie")));
-                    headerList.add(new BasicHeader("set-cookie", "apollo_ctn=7f93917a594207853acd573d501287cb;"));
+                    String randomCtn = SecurityUtils.md5Encode(String.valueOf(System.nanoTime()).getBytes());
+                    headerList.add(new BasicHeader("set-cookie", "apollo_ctn=" + randomCtn + ";"));
+                    headerList.add(new BasicHeader("set-cookie", "acf_ccn=" + randomCtn + ";"));
                     return headerList.stream().map(header -> header.getValue().split(";")[0]).collect(Collectors.joining(";"));
                 } else {
                     throw new Exception(loginResult.getString("data"));

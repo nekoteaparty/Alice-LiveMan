@@ -492,7 +492,7 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                                 }
                             } catch (Throwable e) {
                                 log.error("startBroadcast failed", e);
-                                if (broadcastAccount != null) {
+                                if (broadcastAccount != null && broadcastAccount.isDisable()) {
                                     broadcastAccount.setBroadcastError(new BroadcastError(e.getMessage()));
                                 }
                             } finally {
@@ -522,6 +522,9 @@ public class BroadcastServiceManager implements ApplicationContextAware {
                         }
                     } catch (Throwable e) {
                         log.error("broadcastTask failed", e);
+                        if (broadcastAccount != null) {
+                            broadcastAccount.setBroadcastError(new BroadcastError(e.getMessage()));
+                        }
                     } finally {
                         if (broadcastAccount != null) {
                             broadcastAccount.removeCurrentVideo(videoInfo);
