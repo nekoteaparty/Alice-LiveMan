@@ -87,7 +87,7 @@ public class BilibiliBroadcastService implements BroadcastService {
             rtmpObject = startLiveObject.getJSONObject("data").getJSONObject("rtmp");
         } else {
             accountInfo.setDisable(true);
-            throw new RuntimeException("开启B站直播间失败" + startLiveJson);
+            throw new RuntimeException("开启B站直播间失败" + startLiveObject);
         }
         String addr = rtmpObject.getString("addr");
         String code = rtmpObject.getString("code");
