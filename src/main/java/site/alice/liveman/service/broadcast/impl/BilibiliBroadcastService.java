@@ -83,7 +83,7 @@ public class BilibiliBroadcastService implements BroadcastService {
         String startLiveJson = HttpRequestUtil.downloadUrl(new URI(BILI_START_LIVE_URL), accountInfo.getCookies(), "room_id=" + accountInfo.getRoomId() + "&platform=pc&area_v2=" + area + (videoInfo.isVertical() ? "&type=1" : "") + "&csrf_token=" + csrfToken, StandardCharsets.UTF_8);
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
-        if (startLiveObject.get("data") instanceof JSONObject) {
+        if (startLiveObject.getInteger("code") == 0) {
             rtmpObject = startLiveObject.getJSONObject("data").getJSONObject("rtmp");
         } else {
             accountInfo.setDisable(true);
