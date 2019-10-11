@@ -156,6 +156,10 @@ public class BroadcastServerService {
 
     public boolean installServer(ServerInfo serverInfo) {
         log.info("installServer " + serverInfo);
+        if ("127.0.0.1".equals(serverInfo.getAddress())) {
+            log.info("检测到需要初始化的服务器为本机[127.0.0.1]，跳过初始化流程！");
+            return true;
+        }
         try (JschSshUtil jschSshUtil = new JschSshUtil(serverInfo)) {
             jschSshUtil.transferFile(liveManSetting.getFfmpegPath(), liveManSetting.getFfmpegPath());
             return true;
