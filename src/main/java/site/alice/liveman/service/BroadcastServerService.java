@@ -41,12 +41,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BroadcastServerService {
 
+    private static final String[]             STATIC_SYNC_FILES = new String[]{"/etc/resolv.conf", "/etc/hosts"};
     @Autowired
-    private LiveManSetting       liveManSetting;
+    private              LiveManSetting       liveManSetting;
     @Autowired
-    private SettingConfig        settingConfig;
+    private              SettingConfig        settingConfig;
     @Autowired
-    private DynamicServerService dynamicServerService;
+    private              DynamicServerService dynamicServerService;
 
     public ServerInfo getAvailableServer(VideoInfo videoInfo) {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
@@ -162,6 +163,9 @@ public class BroadcastServerService {
         }
         try (JschSshUtil jschSshUtil = new JschSshUtil(serverInfo)) {
             jschSshUtil.transferFile(liveManSetting.getFfmpegPath(), liveManSetting.getFfmpegPath());
+            for (String syncFile : STATIC_SYNC_FILES) {
+                jschSshUtil.transferFile(syncFile, syncFile);
+            }
             return true;
         } catch (Throwable e) {
             log.error("Install server " + serverInfo.getAddress() + "[" + serverInfo.getRemark() + "] failed:" + e);
