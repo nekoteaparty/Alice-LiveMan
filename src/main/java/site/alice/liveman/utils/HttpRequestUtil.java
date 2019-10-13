@@ -51,10 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.model.LiveManSetting;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedTrustManager;
+import javax.net.ssl.*;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -95,9 +92,47 @@ public class HttpRequestUtil {
 
             }
         }
+        SSLContext sslContext = SSLContexts.createDefault();
+        try {
+            final TrustManager[] trustAllCerts = new TrustManager[]{new X509ExtendedTrustManager() {
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                }
+
+                public void checkClientTrusted(final X509Certificate[] chain, final String authType) {
+                }
+
+                public void checkServerTrusted(final X509Certificate[] chain, final String authType) {
+                }
+
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            }};
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+        } catch (KeyManagementException e) {
+            throw new SSLInitializationException(e.getMessage(), e);
+        }
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
-                .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createDefault())).build();
+                .register("https", new ProxySSLConnectionSocketFactory(sslContext)).build();
         connectionManager = new PoolingHttpClientConnectionManager(reg);
         connectionManager.setMaxTotal(1000);
         connectionManager.setDefaultMaxPerRoute(50);
@@ -291,47 +326,6 @@ public class HttpRequestUtil {
 
         public ProxySSLConnectionSocketFactory(SSLContext sslContext) {
             super(sslContext);
-            try {
-                sslContext.init(null, new TrustManager[]{new X509ExtendedTrustManager() {
-
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                    }
-
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                    }
-
-                    @Override
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
-                    }
-
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
-                    }
-
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-                    }
-
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-                    }
-                }}, new SecureRandom());
-            } catch (KeyManagementException e) {
-                throw new SSLInitializationException(e.getMessage(), e);
-            }
         }
 
         @Override
