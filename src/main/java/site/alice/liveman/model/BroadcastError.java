@@ -27,6 +27,9 @@ public class BroadcastError {
     private Date   errTime;
     private String errMsg;
 
+    public BroadcastError() {
+    }
+
     public BroadcastError(String errMsg) {
         this.errTime = new Date();
         this.errMsg = errMsg;
