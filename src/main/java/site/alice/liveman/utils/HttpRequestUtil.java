@@ -45,18 +45,26 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.SSLInitializationException;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.model.LiveManSetting;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.security.KeyManagementException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
@@ -89,7 +97,7 @@ public class HttpRequestUtil {
         }
         Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", new ProxyConnectionSocketFactory())
-                .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
+                .register("https", new ProxySSLConnectionSocketFactory(SSLContexts.createDefault())).build();
         connectionManager = new PoolingHttpClientConnectionManager(reg);
         connectionManager.setMaxTotal(1000);
         connectionManager.setDefaultMaxPerRoute(50);
@@ -283,6 +291,47 @@ public class HttpRequestUtil {
 
         public ProxySSLConnectionSocketFactory(SSLContext sslContext) {
             super(sslContext);
+            try {
+                sslContext.init(null, new TrustManager[]{new X509ExtendedTrustManager() {
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                    }
+                }}, new SecureRandom());
+            } catch (KeyManagementException e) {
+                throw new SSLInitializationException(e.getMessage(), e);
+            }
         }
 
         @Override
