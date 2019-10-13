@@ -46,8 +46,8 @@ public class VultrDynamicServerServiceImpl implements DynamicServerService {
     private static final String API_SERVER_LIST    = "https://api.vultr.com/v1/server/list";
     private static final String API_SERVER_CREATE  = "https://api.vultr.com/v1/server/create";
     private static final String API_SERVER_DESTROY = "https://api.vultr.com/v1/server/destroy";
-    private static final int    OSID               = 167;
-    private static final int[]  PLANIDS            = {0, 201, 203};
+    private static final int    OSID               = 362;
+    private static final int[]  PLANIDS            = {0, 400, 203};
     private static final int    DCID               = 25;
     private static final String SERVER_LABEL       = "ALICE_VULTR_DYNAMIC";
 
