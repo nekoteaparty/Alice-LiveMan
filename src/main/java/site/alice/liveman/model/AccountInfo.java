@@ -21,6 +21,7 @@ package site.alice.liveman.model;
 import com.alibaba.fastjson.annotation.JSONField;
 import site.alice.liveman.jenum.VideoResolutionEnum;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,8 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private BroadcastError                   broadcastError;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo>       currentVideo = new AtomicReference<>();
+    private Long                             rtmpUrlRefreshTime;
+    private String                           rtmpUrl;
 
     public AccountInfo() {
         point = new AtomicLong();
@@ -212,6 +215,22 @@ public class AccountInfo implements Comparable<AccountInfo> {
 
     public void setBroadcastResolution(VideoResolutionEnum broadcastResolution) {
         this.broadcastResolution = broadcastResolution;
+    }
+
+    public Long getRtmpUrlRefreshTime() {
+        return rtmpUrlRefreshTime;
+    }
+
+    public void setRtmpUrlRefreshTime(Long rtmpUrlRefreshTime) {
+        this.rtmpUrlRefreshTime = rtmpUrlRefreshTime;
+    }
+
+    public String getRtmpUrl() {
+        return rtmpUrl;
+    }
+
+    public void setRtmpUrl(String rtmpUrl) {
+        this.rtmpUrl = rtmpUrl;
     }
 
     @Override

@@ -85,6 +85,11 @@ public class DouYuBroadcastService implements BroadcastService {
 
     @Override
     public String getBroadcastAddress(AccountInfo accountInfo) throws Exception {
+        if (accountInfo.getRtmpUrlRefreshTime() != null && accountInfo.getRtmpUrl() != null) {
+            if (System.currentTimeMillis() - accountInfo.getRtmpUrlRefreshTime() < 10000) {
+                return accountInfo.getRtmpUrl();
+            }
+        }
         Map<String, String> requestProperties = new HashMap<>();
         requestProperties.put("referer", "https://www.douyu.com/" + accountInfo.getRoomId());
         requestProperties.put("x-requested-with", "XMLHttpRequest");
@@ -109,11 +114,15 @@ public class DouYuBroadcastService implements BroadcastService {
         }
         String addr = rtmpObject.getString("rtmp_url");
         String code = rtmpObject.getString("rtmp_val");
+        String rtmpUrl;
         if (!addr.endsWith("/") && !code.startsWith("/")) {
-            return addr + "/" + code;
+            rtmpUrl = addr + "/" + code;
         } else {
-            return addr + code;
+            rtmpUrl = addr + code;
         }
+        accountInfo.setRtmpUrlRefreshTime(System.currentTimeMillis());
+        accountInfo.setRtmpUrl(rtmpUrl);
+        return rtmpUrl;
     }
 
     @Override
