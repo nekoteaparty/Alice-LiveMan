@@ -51,7 +51,9 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private BroadcastError                   broadcastError;
     @JSONField(serialize = false)
     private AtomicReference<VideoInfo>       currentVideo = new AtomicReference<>();
+    @JSONField(serialize = false)
     private Long                             rtmpUrlRefreshTime;
+    @JSONField(serialize = false)
     private String                           rtmpUrl;
 
     public AccountInfo() {
