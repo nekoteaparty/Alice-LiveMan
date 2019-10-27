@@ -102,6 +102,7 @@ public class DouYuBroadcastService implements BroadcastService {
         JSONObject startLiveObject = JSON.parseObject(startLiveJson);
         JSONObject rtmpObject;
         if (startLiveObject.getInteger("error") == 0 || startLiveObject.getString("msg").contains("重复")) {
+            Thread.sleep(1000);
             String getRtmpJson = HttpRequestUtil.downloadUrl(new URI(URL_GET_RTMP), accountInfo.getCookies(), "ctn=" + csrfToken + "&room_id=" + accountInfo.getRoomId(), requestProperties, StandardCharsets.UTF_8);
             rtmpObject = JSON.parseObject(getRtmpJson).getJSONObject("rtmp_send");
         } else {
