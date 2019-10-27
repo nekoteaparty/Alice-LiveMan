@@ -39,6 +39,7 @@ public class AccountInfo implements Comparable<AccountInfo> {
     private String                           description;
     private String                           roomId;
     private String                           uid;
+    private String                           roomUrl;
     private boolean                          joinAutoBalance;
     private boolean                          admin;
     private boolean                          disable;
@@ -108,6 +109,14 @@ public class AccountInfo implements Comparable<AccountInfo> {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getRoomUrl() {
+        return roomUrl;
+    }
+
+    public void setRoomUrl(String roomUrl) {
+        this.roomUrl = roomUrl;
     }
 
     public boolean isJoinAutoBalance() {

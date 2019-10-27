@@ -155,6 +155,7 @@ public class DouYuBroadcastService implements BroadcastService {
                 throw new RuntimeException("获取斗鱼直播间信息失败" + liveInfoObject);
             }
         }
+        accountInfo.setRoomUrl("https://www.douyu.com/" + accountInfo.getRoomId());
         return accountInfo.getRoomId();
     }
 

@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 public class BilibiliApiUtil {
 
     private static final String DYNAMIC_POST_API   = "https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/create";
-    private static final String DYNAMIC_POST_PARAM = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s https://live.bilibili.com/%s&at_uids=&ctrl=[]&csrf_token=";
+    private static final String DYNAMIC_POST_PARAM = "dynamic_id=0&type=4&rid=0&content=#Vtuber##%s# 正在直播：%s %s&at_uids=&ctrl=[]&csrf_token=";
 
     @Autowired
     private LiveManSetting          liveManSetting;
@@ -69,8 +69,8 @@ public class BilibiliApiUtil {
         }
         String postData = null;
         try {
-            String broadcastRoomId = broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
-            postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), broadcastRoomId) + csrfToken;
+            broadcastServiceManager.getBroadcastService(accountInfo.getAccountSite()).getBroadcastRoomId(accountInfo);
+            postData = String.format(DYNAMIC_POST_PARAM, videoInfo.getChannelInfo().getChannelName(), videoInfo.getTitle(), accountInfo.getRoomUrl()) + csrfToken;
             String res = HttpRequestUtil.downloadUrl(new URI(DYNAMIC_POST_API), postAccount.getCookies(), postData, StandardCharsets.UTF_8);
             JSONObject jsonObject = JSONObject.parseObject(res);
             if (jsonObject.getInteger("code") != 0) {
