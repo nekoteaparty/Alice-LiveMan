@@ -141,6 +141,7 @@ public class BilibiliBroadcastService implements BroadcastService {
                 throw new RuntimeException("获取B站直播间信息失败" + liveInfoObject);
             }
         }
+        accountInfo.setRoomUrl("https://live.bilibili.com/" + accountInfo.getRoomId());
         return accountInfo.getRoomId();
     }
 
