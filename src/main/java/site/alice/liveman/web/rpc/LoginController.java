@@ -18,11 +18,8 @@
 
 package site.alice.liveman.web.rpc;
 
-import com.hiczp.bilibili.api.BilibiliAPI;
-import com.hiczp.bilibili.api.passport.exception.CaptchaMismatchException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +30,7 @@ import site.alice.liveman.model.AccountInfo;
 import site.alice.liveman.model.LiveManSetting;
 import site.alice.liveman.service.broadcast.BroadcastService;
 import site.alice.liveman.service.broadcast.BroadcastServiceManager;
+import site.alice.liveman.service.broadcast.impl.BilibiliBroadcastService.CaptchaMismatchException;
 import site.alice.liveman.web.dataobject.ActionResult;
 import site.alice.liveman.web.dataobject.vo.AccountInfoVO;
 import site.alice.liveman.web.dataobject.vo.LoginInfoVO;
@@ -61,7 +59,7 @@ public class LoginController {
     private              SettingConfig           settingConfig;
 
     @RequestMapping("/login.json")
-    public ActionResult<AccountInfoVO> loginWithBili(String loginMode, @RequestBody LoginInfoVO loginInfoVO) {
+    public ActionResult<Object> loginWithBili(String loginMode, @RequestBody LoginInfoVO loginInfoVO) {
         try {
             AccountInfo accountInfo = new AccountInfo();
             accountInfo.setAccountSite(loginInfoVO.getAccountSite());
@@ -92,9 +90,10 @@ public class LoginController {
             return ActionResult.getSuccessResult(accountInfoVO);
         } catch (Exception e) {
             log.error("登录失败", e);
-            ActionResult<AccountInfoVO> errorResult = ActionResult.getErrorResult("登录失败[ErrMsg:" + e.getMessage() + "]");
+            ActionResult<Object> errorResult = ActionResult.getErrorResult("登录失败[ErrMsg:" + e.getMessage() + "]");
             if (e instanceof CaptchaMismatchException) {
                 errorResult.setCode(-101);
+                errorResult.setData(((CaptchaMismatchException) e).getGeetestUrl());
             }
             return errorResult;
         }

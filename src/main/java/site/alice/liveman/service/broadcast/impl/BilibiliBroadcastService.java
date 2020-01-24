@@ -21,14 +21,24 @@ package site.alice.liveman.service.broadcast.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.hiczp.bilibili.api.BilibiliAPI;
+import com.google.gson.JsonObject;
+import com.hiczp.bilibili.api.BilibiliClient;
+import com.hiczp.bilibili.api.passport.model.LoginResponse;
+import com.hiczp.bilibili.api.passport.model.LoginResponse.Data.CookieInfo.Cookie;
+import com.hiczp.bilibili.api.retrofit.CommonResponse;
+import com.hiczp.bilibili.api.retrofit.exception.BilibiliApiException;
+import kotlin.Result;
+import kotlin.Result.Failure;
+import kotlin.coroutines.Continuation;
+import kotlin.coroutines.CoroutineContext;
+import kotlin.coroutines.EmptyCoroutineContext;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Cookie;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import site.alice.liveman.jenum.VideoBannedTypeEnum;
@@ -44,19 +54,16 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 public class BilibiliBroadcastService implements BroadcastService {
-    private static final String      BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
-    private static final String      BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
-    private static final String      BILI_STOP_LIVE_URL   = "https://api.live.bilibili.com/room/v1/Room/stopLive";
-    private static final String      BILI_LIVE_INFO_URL   = "https://api.live.bilibili.com/live_user/v1/UserInfo/live_info";
-    private static final BilibiliAPI bilibiliAPI          = new BilibiliAPI();
-
+    private static final String BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
+    private static final String BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
+    private static final String BILI_STOP_LIVE_URL   = "https://api.live.bilibili.com/room/v1/Room/stopLive";
+    private static final String BILI_LIVE_INFO_URL   = "https://api.live.bilibili.com/live_user/v1/UserInfo/live_info";
 
     @Autowired
     private HttpSession session;
@@ -205,22 +212,84 @@ public class BilibiliBroadcastService implements BroadcastService {
 
     @Override
     public String getBroadcastCookies(String username, String password, String captcha) throws Exception {
-        bilibiliAPI.login(username, password, captcha, "sid=" + session.getId());
-        StringBuilder sb = new StringBuilder();
-        Map<String, List<Cookie>> cookieListMap = bilibiliAPI.toCookies();
-        for (Map.Entry<String, List<Cookie>> cookieEntry : cookieListMap.entrySet()) {
-            if (cookieEntry.getKey().contains("bilibili")) {
-                List<Cookie> cookies = cookieEntry.getValue();
-                for (Cookie cookie : cookies) {
-                    sb.append(cookie.name()).append("=").append(cookie.value()).append(";");
+        BilibiliClient client = new BilibiliClient();
+        LoginContinuation loginContinuation = new LoginContinuation();
+        if (StringUtils.isEmpty(captcha)) {
+            client.login(username, password, null, null, null, loginContinuation);
+        } else {
+            JSONObject gcData = JSON.parseObject(captcha);
+            client.login(username, password, gcData.getString("challenge"), gcData.getString("seccode"), gcData.getString("validate"), loginContinuation);
+        }
+        synchronized (loginContinuation) {
+            loginContinuation.wait();
+            Failure failureResult = loginContinuation.getFailureResult();
+            if (failureResult != null) {
+                if (failureResult.exception instanceof BilibiliApiException) {
+                    BilibiliApiException apiException = (BilibiliApiException) failureResult.exception;
+                    CommonResponse commonResponse = apiException.getCommonResponse();
+                    if (commonResponse.getCode() == -105) {
+                        throw new CaptchaMismatchException(commonResponse.getMessage(), ((JsonObject) commonResponse.getData()).get("url").getAsString().replace("https://passport.bilibili.com/register/verification.html", "/api/static/verification.html"));
+                    }
                 }
+                throw new Exception(failureResult.exception.getMessage(), failureResult.exception);
+            }
+            LoginResponse loginResponse = loginContinuation.getLoginResponse();
+            StringBuilder sb = new StringBuilder();
+            List<Cookie> cookieList = loginResponse.getData().getCookieInfo().getCookies();
+            for (Cookie cookie : cookieList) {
+                sb.append(cookie.getName()).append("=").append(cookie.getValue()).append(";");
+            }
+            return sb.toString();
+        }
+    }
+
+    public static class LoginContinuation implements Continuation<LoginResponse> {
+
+        private LoginResponse loginResponse;
+        private Failure       failureResult;
+
+        @NotNull
+        @Override
+        public CoroutineContext getContext() {
+            return EmptyCoroutineContext.INSTANCE;
+        }
+
+        @Override
+        public void resumeWith(Object o) {
+            synchronized (this) {
+                if (o instanceof Failure) {
+                    failureResult = (Failure) o;
+                } else if (o instanceof LoginResponse) {
+                    this.loginResponse = (LoginResponse) o;
+                }
+                this.notifyAll();
             }
         }
-        return sb.toString();
+
+        public LoginResponse getLoginResponse() {
+            return loginResponse;
+        }
+
+        public Failure getFailureResult() {
+            return failureResult;
+        }
     }
 
     @Override
     public InputStream getBroadcastCaptcha() throws IOException {
-        return bilibiliAPI.getCaptchaService().getCaptchaAsStream("sid=" + session.getId());
+        return null;
+    }
+
+    public static class CaptchaMismatchException extends Exception {
+        private String geetestUrl;
+
+        public CaptchaMismatchException(String message, String geetestUrl) {
+            super(message);
+            this.geetestUrl = geetestUrl;
+        }
+
+        public String getGeetestUrl() {
+            return geetestUrl;
+        }
     }
 }
