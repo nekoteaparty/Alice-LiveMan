@@ -54,7 +54,7 @@ public class DynamicServerJob {
     @Autowired
     private BroadcastServerService broadcastServerService;
 
-//    @Scheduled(cron = "0 0/1 * * * ?")
+    @Scheduled(cron = "0 0/1 * * * ?")
     public void serverScanner() {
         CopyOnWriteArraySet<ServerInfo> servers = liveManSetting.getServers();
         List<ServerInfo> list = dynamicServerService.list();
