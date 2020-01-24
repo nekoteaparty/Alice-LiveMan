@@ -30,11 +30,12 @@ public class AliceWebMvcConfigurer implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/mediaProxy/temp/**").addResourceLocations("file:" + MediaProxyManager.getTempPath() + "/");
+        registry.addResourceHandler("/api/static/**").addResourceLocations("classpath:/static/");
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor()).excludePathPatterns("/api/magictea/**", "/api/login/**", "/api/drawing/**", "/mediaProxy/**", "/error");
+        registry.addInterceptor(new LoginInterceptor()).excludePathPatterns("/api/static/**", "/api/magictea/**", "/api/login/**", "/api/drawing/**", "/mediaProxy/**", "/error");
     }
 }
 

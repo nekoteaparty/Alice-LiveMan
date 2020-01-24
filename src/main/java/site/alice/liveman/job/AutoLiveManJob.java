@@ -37,7 +37,7 @@ public class AutoLiveManJob {
     @Autowired
     private              LiveManSetting     liveManSetting;
 
-    @Scheduled(cron = "0/5 * * * * ?")
+ //   @Scheduled(cron = "0/5 * * * * ?")
     public void aliceLiveJob() {
         if (liveManSetting.getChannels().isEmpty()) {
             LOGGER.warn("频道列表为空！");
