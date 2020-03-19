@@ -78,7 +78,7 @@ public class AliceCommentTextLocationService implements TextLocationService {
 
     class EDLAliceAipClient extends BaseClient {
 
-        public static final String ALICE_COMMENT_URL = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/detection/alice_comment";
+        public static final String ALICE_COMMENT_URL = "https://aip.baidubce.com/rpc/2.0/ai_custom_pro/v1/detection/alice_comment";
 
         protected EDLAliceAipClient(String appId, String apiKey, String secretKey) {
             super(appId, apiKey, secretKey);
