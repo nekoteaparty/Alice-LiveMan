@@ -43,14 +43,14 @@ public class OneDriveUtil {
     private static final Map<String, OneFolder> oneFolderMap = new HashMap<>();
 
     public OneDriveSDK getOneDriveSDK() throws IOException, OneDriveException {
-        if (sdk == null) {
+        if (sdk == null || StringUtils.isEmpty(liveManSetting.getOneDriveToken())) {
             String redirectUrl = liveManSetting.getBaseUrl() + "/api/onedrive/oauth/callback";
             sdk = OneDriveFactory.createOneDriveSDK(
                     liveManSetting.getOneDriveClientId(), liveManSetting.getOneDriveClientSecret(),
                     redirectUrl,
                     OneDriveScope.FILES_READWRITE_ALL, OneDriveScope.OFFLINE_ACCESS);
         }
-        if (!sdk.isAuthenticated() && StringUtils.isNotEmpty(liveManSetting.getOneDriveToken())) {
+        if (!sdk.isAuthenticated()) {
             sdk.authenticateWithRefreshToken(liveManSetting.getOneDriveToken());
         }
         return sdk;
