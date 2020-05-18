@@ -118,7 +118,7 @@
         <dependency>
             <groupId>com.github.NekoSunflower</groupId>
             <artifactId>OneDriveJavaSDK</artifactId>
-            <version>bd24f1c119</version>
+            <version>0868b98985</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.squareup.okhttp3</groupId>
