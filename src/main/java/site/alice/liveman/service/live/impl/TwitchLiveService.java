@@ -59,69 +59,65 @@ public class TwitchLiveService extends LiveService {
         String channelName = channelUrl.substring(22);
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put("client-id", clientId);
-        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), channelInfo != null ? channelInfo.getCookies() : null, headerMap, StandardCharsets.UTF_8);
-        JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
-        if (streamObj != null) {
-            String videoId = streamObj.getString("_id");
-            JSONObject channelObj = streamObj.getJSONObject("channel");
-            String videoTitle = channelObj.getString("status");
-            String streamTokenJSON = HttpRequestUtil.downloadUrl(new URI(String.format(GET_STREAM_TOKEN_URL, channelName)), channelInfo != null ? channelInfo.getCookies() : null, headerMap, StandardCharsets.UTF_8);
-            JSONObject streamTokenObj = JSON.parseObject(streamTokenJSON);
-            String token = streamTokenObj.getString("token");
-            String sig = streamTokenObj.getString("sig");
-            String masterM3u8URL = String.format(MASTER_M3U8_URL, channelName, sig, URLEncoder.encode(token, StandardCharsets.UTF_8.name()));
-            String masterM3u8 = HttpRequestUtil.downloadUrl(new URI(masterM3u8URL), null, headerMap, StandardCharsets.UTF_8);
-            String[] m3u8Lines = masterM3u8.split("\n");
-            String m3u8FileUrl = null;
-            boolean isFindResolution = false;
-            StreamInfo streamInfo = null;
-            for (String m3u8Line : m3u8Lines) {
-                if (StringUtils.isNotEmpty(m3u8Line)) {
-                    if (m3u8Line.startsWith("#")) {
-                        if (m3u8Line.contains(resolution)) {
-                            isFindResolution = true;
-                        }
-                        if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
-                            if (streamInfo == null || isFindResolution) {
-                                streamInfo = M3u8Util.getStreamInfo(m3u8Line);
+        headerMap.put("Accept", "application/vnd.twitchtv.v5+json");
+        String streamTokenJSON = HttpRequestUtil.downloadUrl(new URI(String.format(GET_STREAM_TOKEN_URL, channelName)), channelInfo != null ? channelInfo.getCookies() : null, headerMap, StandardCharsets.UTF_8);
+        JSONObject streamTokenObj = JSON.parseObject(streamTokenJSON);
+        if (streamTokenObj != null) {
+            JSONObject tokenObj = streamTokenObj.getJSONObject("token");
+            String channelId = tokenObj.getString("channel_id");
+            String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelId), channelInfo != null ? channelInfo.getCookies() : null, headerMap, StandardCharsets.UTF_8);
+            JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
+            if (streamObj != null) {
+                String videoId = streamObj.getString("_id");
+                JSONObject channelObj = streamObj.getJSONObject("channel");
+                String videoTitle = channelObj.getString("status");
+                String token = streamTokenObj.getString("token");
+                String sig = streamTokenObj.getString("sig");
+                String masterM3u8URL = String.format(MASTER_M3U8_URL, channelName, sig, URLEncoder.encode(token, StandardCharsets.UTF_8.name()));
+                String masterM3u8 = HttpRequestUtil.downloadUrl(new URI(masterM3u8URL), null, headerMap, StandardCharsets.UTF_8);
+                String[] m3u8Lines = masterM3u8.split("\n");
+                String m3u8FileUrl = null;
+                boolean isFindResolution = false;
+                StreamInfo streamInfo = null;
+                for (String m3u8Line : m3u8Lines) {
+                    if (StringUtils.isNotEmpty(m3u8Line)) {
+                        if (m3u8Line.startsWith("#")) {
+                            if (m3u8Line.contains(resolution)) {
+                                isFindResolution = true;
                             }
-                        }
-                    } else {
-                        // 默认优先第一个最高码流的
-                        if (m3u8FileUrl == null) {
-                            m3u8FileUrl = m3u8Line;
-                        }
-                        // 如果找到了指定的码率则覆盖默认的码流地址
-                        if (isFindResolution) {
-                            m3u8FileUrl = m3u8Line;
-                            break;
+                            if (m3u8Line.startsWith("#EXT-X-STREAM-INF")) {
+                                if (streamInfo == null || isFindResolution) {
+                                    streamInfo = M3u8Util.getStreamInfo(m3u8Line);
+                                }
+                            }
+                        } else {
+                            // 默认优先第一个最高码流的
+                            if (m3u8FileUrl == null) {
+                                m3u8FileUrl = m3u8Line;
+                            }
+                            // 如果找到了指定的码率则覆盖默认的码流地址
+                            if (isFindResolution) {
+                                m3u8FileUrl = m3u8Line;
+                                break;
+                            }
                         }
                     }
                 }
+                VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, new URI(m3u8FileUrl), "m3u8");
+                if (streamInfo != null) {
+                    videoInfo.setResolution(streamInfo.getResolution());
+                    videoInfo.setFrameRate(streamInfo.getFrameRate());
+                }
+                videoInfo.setDescription(streamObj.getString("game"));
+                return videoInfo;
             }
-            VideoInfo videoInfo = new VideoInfo(channelInfo, videoId, videoTitle, videoInfoUrl, new URI(m3u8FileUrl), "m3u8");
-            if (streamInfo != null) {
-                videoInfo.setResolution(streamInfo.getResolution());
-                videoInfo.setFrameRate(streamInfo.getFrameRate());
-            }
-            videoInfo.setDescription(streamObj.getString("game"));
-            return videoInfo;
         }
         return null;
     }
 
     @Override
     public URI getLiveVideoInfoUrl(ChannelInfo channelInfo) throws Exception {
-        String channelUrl = channelInfo.getChannelUrl();
-        String channelName = channelUrl.substring(22);
-        Map<String, String> headerMap = new HashMap<>();
-        headerMap.put("client-id", clientId);
-        String streamJSON = HttpRequestUtil.downloadUrl(new URI(GET_STREAM_INFO_URL + channelName), channelInfo != null ? channelInfo.getCookies() : null, headerMap, StandardCharsets.UTF_8);
-        JSONObject streamObj = JSON.parseObject(streamJSON).getJSONObject("stream");
-        if (streamObj != null && "live".equals(streamObj.getString("stream_type"))) {
-            return new URI(channelUrl);
-        }
-        return null;
+        return new URI(channelInfo.getChannelUrl());
     }
 
     @Override
