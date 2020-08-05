@@ -93,6 +93,9 @@ public class BilibiliBroadcastService implements BroadcastService {
         if (startLiveObject.getInteger("code") == 0) {
             rtmpObject = startLiveObject.getJSONObject("data").getJSONObject("rtmp");
         } else {
+            if(startLiveJson.contains("系统升级维护中")){
+
+            }
             accountInfo.setDisable(true);
             throw new RuntimeException("开启B站直播间失败" + startLiveObject);
         }

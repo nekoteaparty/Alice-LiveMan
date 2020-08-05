@@ -19,6 +19,8 @@ package site.alice.liveman.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson.util.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -42,6 +44,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
@@ -49,6 +52,7 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.alice.liveman.model.LiveManSetting;
+import site.alice.liveman.model.ServerInfo;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -59,6 +63,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.zip.GZIPInputStream;
 
 @Component
@@ -131,6 +136,46 @@ public class HttpRequestUtil {
 
     public static String downloadUrl(URI url, String cookies, String postData, Charset charset) throws IOException {
         return downloadUrl(url, cookies, postData, null, charset);
+    }
+
+    public static String downloadWithRemoteCUrl(URI url, String cookies, String postData, Map<String, String> requestProperties, Charset charset, ServerInfo serverInfo) throws InterruptedException, IOException, TimeoutException {
+        StringBuilder sb = new StringBuilder("curl\t-X\tPOST");
+        sb.append("\t--user-agent\t").append("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
+        if (StringUtils.isNotBlank(cookies)) {
+            sb.append("\t--cookie\t").append(cookies);
+        }
+        if (requestProperties != null) {
+            for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
+                sb.append("\t--header\t").append(new BasicHeader(entry.getKey(), entry.getValue()).toString());
+            }
+        }
+        sb.append("\t--header\t").append("Accept:*/*");
+        sb.append("\t--header\t").append("Accept-Encoding:gzip, deflate");
+        if (postData.startsWith("{")) {
+            sb.append("\t--header\t").append("Content-Type:").append(ContentType.APPLICATION_JSON);
+            sb.append("\t--data\t").append(postData).append("\"");
+        } else {
+            List<NameValuePair> nameValuePairs = new ArrayList<>();
+            String[] formItems = postData.split("&");
+            for (String formItem : formItems) {
+                String[] itemData = formItem.split("=");
+                nameValuePairs.add(new BasicNameValuePair(itemData[0], itemData.length > 1 ? itemData[1] : StringUtils.EMPTY));
+            }
+            ContentType contentType = ContentType.create(URLEncodedUtils.CONTENT_TYPE, charset);
+            sb.append("\t--header\t").append("Content-Type: ").append(contentType.toString());
+            sb.append("\t--data\t").append(URLEncodedUtils.format(nameValuePairs, charset));
+        }
+        sb.append("\t").append(url);
+        String logName = UUID.randomUUID().toString();
+        long remoteProcess = ProcessUtil.createRemoteProcess(sb.toString(), serverInfo, true, logName);
+        ProcessUtil.AliceProcess aliceProcess = ProcessUtil.getAliceProcess(remoteProcess);
+        File logFile = aliceProcess.getProcessBuilder().redirectOutput().file();
+        if (aliceProcess.waitFor(10, TimeUnit.SECONDS)) {
+            return FileUtils.readFileToString(logFile);
+        } else {
+            aliceProcess.destroy();
+            throw new TimeoutException("downloadWithRemoteCUrl Timeout!");
+        }
     }
 
     public static String downloadUrl(URI url, String cookies, String postData, Map<String, String> requestProperties, Charset charset) throws IOException {
