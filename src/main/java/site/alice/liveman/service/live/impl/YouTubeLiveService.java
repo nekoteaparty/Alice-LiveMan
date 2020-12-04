@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 public class YouTubeLiveService extends LiveService {
 
     private static final String  GET_VIDEO_INFO_URL       = "https://www.youtube.com/watch?v=";
-    private static final Pattern hlsvpPattern             = Pattern.compile("\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\"");
+    private static final Pattern hlsvpPattern             = Pattern.compile("(\\\\\\\"hlsManifestUrl\\\\\\\":\\\\\\\"(.+?)\\\\\\\")|(\"hlsManifestUrl\":\"(.+?)\")");
     private static final Pattern videoTitlePattern        = Pattern.compile(",\"title\":\"(.+?)\"");
     private static final Pattern videoIdPattern           = Pattern.compile("/id/(.+?)/");
     private static final Pattern browseIdPattern          = Pattern.compile("RICH_METADATA_RENDERER_STYLE_BOX_ART.+?\\{\"browseId\":\"(.+?)\"}");
@@ -64,11 +64,12 @@ public class YouTubeLiveService extends LiveService {
         String description = "";
         String videoId = "";
         if (hlsvpMatcher.find()) {
-            if (!videoInfoRes.contains("\\\"isLive\\\":true")) {
+            if (!videoInfoRes.contains("\\\"isLive\\\":true") && !videoInfoRes.contains("\"isLive\":true")) {
                 log.info("节目[" + videoInfoUrl + "]已停止直播(isLive=false)");
                 return null;
             }
-            String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatcher.group(1)), StandardCharsets.UTF_8.name());
+            String hlsvpMatchResult = hlsvpMatcher.group(2) == null ? hlsvpMatcher.group(4) : hlsvpMatcher.group(2);
+            String hlsvpUrl = URLDecoder.decode(StringEscapeUtils.unescapeJava(hlsvpMatchResult), StandardCharsets.UTF_8.name());
             Matcher videoIdMatcher = videoIdPattern.matcher(hlsvpUrl);
             if (videoIdMatcher.find()) {
                 videoId = videoIdMatcher.group(1);
