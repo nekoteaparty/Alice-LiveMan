@@ -23,16 +23,17 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.gson.JsonObject;
 import com.hiczp.bilibili.api.BilibiliClient;
+import com.hiczp.bilibili.api.BilibiliClientProperties;
 import com.hiczp.bilibili.api.passport.model.LoginResponse;
 import com.hiczp.bilibili.api.passport.model.LoginResponse.Data.CookieInfo.Cookie;
 import com.hiczp.bilibili.api.retrofit.CommonResponse;
 import com.hiczp.bilibili.api.retrofit.exception.BilibiliApiException;
-import kotlin.Result;
 import kotlin.Result.Failure;
 import kotlin.coroutines.Continuation;
 import kotlin.coroutines.CoroutineContext;
 import kotlin.coroutines.EmptyCoroutineContext;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
@@ -215,7 +216,10 @@ public class BilibiliBroadcastService implements BroadcastService {
 
     @Override
     public String getBroadcastCookies(String username, String password, String captcha) throws Exception {
-        BilibiliClient client = new BilibiliClient();
+        BilibiliClientProperties billingClientProperties = new BilibiliClientProperties();
+        billingClientProperties.setAppKey("4409e2ce8ffd12b8");
+        billingClientProperties.setAppSecret("59b43e04ad6965f34319062b478f83dd");
+        BilibiliClient client = new BilibiliClient(billingClientProperties, HttpLoggingInterceptor.Level.NONE);
         LoginContinuation loginContinuation = new LoginContinuation();
         if (StringUtils.isEmpty(captcha)) {
             client.login(username, password, null, null, null, loginContinuation);
