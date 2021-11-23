@@ -66,14 +66,14 @@ import java.util.stream.Collectors;
 @Service
 public class DouYuBroadcastService implements BroadcastService {
 
-    public static final String SESSION_ATTRIBUTE = "douyu-qrcode";
-    public static final String URL_GENERATE_CODE = "https://passport.douyu.com/scan/generateCode";
-    public static final String URL_CHECK_CODE    = "https://passport.douyu.com/lapi/passport/qrcode/check?time=%s&code=%s";
-    public static final String URL_ROOM_INFO     = "https://mp.douyu.com/live/room/getroominfo";
-    public static final String URL_MEMBER_INFO   = "https://www.douyu.com/lapi/member/api/getInfo?client_type=0";
-    public static final String URL_OPEN_SHOW     = "https://www.douyu.com/room/my/first_show";
-    public static final String URL_CLOSE_SHOW    = "https://www.douyu.com/room/my/close_show";
-    public static final String URL_GET_RTMP      = "https://www.douyu.com/room/my/get_live_code";
+    private static final String SESSION_ATTRIBUTE = "douyu-qrcode";
+    private static final String URL_GENERATE_CODE = "https://passport.douyu.com/scan/generateCode";
+    private static final String URL_CHECK_CODE    = "https://passport.douyu.com/lapi/passport/qrcode/check?time=%s&code=%s";
+    private static final String URL_ROOM_INFO     = "https://mp.douyu.com/live/room/getroominfo";
+    private static final String URL_MEMBER_INFO   = "https://www.douyu.com/lapi/member/api/getInfo?client_type=0";
+    private static final String URL_OPEN_SHOW     = "https://www.douyu.com/room/my/first_show";
+    private static final String URL_CLOSE_SHOW    = "https://www.douyu.com/room/my/close_show";
+    private static final String URL_GET_RTMP      = "https://www.douyu.com/room/my/get_live_code";
 
     @Autowired
     private HttpSession session;

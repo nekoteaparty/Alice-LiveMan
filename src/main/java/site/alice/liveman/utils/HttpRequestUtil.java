@@ -17,9 +17,6 @@
  */
 package site.alice.liveman.utils;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.alibaba.fastjson.util.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
@@ -243,6 +240,44 @@ public class HttpRequestUtil {
 
     public static HttpResponse getHttpResponse(URI url) throws IOException {
         return getHttpResponse(url, null, null);
+    }
+
+    public static HttpResponse getHttpResponse(URI url, String cookies, String postData, Map<String, String> requestProperties, Charset charset) throws IOException {
+        HttpPost httpPost = new HttpPost(url);
+        HttpClientContext context = HttpClientContext.create();
+        RequestConfig.Builder builder = RequestConfig.custom();
+        builder.setConnectTimeout(2000).setConnectionRequestTimeout(2000).setSocketTimeout(5000).setCookieSpec(CookieSpecs.IGNORE_COOKIES).setRedirectsEnabled(true);
+        httpPost.setConfig(builder.build());
+        if (StringUtils.isNotBlank(cookies)) {
+            httpPost.setHeader("Cookie", cookies);
+        }
+        httpPost.setHeader("Accept", "*/*");
+        httpPost.setHeader("Accept-Encoding", "gzip, deflate");
+        httpPost.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
+        if (requestProperties != null) {
+            for (Map.Entry<String, String> entry : requestProperties.entrySet()) {
+                httpPost.setHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        if (postData.startsWith("{")) {
+            httpPost.setEntity(new StringEntity(postData, ContentType.APPLICATION_JSON));
+        } else {
+            List<NameValuePair> nameValuePairs = new ArrayList<>();
+            String[] formItems = postData.split("&");
+            for (String formItem : formItems) {
+                String[] itemData = formItem.split("=");
+                nameValuePairs.add(new BasicNameValuePair(itemData[0], itemData.length > 1 ? itemData[1] : StringUtils.EMPTY));
+            }
+            UrlEncodedFormEntity urlEncodedFormEntity = new UrlEncodedFormEntity(nameValuePairs, charset);
+            urlEncodedFormEntity.setContentType(URLEncodedUtils.CONTENT_TYPE);
+            httpPost.setEntity(urlEncodedFormEntity);
+        }
+        try {
+            return client.execute(httpPost, context);
+        } catch (IllegalStateException e) {
+            initClient();
+            throw e;
+        }
     }
 
     public static HttpResponse getHttpResponse(URI url, String cookies, Map<String, String> requestProperties) throws IOException {
