@@ -59,6 +59,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class BilibiliBroadcastService implements BroadcastService {
+    private static final String SESSION_ATTRIBUTE    = "bilibili-qrcode";
+    private static final String URL_GENERATE_CODE    = "https://passport.bilibili.com/qrcode/getLoginUrl";
+    private static final String URL_CHECK_CODE       = "https://passport.bilibili.com/qrcode/getLoginInfo?gourl=https://www.bilibili.com/&oauthKey=%s";
     private static final String BILI_LIVE_UPDATE_URL = "https://api.live.bilibili.com/room/v1/Room/update";
     private static final String BILI_START_LIVE_URL  = "https://api.live.bilibili.com/room/v1/Room/startLive";
     private static final String BILI_STOP_LIVE_URL   = "https://api.live.bilibili.com/room/v1/Room/stopLive";
@@ -214,87 +217,51 @@ public class BilibiliBroadcastService implements BroadcastService {
 
     @Override
     public String getBroadcastCookies(String username, String password, String captcha) throws Exception {
-        BilibiliClientProperties billingClientProperties = new BilibiliClientProperties();
-        billingClientProperties.setAppKey("4409e2ce8ffd12b8");
-        billingClientProperties.setAppSecret("59b43e04ad6965f34319062b478f83dd");
-        BilibiliClient client = new BilibiliClient(billingClientProperties, HttpLoggingInterceptor.Level.NONE);
-        LoginContinuation loginContinuation = new LoginContinuation();
-        if (StringUtils.isEmpty(captcha)) {
-            client.login(username, password, null, null, null, loginContinuation);
-        } else {
-            JSONObject gcData = JSON.parseObject(captcha);
-            client.login(username, password, gcData.getString("challenge"), gcData.getString("seccode"), gcData.getString("validate"), loginContinuation);
+        Object qrCode = session.getAttribute(SESSION_ATTRIBUTE);
+        Map<String, String> requestProperties = new HashMap<>();
+        requestProperties.put("referer", "https://passport.bilibili.com/login");
+        requestProperties.put("x-requested-with", "XMLHttpRequest");
+        HttpResponse httpResponse = HttpRequestUtil.getHttpResponse(URI.create(String.format(URL_CHECK_CODE, qrCode)), null, "oauthKey=" + qrCode + "&gourl=https%3A%2F%2Fwww.bilibili.com%2F", requestProperties, StandardCharsets.UTF_8);
+        List<Header> headerList = new ArrayList<>(Arrays.asList(httpResponse.getHeaders("set-cookie")));
+        String checkResultJSON = EntityUtils.toString(httpResponse.getEntity(), "utf-8");
+        JSONObject checkResult = JSON.parseObject(checkResultJSON);
+        if (checkResult.getBoolean("status")) {
+            headerList.addAll(Arrays.asList(httpResponse.getHeaders("set-cookie")));
+            return headerList.stream().map(header -> header.getValue().split(";")[0]).collect(Collectors.joining(";"));
         }
-        synchronized (loginContinuation) {
-            loginContinuation.wait();
-            Failure failureResult = loginContinuation.getFailureResult();
-            if (failureResult != null) {
-                if (failureResult.exception instanceof BilibiliApiException) {
-                    BilibiliApiException apiException = (BilibiliApiException) failureResult.exception;
-                    CommonResponse commonResponse = apiException.getCommonResponse();
-                    if (commonResponse.getCode() == -105) {
-                        throw new CaptchaMismatchException(commonResponse.getMessage(), ((JsonObject) commonResponse.getData()).get("url").getAsString().replace("https://passport.bilibili.com/register/verification.html", "/api/static/verification.html"));
-                    }
-                }
-                throw new Exception(failureResult.exception.getMessage(), failureResult.exception);
-            }
-            LoginResponse loginResponse = loginContinuation.getLoginResponse();
-            StringBuilder sb = new StringBuilder();
-            List<Cookie> cookieList = loginResponse.getData().getCookieInfo().getCookies();
-            for (Cookie cookie : cookieList) {
-                sb.append(cookie.getName()).append("=").append(cookie.getValue()).append(";");
-            }
-            return sb.toString();
-        }
-    }
-
-    public static class LoginContinuation implements Continuation<LoginResponse> {
-
-        private LoginResponse loginResponse;
-        private Failure       failureResult;
-
-        @NotNull
-        @Override
-        public CoroutineContext getContext() {
-            return EmptyCoroutineContext.INSTANCE;
-        }
-
-        @Override
-        public void resumeWith(Object o) {
-            synchronized (this) {
-                if (o instanceof Failure) {
-                    failureResult = (Failure) o;
-                } else if (o instanceof LoginResponse) {
-                    this.loginResponse = (LoginResponse) o;
-                }
-                this.notifyAll();
-            }
-        }
-
-        public LoginResponse getLoginResponse() {
-            return loginResponse;
-        }
-
-        public Failure getFailureResult() {
-            return failureResult;
-        }
+        throw new Exception(checkResult.getString("message"));
     }
 
     @Override
     public InputStream getBroadcastCaptcha() throws IOException {
+        Map<String, String> requestProperties = new HashMap<>();
+        requestProperties.put("referer", "https://passport.bilibili.com/login");
+        requestProperties.put("x-requested-with", "XMLHttpRequest");
+        String generateCodeJSON = HttpRequestUtil.downloadUrl(URI.create(URL_GENERATE_CODE), null, requestProperties, StandardCharsets.UTF_8);
+        JSONObject generateCode = JSON.parseObject(generateCodeJSON);
+        if (generateCode.getInteger("code") == 0) {
+            String url = generateCode.getJSONObject("data").getString("url");
+            String code = generateCode.getJSONObject("data").getString("oauthKey");
+            session.setAttribute(SESSION_ATTRIBUTE, code);
+            try {
+                QRCode qrCode = Encoder.encode(url, ErrorCorrectionLevel.M);
+                BufferedImage qrCodeImage = new BufferedImage(qrCode.getMatrix().getWidth(), qrCode.getMatrix().getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+                for (int x = 0; x < qrCodeImage.getWidth(); x++) {
+                    for (int y = 0; y < qrCodeImage.getHeight(); y++) {
+                        if (qrCode.getMatrix().get(x, y) == 0) {
+                            qrCodeImage.setRGB(x, y, Color.WHITE.getRGB());
+                        }
+                    }
+                }
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ImageIO.write(qrCodeImage, "bmp", bos);
+                return new ByteArrayInputStream(bos.toByteArray());
+            } catch (WriterException e) {
+                throw new IOException(e);
+            }
+        } else {
+            log.error("获取qrcode失败:" + generateCodeJSON);
+        }
         return null;
-    }
-
-    public static class CaptchaMismatchException extends Exception {
-        private String geetestUrl;
-
-        public CaptchaMismatchException(String message, String geetestUrl) {
-            super(message);
-            this.geetestUrl = geetestUrl;
-        }
-
-        public String getGeetestUrl() {
-            return geetestUrl;
-        }
     }
 }
