@@ -264,4 +264,18 @@ public class BilibiliBroadcastService implements BroadcastService {
         }
         return null;
     }
+
+
+    public static class CaptchaMismatchException extends Exception {
+        private String geetestUrl;
+
+        public CaptchaMismatchException(String message, String geetestUrl) {
+            super(message);
+            this.geetestUrl = geetestUrl;
+        }
+
+        public String getGeetestUrl() {
+            return geetestUrl;
+        }
+    }
 }
